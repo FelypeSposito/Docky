@@ -1,0 +1,46 @@
+:root {
+  --ink: #fff;
+  --ink2: rgba(255, 255, 255, 0.62);
+  --ink3: rgba(255, 255, 255, 0.36);
+  --fill: rgba(255, 255, 255, 0.085);
+  --fill2: rgba(255, 255, 255, 0.15);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  color: var(--ink);
+  font: 400 13px/1.35 Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  letter-spacing: -0.006em;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+  background: transparent; /* a janela da ilha é transparente */
+}
+
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+svg {
+  display: block;
+  flex: none;
+}

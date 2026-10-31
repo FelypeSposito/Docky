@@ -1,0 +1,465 @@
+/* A janela de configurações: o mesmo visual da ilha (preto, vidro, brilho, dock). Tudo escopado em .sa. */
+
+body[data-window="settings"] {
+  background: transparent;
+}
+
+.sa {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #000;
+  --accent: #ff5c7a;
+  --glow: #ff5c7a;
+  --glow2: #7a3cff;
+}
+/* Borda de vidro: a luz cresce de cima para baixo, como na ilha. */
+.sa::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0, rgba(255, 255, 255, 0.1) 40%, rgba(255, 255, 255, 0.2) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.sa-glow {
+  position: absolute;
+  inset: auto -15% -40% -15%;
+  height: 70%;
+  pointer-events: none;
+  opacity: 0.4;
+  filter: blur(40px);
+  background:
+    radial-gradient(closest-side at 22% 70%, var(--glow), transparent 100%),
+    radial-gradient(closest-side at 80% 85%, var(--glow2), transparent 100%);
+  animation: drift 13s ease-in-out infinite alternate;
+}
+
+/* Barra de cima: olhinhos, dock de seções e controles da janela */
+.sa-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+}
+.sa .sa-eyes .eyes {
+  top: 23px;
+  left: 26px;
+}
+.sdock {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 38px;
+  padding: 4px;
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.075);
+  backdrop-filter: blur(16px) saturate(170%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 22px rgba(0, 0, 0, 0.4);
+}
+.sdk {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  min-width: 32px;
+  padding: 0 8px;
+  border-radius: 15px;
+  color: var(--ink2);
+  transition: background 0.3s, color 0.3s, transform 0.15s var(--ease);
+}
+.sdk:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+.sdk:active {
+  transform: scale(0.93);
+}
+.sdk .lb {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+  opacity: 0;
+  transition: max-width 0.55s var(--ease), opacity 0.25s, margin 0.55s var(--ease);
+}
+.sdk.on {
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.15);
+}
+.sdk.on .lb {
+  max-width: 96px;
+  margin-left: 6px;
+  color: #fff;
+  opacity: 1;
+}
+.sa-wc {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: flex;
+  gap: 6px;
+}
+.sa-wc button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--ink2);
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.2s, color 0.2s, transform 0.1s;
+}
+.sa-wc button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+.sa-wc button.close:hover {
+  background: #e5484d;
+}
+.sa-wc button:active {
+  transform: scale(0.9);
+}
+
+/* Conteúdo */
+.sa-main {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  padding: 4px 34px 30px;
+  overflow: auto;
+  user-select: text;
+}
+.sa-main::-webkit-scrollbar {
+  width: 8px;
+}
+.sa-main::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.sa-main h1 {
+  margin: 4px 0 16px;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+.sa-body {
+  animation: pop 0.5s var(--ease) both;
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Blocos de vidro: o mesmo "tile" da ilha */
+.sa .grp {
+  margin-bottom: 14px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.045));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.sa .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  padding: 9px 18px;
+}
+.sa .row + .row {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+.sa .rl b {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.sa .rl span {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink3);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.sa .rc {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+.sa .folder-row {
+  justify-content: flex-start;
+}
+
+/* Controles */
+.sa .tg {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 26px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.3s;
+}
+.sa .tg i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  transition: transform 0.4s var(--ease);
+}
+.sa .tg.on {
+  background: var(--accent);
+}
+.sa .tg.on i {
+  transform: translateX(16px);
+}
+.sa .sl {
+  appearance: none;
+  width: 170px;
+  height: 5px;
+  border-radius: 3px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.18);
+}
+.sa .sl::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+.sa .btn {
+  height: 30px;
+  padding: 0 15px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s, filter 0.2s;
+}
+.sa .btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+.sa .btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+.sa .btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.sa .btn.primary {
+  color: #1a0207;
+  background: var(--accent);
+}
+.sa .btn.primary:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.1);
+}
+.sa .btn.danger {
+  color: #ff7b72;
+}
+.sa .inp {
+  height: 30px;
+  padding: 0 12px;
+  color: #fff;
+  font: 500 12.5px Inter, system-ui, sans-serif;
+  border: 0;
+  border-radius: 15px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  user-select: text;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+.sa .inp:focus {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.sa .inp::placeholder {
+  color: var(--ink3);
+}
+.sa .badge {
+  padding: 4px 11px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink2);
+  font-size: 11px;
+  font-weight: 650;
+}
+.sa .badge.ok {
+  background: rgba(48, 209, 88, 0.18);
+  color: #4be37a;
+}
+.sa .step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.sa .step span {
+  min-width: 62px;
+  text-align: center;
+}
+.sa .step button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 15px;
+  line-height: 1;
+  transition: background 0.2s, transform 0.1s;
+}
+.sa .step button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.sa .step button:active {
+  transform: scale(0.9);
+}
+.sa .kc {
+  display: flex;
+  gap: 4px;
+}
+.sa .kc kbd {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.12);
+  font: 600 11px Inter, sans-serif;
+}
+.sa .hint {
+  margin: -6px 6px 14px;
+  color: var(--ink3);
+  font-size: 11.5px;
+}
+.sa .error {
+  margin-bottom: 14px;
+  padding: 11px 16px;
+  border-radius: 16px;
+  background: rgba(255, 69, 58, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 69, 58, 0.25);
+  color: #ff8a82;
+  font-size: 12.5px;
+}
+.sa .plan {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(255, 92, 122, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(255, 92, 122, 0.28);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.sa .plan b {
+  font-size: 14px;
+}
+.sa .plan code {
+  margin: 0 2px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  font: 500 11.5px "JetBrains Mono", ui-monospace, Consolas, monospace;
+  word-break: break-all;
+}
+.sa .plan pre {
+  padding: 10px 12px;
+  overflow: auto;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  font: 11px/1.5 "JetBrains Mono", ui-monospace, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.sa .plan-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Lista de páginas (a ordem do dock) */
+.sa .pg-row {
+  justify-content: flex-start;
+}
+.sa .pg-ic {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink2);
+}
+.sa .pg-name {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.sa .pg-move {
+  display: flex;
+  gap: 4px;
+}
+.sa .pg-move button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--ink2);
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.2s, color 0.2s, transform 0.1s;
+}
+.sa .pg-move button:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+}
+.sa .pg-move button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.sa .pg-move button:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+/* Aviso de "chega numa fase" */
+.sa .soon-card {
+  display: grid;
+  gap: 4px;
+  padding: 24px 20px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.045));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075);
+}
