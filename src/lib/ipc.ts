@@ -53,6 +53,8 @@ export interface Weather {
 export interface Note {
   file: string;
   text: string;
+  /** Última modificação, em milissegundos desde 1970 */
+  modifiedMs: number;
 }
 
 export interface FileDropEvent {
@@ -139,9 +141,12 @@ function devListen<T>(name: string, handler: (payload: T) => void): Unlisten {
 }
 
 const DEV_NOTES: Note[] = [
-  { file: "2026-10-31-1000.md", text: "Ver como ficam as letras sincronizadas" },
-  { file: "2026-10-30-2200.md", text: "Ideia: o mascote reagir quando o build terminar" },
-  { file: "2026-10-30-1530.md", text: "Comprar cabo USB-C para o notebook" },
+  { file: "2026-10-31-1000.md", text: "Ver como ficam as letras sincronizadas", modifiedMs: Date.now() - 3_600_000 },
+  { file: "2026-10-30-2200.md", text: "Ideia: o mascote reagir quando o build terminar", modifiedMs: Date.now() - 86_400_000 },
+  { file: "2026-10-30-1530.md", text: "Comprar cabo USB-C para o notebook", modifiedMs: Date.now() - 90_000_000 },
+  { file: "2026-10-29-0900.md", text: "Perguntar sobre o prazo do trabalho final", modifiedMs: Date.now() - 180_000_000 },
+  { file: "2026-10-28-1810.md", text: "Rever o resumo da aula de redes", modifiedMs: Date.now() - 260_000_000 },
+  { file: "2026-10-27-2040.md", text: "Pagar a conta de internet", modifiedMs: Date.now() - 350_000_000 },
 ];
 
 const CONFIG_KEY = "docky-config";
@@ -268,8 +273,13 @@ export const ipc = {
 
   notesSave(stamp: string, text: string): Promise<void> {
     if (isTauri) return invoke<void>("notes_save", { stamp, text });
-    DEV_NOTES.unshift({ file: stamp + ".md", text });
+    DEV_NOTES.unshift({ file: stamp + ".md", text, modifiedMs: Date.now() });
     return Promise.resolve();
+  },
+
+  /** Abre a nota no programa padrão dos .md (por exemplo, o Obsidian). */
+  notesOpen(file: string): Promise<void> {
+    return isTauri ? invoke<void>("notes_open", { file }) : Promise.resolve();
   },
 
   async notesRecent(limit: number): Promise<Note[]> {

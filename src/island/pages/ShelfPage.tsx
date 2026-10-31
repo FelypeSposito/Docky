@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { ipc } from "../../lib/ipc";
 import { fileName, useShelfStore } from "../../shelf/store";
+import { EmptyState } from "../EmptyState";
 import { FileIcon, FolderIcon, TrayIcon } from "../icons";
 import { useIslandStore } from "../store";
 
@@ -59,13 +60,11 @@ export function ShelfPage() {
       </div>
 
       {folders.length === 0 ? (
-        <div className="tile soon">
-          <b>Cadastre as pastas de destino</b>
-          <span>Escolha, nas configurações, as pastas para onde os arquivos vão (por exemplo, uma pasta do Drive).</span>
-          <button className="btn" onClick={() => ipc.openSettings()}>
-            Abrir configurações
-          </button>
-        </div>
+        <EmptyState
+          title="Falta cadastrar as pastas"
+          text="Escolha os destinos em Configurações, em Shelf."
+          action={{ label: "Abrir configurações", onClick: () => ipc.openSettings() }}
+        />
       ) : (
         <div className={`dgrid${paths.length === 0 ? " off" : ""}`}>
           {folders.map((folder, i) => (

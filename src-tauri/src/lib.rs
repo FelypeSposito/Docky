@@ -44,6 +44,7 @@ pub fn run() {
             system::system_stats,
             notes::notes_save,
             notes::notes_recent,
+            notes::notes_open,
             shelf::shelf_send,
             weather::weather,
             claude::claude_decide,

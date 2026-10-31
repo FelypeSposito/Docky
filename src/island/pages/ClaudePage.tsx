@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { type Session } from "../../claude/sessions";
 import { useClaudeStore } from "../../claude/store";
 import { ipc } from "../../lib/ipc";
+import { EmptyState } from "../EmptyState";
 
 const fmt = (total: number) =>
   `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
@@ -37,14 +38,15 @@ export function ClaudePage({ active }: { active: boolean }) {
 
   if (list.length === 0) {
     return (
-      <div className="tile soon">
-        <b>{installed === false ? "Os hooks do Claude Code ainda não estão instalados" : "Nenhuma sessão por enquanto"}</b>
-        <span>
-          {installed === false
-            ? "Abra Configurações, em Claude Code, para instalar. Depois, as sessões aparecem aqui."
-            : "Quando você usar o Claude Code, as sessões e os pedidos de permissão aparecem aqui."}
-        </span>
-      </div>
+      <EmptyState
+        title={installed === false ? "Hooks do Claude Code não instalados" : "Nenhuma sessão por enquanto"}
+        text={
+          installed === false
+            ? "Instale em Configurações, em Claude Code. Depois as sessões aparecem aqui."
+            : "Quando você usar o Claude Code, as sessões aparecem aqui."
+        }
+        action={installed === false ? { label: "Abrir configurações", onClick: () => ipc.openSettings() } : undefined}
+      />
     );
   }
 

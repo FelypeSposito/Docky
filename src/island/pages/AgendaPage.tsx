@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { ipc } from "../../lib/ipc";
 import { useWeatherStore } from "../../weather/store";
+import { EmptyState } from "../EmptyState";
 import { WeatherIcon } from "../icons";
 
 const DESCRIPTIONS: [number, string][] = [
@@ -58,8 +59,8 @@ export function AgendaPage({ active }: { active: boolean }) {
             <b>{!city.trim() ? "Defina a cidade" : loading ? "Buscando o clima…" : "Sem clima"}</b>
             <small>{error ?? "Em Configurações, em Integrações."}</small>
             {!city.trim() && (
-              <button className="btn" onClick={() => ipc.openSettings()}>
-                Abrir configurações
+              <button className="btn sm" onClick={() => ipc.openSettings()}>
+                Configurar
               </button>
             )}
           </div>
@@ -67,10 +68,7 @@ export function AgendaPage({ active }: { active: boolean }) {
         {weather && <span className="wx-city">{weather.city}</span>}
       </div>
 
-      <div className="tile cal-soon">
-        <b>Google Calendar</b>
-        <span>A conexão com a sua agenda chega numa próxima etapa. Por enquanto, a Agenda mostra o clima.</span>
-      </div>
+      <EmptyState title="Google Calendar" text="A conexão com a sua agenda chega numa próxima etapa." />
     </div>
   );
 }

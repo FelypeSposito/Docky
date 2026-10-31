@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { filterShortcuts } from "../../launcher/filter";
 import { ipc } from "../../lib/ipc";
+import { EmptyState } from "../EmptyState";
 import { SearchIcon } from "../icons";
 
 const COLORS = ["#4c8dff", "#8b5cf6", "#ff9f43", "#34d399", "#ff5c7a", "#30b0c7"];
@@ -20,13 +21,11 @@ export function LauncherPage() {
 
   if (shortcuts.filter((s) => s.name.trim() && s.target.trim()).length === 0) {
     return (
-      <div className="tile soon">
-        <b>Cadastre seus atalhos</b>
-        <span>Apps, pastas, arquivos e sites que você abre sempre. Adicione em Configurações, em Atalhos.</span>
-        <button className="btn" onClick={() => ipc.openSettings()}>
-          Abrir configurações
-        </button>
-      </div>
+      <EmptyState
+        title="Cadastre seus atalhos"
+        text="Apps, pastas e sites que você abre sempre, em Configurações, em Atalhos."
+        action={{ label: "Abrir configurações", onClick: () => ipc.openSettings() }}
+      />
     );
   }
 

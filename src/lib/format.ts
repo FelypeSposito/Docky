@@ -12,3 +12,12 @@ export function formatClock(date: Date): string {
 export function formatDate(date: Date): string {
   return `${WEEKDAYS[date.getDay()]} ${pad(date.getDate())} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
+
+/** "hoje · 16:30", "ontem · 09:05" ou "28 out · 18:10": quando uma nota foi alterada, em poucas palavras. */
+export function formatNoteDate(ms: number, now: Date = new Date()): string {
+  const date = new Date(ms);
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const daysAgo = Math.round((day(now) - day(date)) / 86_400_000);
+  const when = daysAgo === 0 ? "hoje" : daysAgo === 1 ? "ontem" : `${String(date.getDate()).padStart(2, "0")} ${MONTHS[date.getMonth()]}`;
+  return `${when} · ${formatClock(date)}`;
+}

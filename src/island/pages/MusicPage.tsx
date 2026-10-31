@@ -3,6 +3,7 @@ import { useConfigStore } from "../../config/useConfig";
 import { ipc } from "../../lib/ipc";
 import { lineIndexAt } from "../../media/lrc";
 import { useMediaStore, usePositionMs } from "../../media/store";
+import { EmptyState } from "../EmptyState";
 import { LyricsIcon, MusicIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, VolumeIcon } from "../icons";
 
 const fmt = (ms: number) => {
@@ -26,10 +27,7 @@ export function MusicPage({ active }: { active: boolean }) {
 
   if (!media) {
     return (
-      <div className="tile soon">
-        <b>Nada tocando agora</b>
-        <span>Toque algo no Spotify, no navegador ou em outro player para controlar por aqui.</span>
-      </div>
+      <EmptyState title="Nada tocando agora" text="Toque algo no Spotify ou no navegador para controlar por aqui." />
     );
   }
 

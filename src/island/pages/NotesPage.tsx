@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
+import { formatNoteDate } from "../../lib/format";
 import { ipc, type Note } from "../../lib/ipc";
+import { EmptyState } from "../EmptyState";
 import { NoteIcon } from "../icons";
+
+/** Quantas notas a página carrega; a lista rola, então nenhuma some por falta de espaço. */
+const MAX_NOTES = 80;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 /** 2026-10-31-153042: vira o nome do arquivo e mantém as notas em ordem cronológica. */
@@ -15,10 +20,11 @@ export function NotesPage({ active }: { active: boolean }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(() => {
     ipc
-      .notesRecent(3)
+      .notesRecent(MAX_NOTES)
       .then((list) => {
         setNotes(list);
         setError(null);
@@ -38,6 +44,7 @@ export function NotesPage({ active }: { active: boolean }) {
       .then(() => {
         setText("");
         refresh();
+        listRef.current?.scrollTo({ top: 0, behavior: "smooth" }); // a nota nova fica no começo
       })
       .catch((e) => setError(message(e)));
   };
@@ -50,7 +57,7 @@ export function NotesPage({ active }: { active: boolean }) {
         </span>
         <input
           value={text}
-          placeholder="Nota rápida…"
+          placeholder={notes.length > 0 ? `Nota rápida… (${notes.length} salvas)` : "Nota rápida…"}
           autoComplete="off"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && save()}
@@ -59,21 +66,25 @@ export function NotesPage({ active }: { active: boolean }) {
       </label>
 
       {error ? (
-        <div className="tile soon">
-          <b>{folder ? "Não consegui acessar as notas" : "Falta escolher a pasta das notas"}</b>
-          <span>{error}</span>
-          <button className="btn" onClick={() => ipc.openSettings()}>
-            Abrir configurações
-          </button>
-        </div>
+        <EmptyState
+          title={folder ? "Não consegui acessar as notas" : "Falta a pasta das notas"}
+          text={error}
+          action={{ label: "Abrir configurações", onClick: () => ipc.openSettings() }}
+        />
+      ) : notes.length === 0 ? (
+        <EmptyState title="Nenhuma nota ainda" text="Escreva acima e aperte Enter." />
       ) : (
-        <div className="ncards">
-          {notes.length === 0 && <div className="tile ncard empty">Suas notas aparecem aqui.</div>}
+        <div className="nlist" ref={listRef}>
           {notes.map((note) => (
-            <div key={note.file} className="tile ncard" title={note.text}>
+            <button
+              key={note.file}
+              className="tile ncard"
+              title={`${note.text}\n\nClique para abrir no Obsidian`}
+              onClick={() => ipc.notesOpen(note.file).catch((e) => setError(message(e)))}
+            >
               <p>{note.text}</p>
-              <em>{note.file.replace(/\.md$/, "")}</em>
-            </div>
+              <em>{formatNoteDate(note.modifiedMs)}</em>
+            </button>
           ))}
         </div>
       )}
