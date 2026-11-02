@@ -2,12 +2,15 @@ import { useEffect } from "react";
 import { ipc } from "../lib/ipc";
 import { useConfigStore } from "../config/useConfig";
 import { neighbor } from "./navigation";
-import { orderPages } from "./pageOrder";
+import { visiblePages } from "./pageOrder";
 import { PAGES } from "./pages/registry";
 import { useIslandStore } from "./store";
 
 /** Ids das páginas na ordem que o usuário escolheu. */
-const pageIds = () => orderPages(PAGES, useConfigStore.getState().config.pageOrder).map((p) => p.id);
+const pageIds = () => {
+  const { pageOrder, hiddenPages } = useConfigStore.getState().config;
+  return visiblePages(PAGES, pageOrder, hiddenPages).map((p) => p.id);
+};
 
 /** Teclas globais (Ctrl+Alt+D, ←, →, N): o Rust avisa e a ilha decide o que fazer. */
 export function useHotkeys(): void {

@@ -23,6 +23,9 @@ serde_json = { version = "1", features = ["preserve_order"] }
 getrandom = "0.3"
 base64 = "0.22"
 ureq = "3"
+sha2 = "0.10"
+keyring = { version = "3", features = ["windows-native"] }
+time = { version = "0.3", features = ["parsing", "formatting", "macros"] }
 sysinfo = "0.37"
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
@@ -39,6 +42,7 @@ windows = { version = "0.61", features = [
   "Win32_System_Com",
   "Win32_System_Com_StructuredStorage",
   "Win32_System_Performance",
+  "Win32_UI_Input_KeyboardAndMouse",
   "Win32_System_Power",
   "Win32_System_Variant",
   "Win32_UI_Shell",

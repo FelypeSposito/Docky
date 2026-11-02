@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import type { ShelfFolder, Shortcut } from "../config/types";
-import { ArrowDownIcon, ArrowUpIcon } from "../island/icons";
+import { ArrowDownIcon, ArrowUpIcon, GripIcon } from "../island/icons";
 import { moveItem, orderPages } from "../island/pageOrder";
 import { PAGES } from "../island/pages/registry";
-import { Group, Row } from "./controls";
+import { Group, Row, Segmented, Toggle } from "./controls";
+import { useSortable } from "./useSortable";
 
 interface TextFieldProps {
   value: string;
   placeholder?: string;
   label: string;
   width?: number;
+  type?: string;
   onCommit: (value: string) => void;
 }
 
 /** Campo de texto que só grava ao sair dele ou apertar Enter, para não salvar a cada tecla. */
-export function TextField({ value, placeholder, label, width = 240, onCommit }: TextFieldProps) {
+export function TextField({ value, placeholder, label, width = 240, type = "text", onCommit }: TextFieldProps) {
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
   const commit = () => draft !== value && onCommit(draft.trim());
@@ -23,6 +25,7 @@ export function TextField({ value, placeholder, label, width = 240, onCommit }: 
     <input
       className="inp"
       style={{ width }}
+      type={type}
       value={draft}
       placeholder={placeholder}
       aria-label={label}
@@ -60,6 +63,21 @@ export function WeatherCityRow() {
 
 export function ShelfFolders() {
   const { config, update } = useConfigStore();
+  const moveMode = (
+    <Group>
+      <Row label="Ao enviar" hint={config.shelfMove ? "O arquivo vai para o destino e é apagado de onde estava" : "O arquivo é copiado e o original continua onde estava"}>
+        <Segmented
+          label="Ao enviar"
+          value={config.shelfMove ? "move" : "copy"}
+          options={[
+            { value: "copy", label: "Copiar" },
+            { value: "move", label: "Mover" },
+          ]}
+          onChange={(v) => update({ shelfMove: v === "move" })}
+        />
+      </Row>
+    </Group>
+  );
   const folders = config.shelfFolders;
   const set = (next: ShelfFolder[]) => update({ shelfFolders: next });
   const change = (index: number, patch: Partial<ShelfFolder>) => set(folders.map((f, i) => (i === index ? { ...f, ...patch } : f)));
@@ -83,6 +101,7 @@ export function ShelfFolders() {
           </button>
         </Row>
       </Group>
+      {moveMode}
       {folders.some((f) => !f.name.trim() || !f.path.trim()) && (
         <p className="hint">Preencha o nome e o caminho; pastas incompletas não aparecem na ilha.</p>
       )}
@@ -102,13 +121,27 @@ export function ShortcutsEditor() {
   const items = config.shortcuts;
   const set = (next: Shortcut[]) => update({ shortcuts: next });
   const change = (index: number, patch: Partial<Shortcut>) => set(items.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+  // Cada linha é identificada pela posição atual; ao soltar, a lista é remontada na nova ordem.
+  const sortable = useSortable(
+    items.map((_, i) => String(i)),
+    (order) => set(order.map((id) => items[Number(id)])),
+  );
 
   return (
     <>
       <Group>
         {items.length === 0 && <Row label="Nenhum atalho ainda" hint="Apps, pastas, arquivos e sites que você abre sempre" />}
+        <div className="sortable">
         {items.map((item, i) => (
-          <div className="row folder-row" key={i}>
+          <div
+            className={`row folder-row srow${sortable.dragId === String(i) ? " drag" : ""}`}
+            key={i}
+            ref={sortable.rowRef(String(i))}
+            style={{ order: sortable.position.get(String(i)) }}
+          >
+            <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, String(i))}>
+              <GripIcon />
+            </span>
             <TextField label="Nome do atalho" width={110} value={item.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
             <TextField
               label="Destino do atalho"
@@ -122,6 +155,7 @@ export function ShortcutsEditor() {
             </button>
           </div>
         ))}
+        </div>
         <Row label="Adicionar atalho" hint="Só os atalhos desta lista podem ser abertos pela ilha">
           <button className="btn primary" disabled={items.length >= 12} onClick={() => set([...items, { name: "", target: "" }])}>
             Adicionar
@@ -150,12 +184,28 @@ export function PagesSection() {
   const ordered = orderPages(PAGES, config.pageOrder);
   const ids = ordered.map((p) => p.id);
   const move = (from: number, to: number) => update({ pageOrder: moveItem(ids, from, to) });
+  const sortable = useSortable(ids, (order) => update({ pageOrder: order }));
+  const hidden = config.hiddenPages;
+  const toggleHidden = (id: string) => {
+    if (hidden.includes(id)) return update({ hiddenPages: hidden.filter((h) => h !== id) });
+    if (ids.length - hidden.length <= 1) return; // pelo menos uma página precisa ficar à vista
+    update({ hiddenPages: [...hidden, id] });
+  };
 
   return (
     <>
       <Group>
+        <div className="sortable">
         {ordered.map(({ id, label, Icon }, i) => (
-          <div className="row pg-row" key={id}>
+          <div
+            className={`row pg-row srow${sortable.dragId === id ? " drag" : ""}${hidden.includes(id) ? " hidden" : ""}`}
+            key={id}
+            ref={sortable.rowRef(id)}
+            style={{ order: sortable.position.get(id) }}
+          >
+            <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, id)}>
+              <GripIcon />
+            </span>
             <span className="pg-ic">
               <Icon size={16} />
             </span>
@@ -168,8 +218,10 @@ export function PagesSection() {
                 <ArrowDownIcon />
               </button>
             </div>
+            <Toggle label={`Mostrar ${label} no dock`} value={!hidden.includes(id)} onChange={() => toggleHidden(id)} />
           </div>
         ))}
+        </div>
       </Group>
       <Group>
         <Row label="Voltar à ordem original">
@@ -178,7 +230,7 @@ export function PagesSection() {
           </button>
         </Row>
       </Group>
-      <p className="hint">No dock da ilha, segure um ícone por um instante e arraste para trocar de lugar.</p>
+      <p className="hint">Arraste pela alça para mudar a ordem e use o interruptor para esconder uma página do dock. No dock da ilha, segure um ícone por um instante e arraste.</p>
     </>
   );
 }

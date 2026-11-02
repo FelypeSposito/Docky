@@ -1,15 +1,17 @@
 import { useFocusStore } from "../../focus/store";
-import { clock, FOCUS_PER_SET, LABELS, type TimerMode } from "../../focus/timer";
+import { useConfigStore } from "../../config/useConfig";
+import { clock, LABELS, type TimerMode } from "../../focus/timer";
 import { PauseIcon, PlayIcon } from "../icons";
 
 const MODES: TimerMode[] = ["focus", "short", "long"];
 const CIRCUMFERENCE = 326.7;
 
 export function TimerPage() {
-  const { mode, total, left, running, cycle, done, toggle, reset, setMode } = useFocusStore();
+  const { mode, total, left, running, cycle, done, perSet, toggle, reset, setMode } = useFocusStore();
+  const focusMinutes = useConfigStore((s) => s.config.focusMinutes);
   const offset = CIRCUMFERENCE * (1 - left / total);
-  const dots = Array.from({ length: FOCUS_PER_SET }, (_, i) => i < cycle);
-  const minutes = done * 25;
+  const dots = Array.from({ length: perSet }, (_, i) => i < cycle);
+  const minutes = done * focusMinutes;
 
   return (
     <div className="bento pomo">
@@ -53,7 +55,7 @@ export function TimerPage() {
         </div>
         <div>
           <b>
-            {Math.min(cycle, FOCUS_PER_SET)} de {FOCUS_PER_SET} focos
+            {Math.min(cycle, perSet)} de {perSet} focos
           </b>
           <span>{done === 0 ? "Nenhum foco hoje ainda" : `${done} ${done === 1 ? "foco" : "focos"} · ${minutes} min`}</span>
         </div>

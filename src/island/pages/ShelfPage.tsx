@@ -11,6 +11,7 @@ const MAX_FOLDERS = 4;
 
 export function ShelfPage() {
   const folders = useConfigStore((s) => s.config.shelfFolders).slice(0, MAX_FOLDERS);
+  const move = useConfigStore((s) => s.config.shelfMove);
   const { paths, dragging, clear } = useShelfStore();
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -19,7 +20,8 @@ export function ShelfPage() {
     try {
       const result = await ipc.shelfSend(paths, folder.path);
       const skipped = result.skipped ? ` (${result.skipped} ignorado${result.skipped > 1 ? "s" : ""}: pastas não são enviadas)` : "";
-      setNotice(`${result.sent} arquivo${result.sent === 1 ? "" : "s"} enviado${result.sent === 1 ? "" : "s"} para ${folder.name}${skipped}`);
+      const plural = result.sent === 1 ? "" : "s";
+      setNotice(`${result.sent} arquivo${plural} ${move ? "movido" : "enviado"}${plural} para ${folder.name}${skipped}`);
       clear();
       useIslandStore.setState({ pinned: false });
     } catch (e) {

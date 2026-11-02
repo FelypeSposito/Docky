@@ -27,6 +27,19 @@ struct Cursor {
 const HIT_MARGIN: f64 = 6.0;
 const POLL_INTERVAL: Duration = Duration::from_millis(16);
 
+/// Algum botão do mouse (esquerdo ou direito) está apertado agora, em qualquer janela do Windows?
+#[cfg(windows)]
+fn mouse_button_down() -> bool {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON};
+    // O bit mais alto do resultado diz se a tecla está apertada neste instante.
+    [VK_LBUTTON, VK_RBUTTON].iter().any(|vk| unsafe { GetAsyncKeyState(vk.0 as i32) } as u16 & 0x8000 != 0)
+}
+
+#[cfg(not(windows))]
+fn mouse_button_down() -> bool {
+    false
+}
+
 #[tauri::command]
 pub fn set_island_rect(state: State<PointerState>, rect: Rect) {
     *state.rect.lock().unwrap() = rect;
@@ -38,6 +51,7 @@ pub fn spawn(app: AppHandle) {
     thread::spawn(move || {
         let mut last_inside: Option<bool> = None;
         let mut last_cursor = (f64::NAN, f64::NAN);
+        let mut last_down = false;
 
         loop {
             thread::sleep(POLL_INTERVAL);
@@ -64,6 +78,13 @@ pub fn spawn(app: AppHandle) {
             let inside = x >= rect.x - HIT_MARGIN
                 && x <= rect.x + rect.w + HIT_MARGIN
                 && y <= rect.y + rect.h + HIT_MARGIN;
+
+            // Um clique que começa fora da ilha, em qualquer app, avisa o frontend (ele recolhe a ilha).
+            let down = mouse_button_down();
+            if down && !last_down && !inside {
+                let _ = app.emit_to("island", "island-outside-click", ());
+            }
+            last_down = down;
 
             if last_inside != Some(inside) {
                 last_inside = Some(inside);

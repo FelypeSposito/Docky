@@ -82,6 +82,15 @@ export function ClaudeSection() {
       {error && <div className="error">{error}</div>}
 
       <Group>
+        <Row label="Faixa “Claude trabalhando”" hint="Mostra o projeto e o tempo na ilha recolhida enquanto o Claude Code roda">
+          <Toggle label="Faixa Claude trabalhando" value={config.claudeWorkStrip} onChange={(v) => update({ claudeWorkStrip: v })} />
+        </Row>
+        <Row label="Aviso “Claude terminou”" hint="Um aviso curto quando a última sessão termina">
+          <Toggle label="Aviso Claude terminou" value={config.noticeClaudeDone} onChange={(v) => update({ noticeClaudeDone: v })} />
+        </Row>
+      </Group>
+
+      <Group>
         <Row label="Aprovar pela ilha" hint="Se o Docky estiver fechado ou isto desligado, o terminal pergunta normalmente">
           <Toggle label="Aprovar pela ilha" value={config.claudeApprove} onChange={(v) => update({ claudeApprove: v })} />
         </Row>

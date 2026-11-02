@@ -23,6 +23,20 @@ export interface Config {
   notesFolder: string;
   shelfFolders: ShelfFolder[];
   weatherCity: string;
+  googleClientId: string;
+  focusMinutes: number;
+  shortBreakMinutes: number;
+  longBreakMinutes: number;
+  focusPerSet: number;
+  noticeCharge: boolean;
+  noticeVolume: boolean;
+  noticeClaudeDone: boolean;
+  noticeTimer: boolean;
+  claudeWorkStrip: boolean;
+  hiddenPages: string[];
+  systemRefreshMs: number;
+  weatherUnit: "c" | "f";
+  shelfMove: boolean;
   shortcuts: Shortcut[];
   pageOrder: string[];
 }
@@ -41,6 +55,20 @@ export const DEFAULT_CONFIG: Config = {
   notesFolder: "",
   shelfFolders: [],
   weatherCity: "",
+  googleClientId: "",
+  focusMinutes: 25,
+  shortBreakMinutes: 5,
+  longBreakMinutes: 15,
+  focusPerSet: 4,
+  noticeCharge: true,
+  noticeVolume: true,
+  noticeClaudeDone: true,
+  noticeTimer: true,
+  claudeWorkStrip: true,
+  hiddenPages: [],
+  systemRefreshMs: 1500,
+  weatherUnit: "c",
+  shelfMove: false,
   shortcuts: [],
   pageOrder: [],
 };

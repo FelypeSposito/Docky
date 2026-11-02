@@ -1,22 +1,25 @@
 import { type ComponentType, useEffect, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { Eyes } from "../island/Eyes";
-import { CloudIcon, GearIcon, GridIcon, KeyboardIcon, MusicIcon, SparkIcon, SunIcon, TrayIcon } from "../island/icons";
+import { CloudIcon, GearIcon, GridIcon, KeyboardIcon, MusicIcon, PulseIcon, SparkIcon, SunIcon, TimerIcon, TrayIcon } from "../island/icons";
 import { trackDomCursor } from "../lib/cursor";
 import { ipc } from "../lib/ipc";
 import "../island/island.css";
 import { ClaudeSection } from "./ClaudeSection";
 import { NotesFolderRow, PagesSection, ShelfFolders, ShortcutsEditor, WeatherCityRow } from "./Fields";
-import { Group, Row, Slider, Stepper, Toggle } from "./controls";
+import { CalendarSection } from "./CalendarSection";
+import { Group, NumberStepper, Row, Segmented, Slider, Stepper, Toggle } from "./controls";
 import "./settings.css";
 
-type SectionId = "geral" | "aparencia" | "paginas" | "musica" | "claude" | "shelf" | "integracoes" | "atalhos";
+type SectionId = "geral" | "aparencia" | "paginas" | "musica" | "foco" | "sistema" | "claude" | "shelf" | "integracoes" | "atalhos";
 
 const SECTIONS: { id: SectionId; label: string; Icon: ComponentType<{ size?: number }> }[] = [
   { id: "geral", label: "Geral", Icon: GearIcon },
   { id: "aparencia", label: "Aparência", Icon: SunIcon },
   { id: "paginas", label: "Páginas", Icon: GridIcon },
   { id: "musica", label: "Música", Icon: MusicIcon },
+  { id: "foco", label: "Foco", Icon: TimerIcon },
+  { id: "sistema", label: "Sistema", Icon: PulseIcon },
   { id: "claude", label: "Claude Code", Icon: SparkIcon },
   { id: "shelf", label: "Shelf", Icon: TrayIcon },
   { id: "integracoes", label: "Integrações", Icon: CloudIcon },
@@ -37,6 +40,17 @@ function Section({ id }: { id: SectionId }) {
           </Group>
           <Group>
             <NotesFolderRow />
+          </Group>
+          <Group>
+            <Row label="Aviso do carregador" hint="Um aviso curto quando você liga o carregador">
+              <Toggle label="Aviso do carregador" value={config.noticeCharge} onChange={(v) => update({ noticeCharge: v })} />
+            </Row>
+            <Row label="Aviso de volume" hint="A barra de volume quando ele muda">
+              <Toggle label="Aviso de volume" value={config.noticeVolume} onChange={(v) => update({ noticeVolume: v })} />
+            </Row>
+            <Row label="Aviso do Foco" hint="Quando um foco ou uma pausa termina">
+              <Toggle label="Aviso do Foco" value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
+            </Row>
           </Group>
           <Group>
             <Row label="Abrir ao passar o mouse" hint="Senão, só abre com clique ou com Ctrl+Alt+D">
@@ -100,6 +114,48 @@ function Section({ id }: { id: SectionId }) {
           </Group>
         </>
       );
+    case "foco":
+      return (
+        <>
+          <Group>
+            <Row label="Foco" hint="Quanto dura cada sessão de foco">
+              <NumberStepper label="Foco" value={config.focusMinutes} unit="min" min={1} max={120} step={5} onChange={(v) => update({ focusMinutes: v })} />
+            </Row>
+            <Row label="Pausa curta">
+              <NumberStepper label="Pausa curta" value={config.shortBreakMinutes} unit="min" min={1} max={60} onChange={(v) => update({ shortBreakMinutes: v })} />
+            </Row>
+            <Row label="Pausa longa" hint="Vem depois do último foco do ciclo">
+              <NumberStepper label="Pausa longa" value={config.longBreakMinutes} unit="min" min={1} max={90} step={5} onChange={(v) => update({ longBreakMinutes: v })} />
+            </Row>
+          </Group>
+          <Group>
+            <Row label="Focos por ciclo" hint="Depois deles, a pausa é a longa">
+              <NumberStepper label="Focos por ciclo" value={config.focusPerSet} unit="focos" min={1} max={8} onChange={(v) => update({ focusPerSet: v })} />
+            </Row>
+            <Row label="Aviso ao terminar" hint="Um aviso curto na ilha quando o tempo acaba">
+              <Toggle label="Aviso ao terminar" value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
+            </Row>
+          </Group>
+        </>
+      );
+    case "sistema":
+      return (
+        <Group>
+          <Row label="Atualizar a cada" hint="Quanto menor, mais fluido, e um pouco mais de uso do processador enquanto a página está aberta">
+            <Segmented
+              label="Atualizar a cada"
+              value={config.systemRefreshMs}
+              options={[
+                { value: 1000, label: "1 s" },
+                { value: 1500, label: "1,5 s" },
+                { value: 3000, label: "3 s" },
+                { value: 5000, label: "5 s" },
+              ]}
+              onChange={(v) => update({ systemRefreshMs: v })}
+            />
+          </Row>
+        </Group>
+      );
     case "claude":
       return <ClaudeSection />;
     case "shelf":
@@ -109,12 +165,19 @@ function Section({ id }: { id: SectionId }) {
         <>
           <Group>
             <WeatherCityRow />
-          </Group>
-          <Group>
-            <Row label="Google Calendar" hint="Somente leitura e opcional. A conexão por OAuth chega numa próxima etapa">
-              <span className="badge">Em breve</span>
+            <Row label="Unidade" hint="Como a temperatura aparece na Agenda">
+              <Segmented
+                label="Unidade"
+                value={config.weatherUnit}
+                options={[
+                  { value: "c", label: "°C" },
+                  { value: "f", label: "°F" },
+                ]}
+                onChange={(v) => update({ weatherUnit: v })}
+              />
             </Row>
           </Group>
+          <CalendarSection />
         </>
       );
     case "atalhos":

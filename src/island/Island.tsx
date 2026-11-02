@@ -19,6 +19,7 @@ import { BatteryIcon, BoltIcon, CheckIcon, Equalizer, VolumeIcon } from "./icons
 import { type ClaudeActivity, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
+import { visiblePages } from "./pageOrder";
 import { useIslandStore } from "./store";
 import "./island.css";
 
@@ -87,7 +88,7 @@ export function Island() {
   const denials = useClaudeStore((s) => s.denials);
   const running = useMemo(() => runningSessions(sessions), [sessions]);
   const asking = permissions[0] ?? null;
-  const claude: ClaudeActivity = asking ? "ask" : running.length > 0 ? "work" : null;
+  const claude: ClaudeActivity = asking ? "ask" : running.length > 0 && config.claudeWorkStrip ? "work" : null;
 
   const lines = lyrics?.synced ?? null;
   const lyricActive = config.lyricPill && !!media?.playing && !!lines;
@@ -126,6 +127,17 @@ export function Island() {
     };
   }, []);
 
+  // Clicar em qualquer coisa fora do Docky recolhe a ilha (mesmo fixada), menos enquanto ela espera uma resposta.
+  useEffect(
+    () =>
+      ipc.onOutsideClick(() => {
+        if (useClaudeStore.getState().permissions.length === 0 && useIslandStore.getState().expanded) {
+          useIslandStore.getState().collapse();
+        }
+      }),
+    [],
+  );
+
   // Esc recolhe e solta a ilha fixada.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && useIslandStore.getState().collapse();
@@ -155,7 +167,8 @@ export function Island() {
   const volumeLevel = volume?.muted ? 0 : (volume?.level ?? 0);
   const eyesMood: EyesMood = mode === "ask" ? "ask" : mode === "work" ? "work" : mode === "charge" || mode === "done" || mode === "timer" ? "wide" : "normal";
   const workSeconds = useSeconds(mode === "work" ? running[0]?.since : undefined);
-  const ActivePage = PAGES.find((p) => p.id === page) ?? PAGES[0];
+  const shownPages = visiblePages(PAGES, config.pageOrder, config.hiddenPages);
+  const ActivePage = shownPages.find((p) => p.id === page) ?? shownPages[0];
 
   const islandStyle = {
     "--glow-strength": config.glow / 100,

@@ -24,3 +24,13 @@ export function moveItem<T>(list: T[], from: number, to: number): T[] {
   next.splice(Math.min(Math.max(to, 0), next.length), 0, item);
   return next;
 }
+
+/**
+ * As páginas que aparecem no dock: na ordem escolhida e sem as escondidas. Nunca devolve uma lista vazia:
+ * se todas estiverem escondidas, a primeira continua à vista.
+ */
+export function visiblePages<T extends { id: string }>(pages: T[], saved: string[], hidden: string[]): T[] {
+  const ordered = orderPages(pages, saved);
+  const shown = ordered.filter((p) => !hidden.includes(p.id));
+  return shown.length > 0 ? shown : ordered.slice(0, 1);
+}

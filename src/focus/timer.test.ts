@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clock, DURATIONS, FOCUS_PER_SET, initialTimer, reset, setMode, tick, toggle, type TimerState } from "./timer";
+import { applySettings, clock, DURATIONS, FOCUS_PER_SET, initialTimer, reset, setMode, tick, toggle, type TimerState } from "./timer";
 
 const running = (s: TimerState): TimerState => toggle(s);
 
@@ -44,5 +44,28 @@ describe("timer", () => {
   it("formata mm:ss", () => {
     expect(clock(1500)).toBe("25:00");
     expect(clock(61)).toBe("01:01");
+  });
+});
+
+describe("configurações do timer", () => {
+  const custom = { focus: 50 * 60, short: 10 * 60, long: 30 * 60, perSet: 2 };
+
+  it("usa as durações e o tamanho do ciclo configurados", () => {
+    const s = setMode(initialTimer, "focus", custom);
+    expect(s.left).toBe(custom.focus);
+    let state: TimerState = { ...toggle(s), left: 1 };
+    state = tick(state, custom).state;
+    expect(state).toMatchObject({ mode: "short", left: custom.short, cycle: 1 });
+    state = { ...toggle(state), left: 1 };
+    state = tick(state, custom).state;
+    state = { ...toggle(state), left: 1 };
+    const afterSecondFocus = tick({ ...state, mode: "focus", cycle: 1 }, custom).state;
+    expect(afterSecondFocus).toMatchObject({ mode: "long", left: custom.long, cycle: 2 });
+  });
+
+  it("applySettings muda o tempo só com o timer parado", () => {
+    expect(applySettings(initialTimer, custom).left).toBe(custom.focus);
+    const running = toggle(initialTimer);
+    expect(applySettings(running, custom)).toBe(running);
   });
 });

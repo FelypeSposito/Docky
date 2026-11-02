@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useConfigStore } from "../../config/useConfig";
 import { ipc, type SystemStats } from "../../lib/ipc";
 
 const CIRCUMFERENCE = 182.2;
@@ -25,6 +26,7 @@ function Ring({ percent, label, caption }: { percent: number | null; label: stri
 
 export function SystemPage({ active }: { active: boolean }) {
   const [stats, setStats] = useState<SystemStats | null>(null);
+  const refreshMs = useConfigStore((s) => s.config.systemRefreshMs);
 
   // Só consulta enquanto a página está aberta.
   useEffect(() => {
@@ -32,12 +34,12 @@ export function SystemPage({ active }: { active: boolean }) {
     let alive = true;
     const read = () => void ipc.systemStats().then((next) => alive && setStats(next));
     read();
-    const timer = setInterval(read, 1500);
+    const timer = setInterval(read, refreshMs);
     return () => {
       alive = false;
       clearInterval(timer);
     };
-  }, [active]);
+  }, [active, refreshMs]);
 
   const memoryPercent = stats ? (stats.memoryUsed / Math.max(1, stats.memoryTotal)) * 100 : 0;
   const gpuCaption = !stats ? "…" : stats.gpuMemoryUsed !== null ? `${gigabytes(stats.gpuMemoryUsed)} GB de vídeo` : "sem dados da GPU";

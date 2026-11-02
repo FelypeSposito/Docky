@@ -182,6 +182,18 @@ export const ArrowDownIcon = (p: IconProps) => (
   </Stroke>
 );
 
+/** Seis pontinhos: a alça para arrastar. */
+export const GripIcon = (p: IconProps) => (
+  <svg width={p.size ?? 16} height={p.size ?? 16} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <circle cx="9" cy="6" r="1.7" />
+    <circle cx="15" cy="6" r="1.7" />
+    <circle cx="9" cy="12" r="1.7" />
+    <circle cx="15" cy="12" r="1.7" />
+    <circle cx="9" cy="18" r="1.7" />
+    <circle cx="15" cy="18" r="1.7" />
+  </svg>
+);
+
 export const GearIcon = (p: IconProps) => (
   <Stroke size={16} stroke={1.8} {...p}>
     <circle cx="12" cy="12" r="3" />

@@ -2,6 +2,7 @@ mod claude;
 mod claude_hooks;
 mod config;
 mod fullscreen;
+mod google;
 mod hotkeys;
 mod island;
 mod launcher;
@@ -33,6 +34,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(island::Visibility::default())
         .manage(system::SystemState::new())
+        .manage(google::GoogleState::default())
         .invoke_handler(tauri::generate_handler![
             config::get_config,
             config::set_config,
@@ -40,6 +42,12 @@ pub fn run() {
             power::get_power,
             settings_window::open_settings,
             lyrics::lrclib,
+            google::google_status,
+            google::google_save_secret,
+            google::google_connect,
+            google::google_disconnect,
+            google::google_events,
+            google::open_meeting,
             launcher::launch,
             system::system_stats,
             notes::notes_save,

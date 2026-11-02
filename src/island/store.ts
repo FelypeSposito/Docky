@@ -1,5 +1,7 @@
 import { create } from "zustand";
+import { useConfigStore } from "../config/useConfig";
 import type { Overlay } from "./modes";
+import { noticeEnabled } from "./notices";
 
 interface IslandStore {
   expanded: boolean;
@@ -28,6 +30,7 @@ export const useIslandStore = create<IslandStore>((set) => ({
   setPage: (page) => set({ page }),
 
   showOverlay: (overlay, durationMs) => {
+    if (!noticeEnabled(overlay, useConfigStore.getState().config)) return;
     clearTimeout(overlayTimer);
     set({ overlay });
     overlayTimer = setTimeout(() => set({ overlay: null }), durationMs);

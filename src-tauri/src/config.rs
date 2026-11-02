@@ -41,6 +41,28 @@ pub struct Config {
     pub shelf_folders: Vec<ShelfFolder>,
     /// Cidade do clima (Open-Meteo).
     pub weather_city: String,
+    /// Foco (Pomodoro): duração do foco, da pausa curta e da longa, em minutos, e quantos focos formam um ciclo.
+    pub focus_minutes: u32,
+    pub short_break_minutes: u32,
+    pub long_break_minutes: u32,
+    pub focus_per_set: u32,
+    /// Avisos curtos da ilha: cada um pode ser desligado.
+    pub notice_charge: bool,
+    pub notice_volume: bool,
+    pub notice_claude_done: bool,
+    pub notice_timer: bool,
+    /// Faixa "Claude trabalhando" na ilha recolhida.
+    pub claude_work_strip: bool,
+    /// Páginas escondidas do dock (ids).
+    pub hidden_pages: Vec<String>,
+    /// De quanto em quanto tempo a página Sistema atualiza, em milissegundos.
+    pub system_refresh_ms: u32,
+    /// Unidade da temperatura: "c" ou "f".
+    pub weather_unit: String,
+    /// Shelf: mover os arquivos para o destino (apaga o original) em vez de copiar.
+    pub shelf_move: bool,
+    /// Client ID do Google Cloud para o Google Agenda (o segredo fica no Gerenciador de Credenciais).
+    pub google_client_id: String,
     /// Itens do lançador (página Atalhos).
     pub shortcuts: Vec<Shortcut>,
     /// Ordem das páginas do dock (ids). Vazio = ordem original.
@@ -73,6 +95,20 @@ impl Default for Config {
             notes_folder: default_notes_folder(),
             shelf_folders: Vec::new(),
             weather_city: String::new(),
+            google_client_id: String::new(),
+            focus_minutes: 25,
+            short_break_minutes: 5,
+            long_break_minutes: 15,
+            focus_per_set: 4,
+            notice_charge: true,
+            notice_volume: true,
+            notice_claude_done: true,
+            notice_timer: true,
+            claude_work_strip: true,
+            hidden_pages: Vec::new(),
+            system_refresh_ms: 1500,
+            weather_unit: "c".into(),
+            shelf_move: false,
             shortcuts: Vec::new(),
             page_order: Vec::new(),
         }

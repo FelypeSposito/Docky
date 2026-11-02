@@ -1,4 +1,6 @@
 import type { ClaudeEvent, PermissionRequest } from "../claude/sessions";
+import type { CalEvent } from "../calendar/events";
+import type { CalendarStatus } from "../calendar/store";
 import { type Config, DEFAULT_CONFIG } from "../config/types";
 
 /**
@@ -356,6 +358,55 @@ export const ipc = {
     const listener = (e: PointerEvent) => handler({ x: e.clientX, y: e.clientY });
     window.addEventListener("pointermove", listener);
     return () => window.removeEventListener("pointermove", listener);
+  },
+
+  calendarStatus(): Promise<CalendarStatus> {
+    return isTauri ? invoke<CalendarStatus>("google_status") : Promise.resolve({ configured: true, connected: true, secretSaved: true });
+  },
+
+  /** Guarda (ou apaga, se vazio) o segredo do cliente no Gerenciador de Credenciais. */
+  calendarSaveSecret(secret: string): Promise<void> {
+    return isTauri ? invoke<void>("google_save_secret", { secret }) : Promise.resolve();
+  },
+
+  /** Abre o navegador para o login e espera o retorno (até 3 minutos). */
+  calendarConnect(): Promise<void> {
+    return isTauri ? invoke<void>("google_connect") : Promise.resolve();
+  },
+
+  calendarDisconnect(): Promise<void> {
+    return isTauri ? invoke<void>("google_disconnect") : Promise.resolve();
+  },
+
+  async calendarEvents(): Promise<CalEvent[]> {
+    if (isTauri) return invoke<CalEvent[]>("google_events");
+    const now = Date.now();
+    return [
+      { id: "1", title: "Standup do time", startMs: now + 12 * 60_000, endMs: now + 42 * 60_000, allDay: false, location: null, meetUrl: "https://meet.google.com/abc-defg-hij" },
+      { id: "2", title: "Revisão de design", startMs: now + 5 * 3_600_000, endMs: now + 6 * 3_600_000, allDay: false, location: "Sala 2", meetUrl: null },
+      { id: "3", title: "Aniversário da Ana", startMs: now + 20 * 3_600_000, endMs: now + 44 * 3_600_000, allDay: true, location: null, meetUrl: null },
+    ];
+  },
+
+  /** Abre um link https (a entrada de uma videochamada, por exemplo) no navegador. */
+  openUrl(url: string): Promise<void> {
+    if (isTauri) return invoke<void>("open_meeting", { url });
+    window.open(url, "_blank", "noopener");
+    return Promise.resolve();
+  },
+
+  /** Um clique (do mouse, em qualquer app) começou fora da ilha. */
+  onOutsideClick(handler: () => void): Unlisten {
+    if (isTauri) return subscribe("island-outside-click", () => handler());
+    // No navegador de desenvolvimento: um clique fora do retângulo da ilha.
+    const listener = (e: PointerEvent) => {
+      const margin = 6;
+      const inside =
+        e.clientX >= lastRect.x - margin && e.clientX <= lastRect.x + lastRect.w + margin && e.clientY <= lastRect.y + lastRect.h + margin;
+      if (!inside) handler();
+    };
+    window.addEventListener("pointerdown", listener);
+    return () => window.removeEventListener("pointerdown", listener);
   },
 
   /** O cursor entrou ou saiu da área da ilha. */

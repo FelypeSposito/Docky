@@ -35,7 +35,8 @@ pub struct SendResult {
 /// Só envia para pastas que o usuário cadastrou nas configurações, nunca para um caminho qualquer.
 #[tauri::command]
 pub async fn shelf_send(state: State<'_, ConfigState>, paths: Vec<String>, folder: String) -> Result<SendResult, String> {
-    if !state.get().shelf_folders.iter().any(|f| f.path == folder) {
+    let config = state.get();
+    if !config.shelf_folders.iter().any(|f| f.path == folder) {
         return Err("essa pasta não está nas configurações da Shelf".into());
     }
     let dest = PathBuf::from(&folder);
@@ -50,7 +51,12 @@ pub async fn shelf_send(state: State<'_, ConfigState>, paths: Vec<String>, folde
             continue;
         };
         let ext = source.extension().and_then(|e| e.to_str()).unwrap_or("");
-        fs::copy(&source, unique_path(&dest, stem, ext)).map_err(|e| format!("{}: {e}", source.display()))?;
+        let target = unique_path(&dest, stem, ext);
+        fs::copy(&source, &target).map_err(|e| format!("{}: {e}", source.display()))?;
+        // Só apaga o original depois de a cópia ter dado certo, e só se o usuário escolheu "mover".
+        if config.shelf_move {
+            fs::remove_file(&source).map_err(|e| format!("copiei, mas não consegui apagar {}: {e}", source.display()))?;
+        }
         result.sent += 1;
     }
     Ok(result)

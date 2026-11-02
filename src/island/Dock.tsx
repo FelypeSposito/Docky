@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { ipc } from "../lib/ipc";
 import { GearIcon } from "./icons";
-import { moveItem, orderPages } from "./pageOrder";
+import { moveItem, visiblePages } from "./pageOrder";
 import { PAGES } from "./pages/registry";
 
 interface DockProps {
@@ -33,6 +33,7 @@ interface Drag {
  */
 export function Dock({ page, onPage }: DockProps) {
   const savedOrder = useConfigStore((s) => s.config.pageOrder);
+  const hidden = useConfigStore((s) => s.config.hiddenPages);
   const update = useConfigStore((s) => s.update);
 
   const [draft, setDraft] = useState<string[] | null>(null);
@@ -45,7 +46,9 @@ export function Dock({ page, onPage }: DockProps) {
   /** Sempre o estado mais recente, para os ouvintes da janela não usarem valores velhos. */
   const live = useRef({ ids: [] as string[], draft: null as string[] | null });
 
-  const ids = draft ?? orderPages(PAGES, savedOrder).map((p) => p.id);
+  const shown = visiblePages(PAGES, savedOrder, hidden);
+  const shownIds = new Set(shown.map((p) => p.id));
+  const ids = draft ?? shown.map((p) => p.id);
   live.current = { ids, draft };
   const position = new Map(ids.map((id, index) => [id, index]));
 
@@ -158,7 +161,7 @@ export function Dock({ page, onPage }: DockProps) {
 
   return (
     <div ref={dockRef} className={`dock${dragId ? " dragging" : ""}`}>
-      {PAGES.map(({ id, label, Icon }) => (
+      {PAGES.filter((p) => shownIds.has(p.id)).map(({ id, label, Icon }) => (
         <button
           key={id}
           ref={(el) => {

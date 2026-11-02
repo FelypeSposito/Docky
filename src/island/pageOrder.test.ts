@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { moveItem, orderPages } from "./pageOrder";
+import { moveItem, orderPages, visiblePages } from "./pageOrder";
 
 const pages = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
 const ids = (list: { id: string }[]) => list.map((p) => p.id);
@@ -36,5 +36,15 @@ describe("moveItem", () => {
 
   it("não deixa o destino sair da lista", () => {
     expect(moveItem(["a", "b", "c"], 0, 99)).toEqual(["b", "c", "a"]);
+  });
+});
+
+describe("visiblePages", () => {
+  it("tira as escondidas e respeita a ordem", () => {
+    expect(ids(visiblePages(pages, ["d", "c"], ["a"]))).toEqual(["d", "c", "b"]);
+  });
+
+  it("nunca fica vazio", () => {
+    expect(ids(visiblePages(pages, [], ["a", "b", "c", "d"]))).toEqual(["a"]);
   });
 });
