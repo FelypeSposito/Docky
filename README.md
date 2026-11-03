@@ -33,13 +33,21 @@ src-tauri/src  config, island (janela), pointer (cursor/hover), power, fullscree
 prototype/     protótipos visuais descartáveis (Fase 0); a v2 é a referência de visual e movimento
 ```
 
+## Google Agenda
+
+Opcional e somente leitura (escopo `calendar.readonly`, OAuth de app para computador com PKCE). O ID do cliente vai na
+configuração e a chave secreta e o token de renovação ficam no Gerenciador de Credenciais do Windows. O passo a passo
+para criar o ID do cliente está em Configurações → Integrações. Veja também a [política de privacidade](PRIVACY.md).
+
 ## Teclas globais
 
 Ctrl+Alt+D abre e fecha a ilha, Ctrl+Alt+←/→ trocam de página e Ctrl+Alt+N abre a nota rápida.
 
 ## Fases
 
-0. Protótipo visual (feito) · 1. Base: janela, tamanhos, hora, olhos, bateria, bandeja, início com o Windows ·
-2. Mídia e letras (LRCLIB), volume e brilho, páginas e dock · 3. Atividade do Claude Code com aprovações ·
-4. Pomodoro, notas em `brain/Inbox`, Shelf (Drive sincronizado), clima, Google Calendar (OAuth opcional) ·
-5. Lançador, pílulas de dev, monitor de sistema, "Perguntar ao Claude" · 6. Espelhar notificações (após teste de viabilidade).
+Feitas: 0. Protótipo visual · 1. Base: janela, tamanhos, hora, olhos, bateria, bandeja, início com o Windows ·
+2. Mídia e letras (LRCLIB), volume, páginas e dock · 3. Atividade do Claude Code com aprovações ·
+4. Foco, notas em `brain/Inbox`, Shelf, clima e Google Agenda (OAuth opcional) · 5. Lançador e monitor de sistema.
+
+Pendentes: "Perguntar ao Claude" (precisa de chave de API e onde guardá-la), pílulas de dev (Vercel e GitHub),
+brilho da tela e espelhar notificações (após teste de viabilidade).
