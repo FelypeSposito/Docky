@@ -12,7 +12,7 @@ describe("resumo do clima", () => {
   it("escreve a frase da chuva", () => {
     expect(rainNote({ hours: hours([5, 10, 70]), rainMax: 70, precipitationMm: 0 })).toBe("Chuva às 16h (70%)");
     expect(rainNote({ hours: hours([80, 10]), rainMax: 80, precipitationMm: 0 })).toBe("Chuva agora (80%)");
-    expect(rainNote({ hours: hours([5, 30]), rainMax: 30, precipitationMm: 0 })).toBe("Chance de chuva hoje: 30%");
+    expect(rainNote({ hours: hours([5, 30]), rainMax: 30, precipitationMm: 0 })).toBe("Chuva hoje: 30%");
     expect(rainNote({ hours: hours([0, 5]), rainMax: 5, precipitationMm: 0 })).toBe("Sem chuva prevista");
     expect(rainNote({ hours: [], rainMax: null, precipitationMm: 1.2 })).toBe("Chovendo agora");
   });

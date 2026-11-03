@@ -1590,12 +1590,16 @@
   object-fit: contain;
 }
 .lt b {
+  display: -webkit-box;
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   font-size: 12.5px;
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.15;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
 }
 .lt kbd {
   color: var(--ink3);

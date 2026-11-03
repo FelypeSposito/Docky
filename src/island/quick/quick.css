@@ -240,6 +240,10 @@
   color: var(--ink3);
   font-size: 10.5px;
   text-align: center;
+  transition: color 0.2s;
+}
+.lc-more:hover {
+  color: #fff;
 }
 .li-wrap {
   position: relative;

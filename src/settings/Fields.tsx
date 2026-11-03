@@ -56,6 +56,9 @@ export function NotesFolderRow() {
         placeholder="C:\Users\você\Documentos\brain\Inbox"
         onCommit={(v) => update({ notesFolder: v })}
       />
+      <button className="btn" title="Escolher a pasta no computador" onClick={() => void ipc.pickPath("folder").then((path) => path && update({ notesFolder: path }))}>
+        Escolher…
+      </button>
     </Row>
   );
 }

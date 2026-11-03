@@ -8,6 +8,7 @@ import { SHORTCUT_COLORS, ShortcutIcon } from "../../launcher/ShortcutIcon";
 import { ipc } from "../../lib/ipc";
 import { useSortable } from "../../settings/useSortable";
 import { EmptyState } from "../EmptyState";
+import { useIslandStore } from "../store";
 import { GripIcon, PencilIcon, SearchIcon } from "../icons";
 import { GroupEditor } from "../../launcher/GroupEditor";
 import { IconPicker } from "../../launcher/IconPicker";
@@ -115,7 +116,11 @@ export function LauncherPage() {
               {i === 0 && query && <kbd>↵</kbd>}
             </button>
           ))}
-          {more > 0 && <span className="lc-more">+{more} na tela expandida</span>}
+          {more > 0 && (
+            <button className="lc-more" onClick={() => useIslandStore.getState().toggleLarge()} title="Ver todos os atalhos">
+              +{more} na tela expandida ↗
+            </button>
+          )}
         </div>
       )}
     </div>
