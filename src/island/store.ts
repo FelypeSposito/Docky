@@ -9,11 +9,14 @@ interface IslandStore {
   pinned: boolean;
   /** Mostra a versão maior da página atual (só vale para páginas que têm uma). */
   large: boolean;
+  /** Na tela expandida, mostra os ajustes da página no lugar do conteúdo. */
+  quick: boolean;
   overlay: Overlay | null;
   page: string;
   expand: () => void;
   collapse: () => void;
   toggleLarge: () => void;
+  toggleQuick: () => void;
   togglePin: () => void;
   setPage: (id: string) => void;
   showOverlay: (overlay: Overlay, durationMs: number) => void;
@@ -25,12 +28,14 @@ export const useIslandStore = create<IslandStore>((set) => ({
   expanded: false,
   pinned: false,
   large: false,
+  quick: false,
   overlay: null,
   page: "music",
 
   expand: () => set({ expanded: true }),
-  collapse: () => set({ expanded: false, pinned: false, large: false }),
-  toggleLarge: () => set((s) => ({ large: !s.large, pinned: s.large ? s.pinned : true })), // ao ampliar, fica aberta
+  collapse: () => set({ expanded: false, pinned: false, large: false, quick: false }),
+  toggleLarge: () => set((s) => ({ large: !s.large, quick: false, pinned: s.large ? s.pinned : true })), // ao ampliar, fica aberta
+  toggleQuick: () => set((s) => ({ quick: !s.quick })),
   togglePin: () => set((s) => ({ pinned: !s.pinned, expanded: !s.pinned ? true : s.expanded })),
   setPage: (page) => set({ page }),
 

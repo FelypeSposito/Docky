@@ -23,3 +23,16 @@ describe("filterShortcuts", () => {
     expect(filterShortcuts(items, "zzz")).toEqual([]);
   });
 });
+
+describe("filterShortcuts com grupos", () => {
+  const list = [
+    { id: "a", name: "Chrome", target: "C:\chrome.exe" },
+    { id: "g", name: "Trabalho", target: "", group: true, members: ["a"] },
+    { id: "v", name: "Vazio", target: "", group: true, members: [] },
+    { id: "x", name: "Órfão", target: "", group: true, members: ["sumiu"] },
+  ];
+
+  it("mostra grupos que têm ao menos um membro existente", () => {
+    expect(filterShortcuts(list, "").map((m) => m.item.id)).toEqual(["a", "g"]);
+  });
+});

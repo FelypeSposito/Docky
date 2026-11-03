@@ -9,6 +9,11 @@ export interface Shortcut {
   target: string;
   /** Emoji ou texto curto, ou o caminho de uma imagem. Vazio = a inicial do nome. */
   icon: string;
+  /** Identifica o atalho; os grupos apontam para os membros por aqui (o Rust dá um quando falta). */
+  id: string;
+  /** É um grupo: abre todos os atalhos de `members` de uma vez. */
+  group: boolean;
+  members: string[];
 }
 
 export interface Config {
@@ -45,6 +50,10 @@ export interface Config {
   pinnedNotes: string[];
   /** Duração do contador personalizado do Foco, em minutos. */
   timerCustomMinutes: number;
+  /** Em quais telas a ilha aparece (nomes dos monitores). Vazio = só na principal. */
+  screens: string[];
+  /** Pede confirmação antes de abrir apps, jogos e grupos pelos atalhos. */
+  confirmApps: boolean;
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -79,4 +88,6 @@ export const DEFAULT_CONFIG: Config = {
   pageOrder: [],
   pinnedNotes: [],
   timerCustomMinutes: 10,
+  screens: [],
+  confirmApps: true,
 };

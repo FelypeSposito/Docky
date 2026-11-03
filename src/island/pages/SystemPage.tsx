@@ -4,7 +4,8 @@ import { ipc, type SystemStats } from "../../lib/ipc";
 
 const CIRCUMFERENCE = 182.2;
 
-const gigabytes = (bytes: number) => (bytes / 1e9).toFixed(1).replace(".", ",");
+/** O Windows chama de "GB" o que é GiB (1024³ bytes); com 1e9 a memória de 64 GB apareceria como 68,7. */
+const gigabytes = (bytes: number) => (bytes / 1024 ** 3).toFixed(1).replace(".", ",");
 const gigahertz = (mhz: number) => `${(mhz / 1000).toFixed(2).replace(".", ",")} GHz`;
 
 function Ring({ percent, label, caption }: { percent: number | null; label: string; caption: string }) {

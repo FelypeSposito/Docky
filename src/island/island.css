@@ -381,6 +381,10 @@
   right: 20px;
   top: 11px;
 }
+/* Sem os olhinhos, a letra da pílula começa logo no canto da ilha */
+.notch.no-eyes .pl {
+  left: 20px;
+}
 /* Botão pequeno que abre a versão maior da página */
 .xbtn {
   position: absolute;

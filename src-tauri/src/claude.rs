@@ -18,9 +18,9 @@ use std::{
 
 use serde::Serialize;
 use serde_json::{Value, json};
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Manager, State};
 
-use crate::{claude_hooks, config::ConfigState};
+use crate::{claude_hooks, config::ConfigState, island};
 
 const FIRST_PORT: u16 = 47831;
 const PORT_ATTEMPTS: u16 = 10;
@@ -127,7 +127,7 @@ fn wait_for_decision(app: &AppHandle, stream: &TcpStream, request: PermissionReq
     let (tx, rx) = mpsc::channel();
     let id = request.id;
     state.pending.lock().unwrap().insert(id, tx);
-    let _ = app.emit_to("island", "claude-permission", &request);
+    island::emit(app, "claude-permission", &request);
 
     let started = Instant::now();
     let decision = loop {
@@ -144,7 +144,7 @@ fn wait_for_decision(app: &AppHandle, stream: &TcpStream, request: PermissionReq
 
     state.pending.lock().unwrap().remove(&id);
     if decision.is_none() {
-        let _ = app.emit_to("island", "claude-permission-cancel", id);
+        island::emit(app, "claude-permission-cancel", id);
     }
     decision
 }
@@ -155,8 +155,8 @@ fn handle_hook(app: &AppHandle, stream: &TcpStream, event: &str, body: &Value) -
     let cwd = text(body, "cwd").to_string();
     let tool_name = body.get("tool_name").and_then(Value::as_str).map(str::to_string);
 
-    let _ = app.emit_to(
-        "island",
+    island::emit(
+        app,
         "claude-event",
         ClaudeEvent { event: event.to_string(), session_id: session_id.clone(), cwd: cwd.clone(), tool_name: tool_name.clone() },
     );

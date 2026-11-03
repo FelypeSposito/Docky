@@ -7,7 +7,7 @@ use std::{
 };
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -198,7 +198,7 @@ pub fn spawn(app: AppHandle) {
             if changed || (state.is_some() && ticks_since_emit >= 10) {
                 ticks_since_emit = 0;
                 if state.is_some() || had_session {
-                    let _ = app.emit_to("island", "media", &state);
+                    crate::island::emit(&app, "media", &state);
                 }
                 had_session = state.is_some();
                 last = state.map(|mut s| {

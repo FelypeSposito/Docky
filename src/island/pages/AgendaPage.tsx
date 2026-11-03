@@ -2,8 +2,9 @@ import { type ReactNode, useEffect, useState } from "react";
 import { groupByDay, timeRange, untilLabel, upcoming, waitProgress } from "../../calendar/events";
 import { useCalendarStore } from "../../calendar/store";
 import { useConfigStore } from "../../config/useConfig";
-import { ipc } from "../../lib/ipc";
+import { ipc, type Weather } from "../../lib/ipc";
 import { useWeatherStore } from "../../weather/store";
+import { rainNote, uvLabel } from "../../weather/summary";
 import { EmptyState } from "../EmptyState";
 import { WeatherIcon } from "../icons";
 
@@ -49,7 +50,7 @@ function agendaNotice({ status, error, load }: ReturnType<typeof useAgenda>): Re
       <EmptyState
         title="Conecte o Google Agenda"
         text={status?.configured ? "Falta fazer o login." : "Veja os próximos eventos aqui. Configure em Integrações."}
-        action={{ label: "Abrir configurações", onClick: () => ipc.openSettings() }}
+        action={{ label: "Abrir configurações", onClick: () => ipc.openSettings("integracoes") }}
       />
     );
   }
@@ -128,8 +129,8 @@ function EventsLarge({ active }: { active: boolean }) {
   );
 }
 
-/** O clima do dia: temperatura, descrição, máxima e mínima e as próximas horas. */
-function WeatherTile({ active }: { active: boolean }) {
+/** O clima do dia: temperatura, descrição, máxima e mínima, chuva e as próximas horas. Na tela maior, mais detalhes. */
+function WeatherTile({ active, large = false }: { active: boolean; large?: boolean }) {
   const city = useConfigStore((s) => s.config.weatherCity);
   const unit = useConfigStore((s) => s.config.weatherUnit);
   const { weather, error, loading, load } = useWeatherStore();
@@ -142,7 +143,7 @@ function WeatherTile({ active }: { active: boolean }) {
   const cold = weather ? Math.min(...weather.hourly, weather.temperature) : 0;
 
   return (
-    <div className="tile wx">
+    <div className={`tile wx${large ? " wxl" : ""}`}>
       {weather ? (
         <>
           <span className="sun">
@@ -154,20 +155,29 @@ function WeatherTile({ active }: { active: boolean }) {
               {describe(weather.code)}
               <br />
               Máx {degrees(weather.max, unit)} · Mín {degrees(weather.min, unit)}
+              {!large && (
+                <>
+                  <br />
+                  <span className="rain-note">{rainNote(weather)}</span>
+                </>
+              )}
             </small>
-            <div className="hrs">
-              {weather.hourly.map((t, i) => (
-                <i key={i} style={{ height: `${25 + ((t - cold) / Math.max(1, hot - cold)) * 75}%` }} title={degrees(t, unit)} />
-              ))}
-            </div>
+            {!large && (
+              <div className="hrs">
+                {weather.hourly.map((t, i) => (
+                  <i key={i} style={{ height: `${25 + ((t - cold) / Math.max(1, hot - cold)) * 75}%` }} title={degrees(t, unit)} />
+                ))}
+              </div>
+            )}
           </div>
+          {large && <WeatherDetails weather={weather} unit={unit} />}
         </>
       ) : (
         <div className="wx-empty">
           <b>{!city.trim() ? "Defina a cidade" : loading ? "Buscando o clima…" : "Sem clima"}</b>
           <small>{error ?? "Em Configurações, em Integrações."}</small>
           {!city.trim() && (
-            <button className="btn sm" onClick={() => ipc.openSettings()}>
+            <button className="btn sm" onClick={() => ipc.openSettings("integracoes")}>
               Configurar
             </button>
           )}
@@ -175,6 +185,41 @@ function WeatherTile({ active }: { active: boolean }) {
       )}
       {weather && <span className="wx-city">{weather.city}</span>}
     </div>
+  );
+}
+
+/** Os detalhes da tela maior: sensação, umidade, vento, UV, sol e a chance de chuva hora a hora. */
+function WeatherDetails({ weather, unit }: { weather: Weather; unit: "c" | "f" }) {
+  const facts: [string, string][] = [
+    ["Sensação", weather.feelsLike === null ? "—" : degrees(weather.feelsLike, unit)],
+    ["Umidade", weather.humidity === null ? "—" : `${Math.round(weather.humidity)}%`],
+    ["Vento", weather.windKmh === null ? "—" : `${Math.round(weather.windKmh)} km/h`],
+    ["UV máx.", weather.uvMax === null ? "—" : `${Math.round(weather.uvMax)} · ${uvLabel(weather.uvMax)}`],
+    ["Nascer do sol", weather.sunrise ?? "—"],
+    ["Pôr do sol", weather.sunset ?? "—"],
+  ];
+  return (
+    <>
+      <dl className="wx-facts">
+        {facts.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="wx-rain">
+        <span className="wx-rain-note">{rainNote(weather)}</span>
+        <div className="wx-bars" role="img" aria-label="Chance de chuva nas próximas 12 horas">
+          {weather.hours.map((h, i) => (
+            <div key={i} className="wx-bar" title={`${h.hour}h · ${Math.round(h.rain)}% de chuva · ${degrees(h.temp, unit)}`}>
+              <i style={{ height: `${Math.max(6, h.rain)}%` }} className={h.rain >= 40 ? "wet" : ""} />
+              <em>{i % 3 === 0 ? `${h.hour}h` : ""}</em>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -191,7 +236,7 @@ export function AgendaPage({ active }: { active: boolean }) {
 export function AgendaLarge({ active }: { active: boolean }) {
   return (
     <div className="bento ag big">
-      <WeatherTile active={active} />
+      <WeatherTile active={active} large />
       <EventsLarge active={active} />
     </div>
   );

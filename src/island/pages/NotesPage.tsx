@@ -96,7 +96,7 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
         <EmptyState
           title={folder ? "Não consegui acessar as notas" : "Falta a pasta das notas"}
           text={error}
-          action={{ label: "Abrir configurações", onClick: () => ipc.openSettings() }}
+          action={{ label: "Abrir configurações", onClick: () => ipc.openSettings("geral") }}
         />
       ) : notes.length === 0 ? (
         <EmptyState title="Nenhuma nota ainda" text="Escreva acima e aperte Enter." />

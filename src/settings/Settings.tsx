@@ -6,7 +6,7 @@ import { trackDomCursor } from "../lib/cursor";
 import { ipc } from "../lib/ipc";
 import "../island/island.css";
 import { ClaudeSection } from "./ClaudeSection";
-import { NotesFolderRow, PagesSection, ShelfFolders, ShortcutsEditor, WeatherCityRow } from "./Fields";
+import { NotesFolderRow, PagesSection, ScreensRow, ShelfFolders, ShortcutsEditor, WeatherCityRow } from "./Fields";
 import { CalendarSection } from "./CalendarSection";
 import { Group, NumberStepper, Row, Segmented, Slider, Stepper, Toggle } from "./controls";
 import "./settings.css";
@@ -51,6 +51,9 @@ function Section({ id }: { id: SectionId }) {
             <Row label="Aviso do Foco" hint="Quando um foco ou uma pausa termina">
               <Toggle label="Aviso do Foco" value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
             </Row>
+          </Group>
+          <Group>
+            <ScreensRow />
           </Group>
           <Group>
             <Row label="Abrir ao passar o mouse" hint="Senão, só abre com clique ou com Ctrl+Alt+D">
@@ -185,10 +188,17 @@ function Section({ id }: { id: SectionId }) {
   }
 }
 
+const isSection = (value: string | null): value is SectionId => SECTIONS.some((s) => s.id === value);
+
 /** A janela de configurações, no mesmo visual da ilha: preto, vidro, brilho e um dock para navegar. */
 export function Settings() {
-  const [current, setCurrent] = useState<SectionId>("geral");
+  // Abre já na seção pedida (`?section=atalhos`); se a janela já estava aberta, o Rust avisa e ela troca.
+  const [current, setCurrent] = useState<SectionId>(() => {
+    const asked = new URLSearchParams(location.search).get("section");
+    return isSection(asked) ? asked : "geral";
+  });
   const section = SECTIONS.find((s) => s.id === current)!;
+  useEffect(() => ipc.onSettingsSection((asked) => isSection(asked) && setCurrent(asked)), []);
 
   // Os olhinhos acompanham o mouse dentro desta janela.
   useEffect(() => trackDomCursor(), []);

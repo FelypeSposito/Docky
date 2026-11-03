@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf, sync::Mutex};
+use std::{collections::HashSet, fs, path::PathBuf, sync::Mutex};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -19,6 +19,46 @@ pub struct Shortcut {
     /// Ícone do atalho: um emoji ou texto curto, ou o caminho de uma imagem. Vazio = a inicial do nome.
     #[serde(default)]
     pub icon: String,
+    /// Identifica o atalho (os grupos apontam para os membros por aqui). Gerado quando falta.
+    #[serde(default)]
+    pub id: String,
+    /// É um grupo: abre todos os atalhos de `members` de uma vez. `target` não é usado.
+    #[serde(default)]
+    pub group: bool,
+    #[serde(default)]
+    pub members: Vec<String>,
+}
+
+/// Dá um id a cada atalho que não tem (ou que repete o de outro) e tira dos grupos os membros que não existem mais
+/// ou que são outros grupos.
+pub fn normalize_shortcuts(shortcuts: &mut [Shortcut]) {
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut missing = Vec::new();
+    for (i, shortcut) in shortcuts.iter().enumerate() {
+        let id = shortcut.id.trim();
+        if id.is_empty() || !seen.insert(id.to_string()) {
+            missing.push(i);
+        }
+    }
+    let mut next = 1;
+    for i in missing {
+        loop {
+            let candidate = format!("s{next}");
+            next += 1;
+            if seen.insert(candidate.clone()) {
+                shortcuts[i].id = candidate;
+                break;
+            }
+        }
+    }
+    let plain: HashSet<String> = shortcuts.iter().filter(|s| !s.group).map(|s| s.id.clone()).collect();
+    for shortcut in shortcuts.iter_mut() {
+        if shortcut.group {
+            shortcut.members.retain(|m| plain.contains(m));
+        } else {
+            shortcut.members.clear();
+        }
+    }
 }
 
 /// Preferências do usuário. O formato (camelCase) é o mesmo que o frontend usa em `config/types.ts`.
@@ -74,6 +114,10 @@ pub struct Config {
     pub pinned_notes: Vec<String>,
     /// Duração do contador personalizado do Foco, em minutos.
     pub timer_custom_minutes: u32,
+    /// Em quais telas a ilha aparece (nomes dos monitores). Vazio = só na principal.
+    pub screens: Vec<String>,
+    /// Pede confirmação antes de abrir apps, jogos e grupos pelos atalhos.
+    pub confirm_apps: bool,
 }
 
 /// Se existir um cofre do Obsidian chamado "brain" em Documentos, as notas vão para a Inbox dele.
@@ -120,6 +164,8 @@ impl Default for Config {
             page_order: Vec::new(),
             pinned_notes: Vec::new(),
             timer_custom_minutes: 10,
+            screens: Vec::new(),
+            confirm_apps: true,
         }
     }
 }
@@ -137,10 +183,11 @@ impl ConfigState {
             .expect("não foi possível resolver a pasta de configuração");
         let _ = fs::create_dir_all(&dir);
         let path = dir.join("config.json");
-        let current = fs::read_to_string(&path)
+        let mut current: Config = fs::read_to_string(&path)
             .ok()
             .and_then(|text| serde_json::from_str(&text).ok())
             .unwrap_or_default();
+        normalize_shortcuts(&mut current.shortcuts);
         Self { path, current: Mutex::new(current) }
     }
 
@@ -163,9 +210,10 @@ pub fn get_config(state: State<ConfigState>) -> Config {
 pub fn set_config(
     app: AppHandle,
     state: State<ConfigState>,
-    config: Config,
+    mut config: Config,
 ) -> Result<Config, String> {
     let previous = state.get();
+    normalize_shortcuts(&mut config.shortcuts);
 
     if previous.start_with_windows != config.start_with_windows {
         let autolaunch = app.autolaunch();
@@ -180,5 +228,48 @@ pub fn set_config(
     state.save(&config).map_err(|e| e.to_string())?;
     *state.current.lock().unwrap() = config.clone();
     app.emit("config-changed", &config).map_err(|e| e.to_string())?;
+    if previous.screens != config.screens {
+        // Criar e fechar janelas fora deste comando: no Windows, fazer isso aqui pode travar.
+        let handle = app.clone();
+        tauri::async_runtime::spawn(async move {
+            let _ = crate::island::reconcile(&handle);
+        });
+    }
     Ok(config)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Shortcut, normalize_shortcuts};
+
+    fn shortcut(id: &str, group: bool, members: &[&str]) -> Shortcut {
+        Shortcut {
+            name: id.into(),
+            target: String::new(),
+            icon: String::new(),
+            id: id.into(),
+            group,
+            members: members.iter().map(|m| m.to_string()).collect(),
+        }
+    }
+
+    #[test]
+    fn da_id_a_quem_nao_tem_e_a_quem_repete() {
+        let mut list = vec![shortcut("", false, &[]), shortcut("a", false, &[]), shortcut("a", false, &[]), shortcut("s1", false, &[])];
+        normalize_shortcuts(&mut list);
+        let ids: Vec<_> = list.iter().map(|s| s.id.as_str()).collect();
+        assert_eq!(ids.len(), 4);
+        let unique: std::collections::HashSet<_> = ids.iter().collect();
+        assert_eq!(unique.len(), 4, "ids repetidos: {ids:?}");
+        assert_eq!(list[1].id, "a");
+        assert_eq!(list[3].id, "s1");
+    }
+
+    #[test]
+    fn grupo_so_guarda_membros_que_existem_e_nao_sao_grupos() {
+        let mut list = vec![shortcut("a", false, &["x"]), shortcut("g", true, &["a", "g2", "nao-existe"]), shortcut("g2", true, &[])];
+        normalize_shortcuts(&mut list);
+        assert!(list[0].members.is_empty(), "atalho comum não tem membros");
+        assert_eq!(list[1].members, ["a"]);
+    }
 }

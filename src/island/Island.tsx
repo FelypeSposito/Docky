@@ -15,13 +15,14 @@ import { Dock } from "./Dock";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
 import { useIslandSpring, useNow, usePower } from "./hooks";
-import { BatteryIcon, BoltIcon, CheckIcon, Equalizer, ExpandIcon, ShrinkIcon, VolumeIcon } from "./icons";
+import { BatteryIcon, BoltIcon, CheckIcon, Equalizer, ExpandIcon, ShrinkIcon, SlidersIcon, VolumeIcon } from "./icons";
 import { bodyHeight, type ClaudeActivity, EXPANDED_LARGE, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { visiblePages } from "./pageOrder";
 import { useIslandStore } from "./store";
 import "./island.css";
+import "./quick/quick.css";
 
 const CHARGE_NOTICE_MS = 3400;
 
@@ -70,6 +71,7 @@ export function Island() {
   const overlay = useIslandStore((s) => s.overlay);
   const page = useIslandStore((s) => s.page);
   const large = useIslandStore((s) => s.large);
+  const quick = useIslandStore((s) => s.quick);
   const media = useMediaStore((s) => s.media);
   const lyrics = useMediaStore((s) => s.lyrics);
   const accent = useMediaStore((s) => s.accent) ?? DEFAULT_ACCENT;
@@ -96,7 +98,10 @@ export function Island() {
   const mode: Mode = resolveMode({ expanded, overlay, lyricActive, claude });
   const shownPages = visiblePages(PAGES, config.pageOrder, config.hiddenPages);
   const ActivePage = shownPages.find((p) => p.id === page) ?? shownPages[0];
-  const largeOn = large && !!ActivePage.Large;
+  // Páginas com tela maior (Large) ou só com ajustes (Settings) ganham o botão de expandir.
+  const canExpand = !!ActivePage.Large || !!ActivePage.Settings;
+  const largeOn = large && canExpand;
+  const quickOn = largeOn && !!ActivePage.Settings && (quick || !ActivePage.Large);
   const size = mode === "expanded" && largeOn ? EXPANDED_LARGE : SIZES[mode];
 
   const notchRef = useRef<HTMLDivElement>(null);
@@ -180,7 +185,7 @@ export function Island() {
   } as React.CSSProperties;
 
   return (
-    <div ref={notchRef} className="notch" data-mode={mode}>
+    <div ref={notchRef} className={`notch${config.eyes ? "" : " no-eyes"}`} data-mode={mode}>
       <div className="ear l" />
       <div className="ear r" />
       <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick}>
@@ -323,7 +328,18 @@ export function Island() {
             )}
             <span className="date">{date}</span>
             <span className="time">{clock}</span>
-            {ActivePage.Large && (
+            {largeOn && ActivePage.Large && ActivePage.Settings && (
+              <button
+                className={`xbtn gear${quickOn ? " on" : ""}`}
+                aria-label={quickOn ? "Voltar ao conteúdo" : "Ajustes desta página"}
+                aria-pressed={quickOn}
+                title={quickOn ? "Voltar ao conteúdo" : "Ajustes"}
+                onClick={() => useIslandStore.getState().toggleQuick()}
+              >
+                <SlidersIcon />
+              </button>
+            )}
+            {canExpand && (
               <button
                 className="xbtn"
                 aria-label={largeOn ? "Voltar ao tamanho normal" : "Expandir esta página"}
@@ -339,7 +355,13 @@ export function Island() {
           </div>
 
           <div className="body">
-            {largeOn && ActivePage.Large ? <ActivePage.Large active={mode === "expanded"} /> : <ActivePage.Component active={mode === "expanded"} />}
+            {quickOn && ActivePage.Settings ? (
+              <ActivePage.Settings />
+            ) : largeOn && ActivePage.Large ? (
+              <ActivePage.Large active={mode === "expanded"} />
+            ) : (
+              <ActivePage.Component active={mode === "expanded"} />
+            )}
           </div>
 
           <Dock page={ActivePage.id} onPage={(id) => useIslandStore.getState().setPage(id)} />

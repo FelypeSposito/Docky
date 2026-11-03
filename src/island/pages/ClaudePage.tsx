@@ -45,7 +45,7 @@ export function ClaudePage({ active }: { active: boolean }) {
             ? "Instale em Configurações, em Claude Code. Depois as sessões aparecem aqui."
             : "Quando você usar o Claude Code, as sessões aparecem aqui."
         }
-        action={installed === false ? { label: "Abrir configurações", onClick: () => ipc.openSettings() } : undefined}
+        action={installed === false ? { label: "Abrir configurações", onClick: () => ipc.openSettings("claude") } : undefined}
       />
     );
   }

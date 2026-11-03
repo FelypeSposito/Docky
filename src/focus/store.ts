@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { useConfigStore } from "../config/useConfig";
 import type { Config } from "../config/types";
 import { useIslandStore } from "../island/store";
+import { ipc } from "../lib/ipc";
 import { applySettings, initialTimer, reset, setMode, tick, type TimerMode, type TimerSettings, type TimerState, toggle } from "./timer";
 
 const FINISHED_NOTICE_MS = 4200;
@@ -28,7 +29,16 @@ interface FocusStore extends TimerState {
   toggle: () => void;
   reset: () => void;
   setMode: (mode: TimerMode) => void;
+  /** Recebe o estado de outra janela da ilha (outra tela). Não avisa de volta, para não virar eco. */
+  receive: (state: TimerState) => void;
 }
+
+/** O Foco é um só, mesmo com a ilha em várias telas: cada janela avisa as outras do que muda. */
+const windowLabel = (): string => {
+  const tauri = (window as unknown as { __TAURI_INTERNALS__?: { metadata?: { currentWindow?: { label?: string } } } }).__TAURI_INTERNALS__;
+  return tauri?.metadata?.currentWindow?.label ?? document.body.dataset.window ?? "island";
+};
+const pickTimer = (s: TimerState): TimerState => ({ mode: s.mode, total: s.total, left: s.left, running: s.running, cycle: s.cycle, done: s.done });
 
 let interval: ReturnType<typeof setInterval> | undefined;
 
@@ -47,9 +57,11 @@ export const useFocusStore = create<FocusStore>((set, get) => {
       interval = undefined;
     }
   };
+  const broadcast = () => ipc.emitTimer({ from: windowLabel(), state: pickTimer(get()) });
   const apply = (next: TimerState) => {
     set(next);
     sync();
+    broadcast();
   };
 
   return {
@@ -59,8 +71,22 @@ export const useFocusStore = create<FocusStore>((set, get) => {
     toggle: () => apply(toggle(get())),
     reset: () => apply(reset(get())),
     setMode: (mode) => apply(setMode(get(), mode, currentSettings())),
+    receive: (state) => {
+      set(state);
+      sync();
+    },
   };
 });
+
+// Outras telas: aplica o que elas mudam e responde ao "oi" de uma janela que acabou de abrir.
+ipc.onTimer((payload) => {
+  const message = payload as { from?: string; state?: TimerState; hello?: boolean } | null;
+  if (!message || message.from === windowLabel()) return;
+  if (message.hello) ipc.emitTimer({ from: windowLabel(), state: pickTimer(useFocusStore.getState()) });
+  else if (message.state) useFocusStore.getState().receive(message.state);
+});
+// Quem abre depois (uma tela ligada com o Foco rodando) pergunta como está.
+ipc.emitTimer({ from: windowLabel(), hello: true });
 
 // Quando as durações mudam nas configurações, o timer parado já mostra o novo tempo.
 useConfigStore.subscribe((state, previous) => {

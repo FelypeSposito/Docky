@@ -29,7 +29,7 @@ src/lib        molas, formatação, ponte com o Rust (ipc.ts), cursor global
 src/config     tipos e store da configuração (espelha src-tauri/src/config.rs)
 src/island     a ilha: modos/tamanhos, hover, olhos, estilos
 src/settings   janela de configurações
-src-tauri/src  config, island (janela), pointer (cursor/hover), power, fullscreen, tray, settings_window,
+src-tauri/src  config, island (uma janela por tela), pointer (cursor/hover), power, fullscreen, tray, settings_window,
                file_drop (arrastar arquivos do Explorer), picker (seletor de arquivo), lyrics (LRCLIB e NetEase)
 prototype/     protótipos visuais descartáveis (Fase 0); a v2 é a referência de visual e movimento
 ```
@@ -43,8 +43,14 @@ para criar o ID do cliente está em Configurações → Integrações. Veja tamb
 ## Páginas
 
 Música (com letra sincronizada), Foco (Pomodoro e contador livre), Notas (fixar e excluir para a Lixeira), Shelf,
-Agenda, Atalhos (com ícone próprio: emoji ou imagem), Sistema e Claude. Páginas com versão maior (Agenda e Notas)
-têm um botão pequeno de expandir no cabeçalho da ilha: para criar uma, é só dar um `Large` à página em `registry.ts`.
+Agenda (clima com chuva, sensação, umidade, vento, UV e sol), Atalhos (apps, jogos, pastas, sites e grupos, com ícone
+próprio e confirmação ao abrir), Sistema e Claude.
+
+O botão pequeno do cabeçalho da ilha abre a tela maior da página (Agenda, Notas e Atalhos têm uma) e, dentro dela, os
+ajustes da própria página, sem abrir a janela de configurações. Para dar uma tela maior ou ajustes a uma página, é só
+preencher `Large` e `Settings` dela em `registry.ts`.
+
+A ilha pode aparecer em várias telas (Configurações → Geral): cada tela tem a sua janela, e o Foco é compartilhado.
 
 ## Teclas globais
 

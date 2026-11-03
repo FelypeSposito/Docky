@@ -1,6 +1,6 @@
 //! Atalhos globais de teclado. Cada um só avisa o frontend (evento `hotkey`); quem decide o que fazer é a ilha.
 
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 const BINDINGS: [(Code, &str); 4] = [
@@ -27,12 +27,12 @@ pub fn register(app: &AppHandle) -> tauri::Result<()> {
                     return;
                 };
                 // Abrir ou escrever precisa de foco no teclado, e a janela da ilha normalmente não o pega.
+                // Com várias telas, vale a ilha da tela onde o cursor está.
+                let Some(window) = crate::island::window_under_cursor(app) else { return };
                 if matches!(*name, "toggle" | "notes") {
-                    if let Some(window) = app.get_webview_window("island") {
-                        let _ = window.set_focus();
-                    }
+                    let _ = window.set_focus();
                 }
-                let _ = app.emit_to("island", "hotkey", *name);
+                let _ = app.emit_to(window.label(), "hotkey", *name);
             })
             .build(),
     )?;

@@ -44,8 +44,24 @@ pub fn system_stats(state: State<SystemState>) -> Stats {
         let mhz = system.cpus().first().map(|c| c.frequency()).unwrap_or(0);
         (system.global_cpu_usage(), mhz, system.used_memory(), system.total_memory())
     };
-    let (gpu, gpu_memory_used) = state.gpu.lock().unwrap().read();
-    Stats { cpu, cpu_mhz, memory_used, memory_total, gpu, gpu_memory_used }
+    let mut counters = state.gpu.lock().unwrap();
+    let (gpu, gpu_memory_used) = counters.read();
+    // Os mesmos contadores do Gerenciador de Tarefas: uso (que pode passar de 100 com turbo, e ele limita) e
+    // velocidade atual. O `sysinfo` só sabe a frequência base e o uso por tempo ocupado, que dão outro número.
+    let (task_manager_cpu, task_manager_mhz) = counters.cpu();
+    Stats {
+        cpu: task_manager_cpu.unwrap_or(cpu),
+        cpu_mhz: task_manager_mhz.unwrap_or(cpu_mhz),
+        memory_used,
+        memory_total,
+        gpu,
+        gpu_memory_used,
+    }
+}
+
+/// A velocidade atual do processador: a frequência base vezes o desempenho (100% = base; o turbo passa disso).
+pub fn current_mhz(base_mhz: f64, performance_percent: f64) -> u64 {
+    (base_mhz * performance_percent / 100.0).max(0.0).round() as u64
 }
 
 /// Soma os valores por tipo de engine ("engtype_3D", "engtype_VideoDecode"…) e fica com o maior,
@@ -68,8 +84,8 @@ mod gpu {
 
     use windows::{
         Win32::System::Performance::{
-            PDH_FMT_COUNTERVALUE_ITEM_W, PDH_FMT_DOUBLE, PDH_HCOUNTER, PDH_HQUERY, PdhAddEnglishCounterW, PdhCollectQueryData,
-            PdhGetFormattedCounterArrayW, PdhOpenQueryW,
+            PDH_FMT_COUNTERVALUE, PDH_FMT_COUNTERVALUE_ITEM_W, PDH_FMT_DOUBLE, PDH_HCOUNTER, PDH_HQUERY, PdhAddEnglishCounterW,
+            PdhCollectQueryData, PdhGetFormattedCounterArrayW, PdhGetFormattedCounterValue, PdhOpenQueryW,
         },
         core::PCWSTR,
     };
@@ -82,6 +98,10 @@ mod gpu {
         query: usize,
         usage: Option<usize>,
         memory: Option<usize>,
+        /// "% Processor Utility", "% Processor Performance" e "Processor Frequency" (MHz base).
+        cpu_utility: Option<usize>,
+        cpu_performance: Option<usize>,
+        cpu_base_mhz: Option<usize>,
     }
 
     fn wide(text: &str) -> Vec<u16> {
@@ -96,7 +116,7 @@ mod gpu {
         pub fn new() -> Self {
             let mut query = PDH_HQUERY::default();
             if unsafe { PdhOpenQueryW(PCWSTR::null(), 0, &mut query) } != 0 {
-                return Self { query: 0, usage: None, memory: None };
+                return Self { query: 0, usage: None, memory: None, cpu_utility: None, cpu_performance: None, cpu_base_mhz: None };
             }
             let add = |path: &str| {
                 let mut counter = PDH_HCOUNTER::default();
@@ -105,8 +125,11 @@ mod gpu {
             };
             let usage = add(r"\GPU Engine(*)\Utilization Percentage");
             let memory = add(r"\GPU Adapter Memory(*)\Dedicated Usage");
+            let cpu_utility = add(r"\Processor Information(_Total)\% Processor Utility");
+            let cpu_performance = add(r"\Processor Information(_Total)\% Processor Performance");
+            let cpu_base_mhz = add(r"\Processor Information(_Total)\Processor Frequency");
             unsafe { PdhCollectQueryData(query) };
-            Self { query: query.0 as usize, usage, memory }
+            Self { query: query.0 as usize, usage, memory, cpu_utility, cpu_performance, cpu_base_mhz }
         }
 
         /// Valores de um contador com curinga: (nome da instância, valor).
@@ -131,6 +154,26 @@ mod gpu {
                     (item.FmtValue.CStatus == 0).then(|| (name, item.FmtValue.Anonymous.doubleValue))
                 })
                 .collect()
+        }
+
+        /// Valor de um contador simples (sem curinga), se o Windows já tem duas amostras para calculá-lo.
+        fn single(counter: Option<usize>) -> Option<f64> {
+            let counter = PDH_HCOUNTER(counter? as *mut _);
+            let mut value = PDH_FMT_COUNTERVALUE::default();
+            let status = unsafe { PdhGetFormattedCounterValue(counter, PDH_FMT_DOUBLE, None, &mut value) };
+            (status == 0 && value.CStatus == 0).then(|| unsafe { value.Anonymous.doubleValue })
+        }
+
+        /// Uso e velocidade do processador como o Gerenciador de Tarefas mostra (usa a leitura feita em `read`).
+        pub fn cpu(&mut self) -> (Option<f32>, Option<u64>) {
+            if self.query == 0 {
+                return (None, None);
+            }
+            let usage = Self::single(self.cpu_utility).map(|v| v.clamp(0.0, 100.0) as f32);
+            let mhz = Self::single(self.cpu_base_mhz)
+                .zip(Self::single(self.cpu_performance))
+                .map(|(base, performance)| super::current_mhz(base, performance));
+            (usage, mhz)
         }
 
         pub fn read(&mut self) -> (Option<f32>, Option<u64>) {
@@ -159,12 +202,22 @@ mod gpu {
         pub fn read(&mut self) -> (Option<f32>, Option<u64>) {
             (None, None)
         }
+        pub fn cpu(&mut self) -> (Option<f32>, Option<u64>) {
+            (None, None)
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::busiest_engine;
+    use super::{busiest_engine, current_mhz};
+
+    #[test]
+    fn velocidade_atual_e_a_base_vezes_o_desempenho() {
+        assert_eq!(current_mhz(3600.0, 127.8), 4601); // 4,60 GHz, como no Gerenciador de Tarefas
+        assert_eq!(current_mhz(3600.0, 100.0), 3600);
+        assert_eq!(current_mhz(3600.0, 0.0), 0);
+    }
 
     fn inst(name: &str, value: f64) -> (String, f64) {
         (name.to_string(), value)
@@ -198,5 +251,25 @@ mod tests {
     fn nunca_passa_de_100_nem_quebra_sem_dados() {
         assert_eq!(busiest_engine(&[inst("x_engtype_3D", 80.0), inst("y_engtype_3D", 70.0)]), 100.0);
         assert_eq!(busiest_engine(&[]), 0.0);
+    }
+}
+
+#[cfg(all(test, windows))]
+mod cpu_smoke {
+    /// Teste de fumaça na máquina real: os contadores do processador abrem e dão números plausíveis.
+    #[test]
+    fn le_o_processador_desta_maquina() {
+        let mut counters = super::gpu::Gpu::new();
+        counters.read();
+        std::thread::sleep(std::time::Duration::from_millis(900));
+        counters.read();
+        let (usage, mhz) = counters.cpu();
+        println!("CPU: uso={usage:?} mhz={mhz:?}");
+        if let Some(usage) = usage {
+            assert!((0.0..=100.0).contains(&usage));
+        }
+        if let Some(mhz) = mhz {
+            assert!((400..=7000).contains(&mhz));
+        }
     }
 }

@@ -15,7 +15,7 @@ use std::{
 };
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use windows::{
     Win32::{
         Foundation::{DRAGDROP_E_INVALIDHWND, HWND, LPARAM, POINTL},
@@ -44,6 +44,8 @@ struct Paths {
 #[implement(IDropTarget)]
 struct FileDropTarget {
     app: AppHandle,
+    /// A janela da ilha (uma por tela) que recebe os avisos.
+    label: String,
     /// O que está sendo arrastado tem arquivos? Se não, não há o que avisar nem aceitar.
     valid: Cell<bool>,
 }
@@ -51,7 +53,7 @@ struct FileDropTarget {
 impl FileDropTarget {
     fn emit(&self, name: &str, paths: Vec<PathBuf>) {
         let paths = paths.into_iter().map(|p| p.to_string_lossy().into_owned()).collect();
-        let _ = self.app.emit_to("island", name, Paths { paths });
+        let _ = self.app.emit_to(self.label.as_str(), name, Paths { paths });
     }
 }
 
@@ -128,10 +130,10 @@ fn missing_targets(root: HWND) -> Vec<isize> {
     found
 }
 
-fn register(app: &AppHandle, handles: Vec<isize>) {
+fn register(app: &AppHandle, label: &str, handles: Vec<isize>) {
     for raw in handles {
         let hwnd = HWND(raw as _);
-        let target: IDropTarget = FileDropTarget { app: app.clone(), valid: Cell::new(false) }.into();
+        let target: IDropTarget = FileDropTarget { app: app.clone(), label: label.to_string(), valid: Cell::new(false) }.into();
         // Mesma regra do wry: se a janela não aceita alvo de arrastar, deixa como está.
         if unsafe { RevokeDragDrop(hwnd) } != Err(DRAGDROP_E_INVALIDHWND.into()) {
             let _ = unsafe { RegisterDragDrop(hwnd, &target) };
@@ -143,15 +145,17 @@ pub fn spawn(app: AppHandle) {
     thread::spawn(move || {
         loop {
             thread::sleep(CHECK_INTERVAL);
-            let Some(window) = app.get_webview_window("island") else { continue };
-            let Ok(root) = window.hwnd() else { continue };
-            let handles = missing_targets(HWND(root.0 as _));
-            if handles.is_empty() {
-                continue;
+            for window in crate::island::windows(&app) {
+                let Ok(root) = window.hwnd() else { continue };
+                let handles = missing_targets(HWND(root.0 as _));
+                if handles.is_empty() {
+                    continue;
+                }
+                // O registro do OLE tem que acontecer na thread principal, a mesma que atende a janela.
+                let handle = app.clone();
+                let label = window.label().to_string();
+                let _ = app.run_on_main_thread(move || register(&handle, &label, handles));
             }
-            // O registro do OLE tem que acontecer na thread principal, a mesma que atende a janela.
-            let handle = app.clone();
-            let _ = app.run_on_main_thread(move || register(&handle, handles));
         }
     });
 }

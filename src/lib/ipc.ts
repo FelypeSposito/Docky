@@ -50,6 +50,24 @@ export interface Weather {
   max: number;
   min: number;
   hourly: number[];
+  feelsLike: number | null;
+  humidity: number | null;
+  windKmh: number | null;
+  precipitationMm: number | null;
+  uvMax: number | null;
+  /** Maior chance de chuva do dia (%). */
+  rainMax: number | null;
+  sunrise: string | null;
+  sunset: string | null;
+  /** As próximas 12 horas, uma a uma. */
+  hours: { hour: number; temp: number; rain: number; code: number }[];
+}
+
+export interface MonitorInfo {
+  id: string;
+  width: number;
+  height: number;
+  primary: boolean;
 }
 
 export interface Note {
@@ -192,9 +210,30 @@ export const ipc = {
     await (action === "minimize" ? current.minimize() : current.close());
   },
 
-  openSettings(): void {
-    if (isTauri) void invoke("open_settings");
-    else window.open("/?w=settings", "docky-settings", "width=780,height=520");
+  /** Abre as configurações, já na seção pedida (`atalhos`, `shelf`, `integracoes`…). */
+  openSettings(section?: string): void {
+    if (isTauri) void invoke("open_settings", { section: section ?? null });
+    else window.open(`/?w=settings${section ? `&section=${section}` : ""}`, "docky-settings", "width=780,height=520");
+  },
+
+  /** O Rust avisa quando a janela de configurações já estava aberta e deve trocar de seção. */
+  onSettingsSection(handler: (section: string) => void): Unlisten {
+    return isTauri ? subscribe("settings-section", handler) : () => {};
+  },
+
+  /** As telas conectadas. */
+  async listMonitors(): Promise<MonitorInfo[]> {
+    if (isTauri) return invoke<MonitorInfo[]>("list_monitors");
+    return [{ id: "\\.\DISPLAY1", width: 1920, height: 1080, primary: true }];
+  },
+
+  /** O Foco é um só, mesmo com a ilha em várias telas: cada janela avisa as outras das suas mudanças. */
+  emitTimer(payload: unknown): void {
+    if (isTauri) void invoke("plugin:event|emit", { event: "docky-timer", payload });
+  },
+
+  onTimer(handler: (payload: unknown) => void): Unlisten {
+    return isTauri ? subscribe("docky-timer", handler) : () => {};
   },
 
   async getPower(): Promise<Power | null> {
@@ -304,7 +343,11 @@ export const ipc = {
 
   async weather(city: string): Promise<Weather> {
     if (isTauri) return invoke<Weather>("weather", { city });
-    return { city, temperature: 24.3, code: 2, max: 27, min: 18, hourly: [24, 26, 27, 25, 22] };
+    const hours = Array.from({ length: 12 }, (_, i) => ({ hour: (new Date().getHours() + i) % 24, temp: 24 + Math.round(3 * Math.sin(i / 3)), rain: i === 4 ? 70 : i === 5 ? 85 : i === 6 ? 40 : 5, code: i > 3 && i < 7 ? 61 : 2 }));
+    return {
+      city, temperature: 24.3, code: 2, max: 27, min: 18, hourly: [24, 26, 27, 25, 22],
+      feelsLike: 26, humidity: 71, windKmh: 12, precipitationMm: 0, uvMax: 9, rainMax: 85, sunrise: "05:42", sunset: "18:21", hours,
+    };
   },
 
   /** Arquivos sendo arrastados para a ilha (o Tauri entrega os caminhos). */
@@ -335,9 +378,9 @@ export const ipc = {
     return isTauri ? invoke<string | null>("shortcut_icon", { index }) : null;
   },
 
-  /** Abre o seletor de arquivo do Windows para escolher uma imagem. `null` = cancelou. */
-  async pickImage(): Promise<string | null> {
-    return isTauri ? invoke<string | null>("pick_image") : null;
+  /** Abre o seletor do Windows: uma imagem, um programa/arquivo ou uma pasta. `null` = cancelou. */
+  async pickPath(kind: "image" | "app" | "folder"): Promise<string | null> {
+    return isTauri ? invoke<string | null>("pick_path", { kind }) : null;
   },
 
   onHotkey(handler: (key: Hotkey) => void): Unlisten {

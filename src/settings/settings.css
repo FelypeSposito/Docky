@@ -595,3 +595,32 @@ body[data-window="settings"] {
   background: rgba(255, 255, 255, 0.1);
   object-fit: contain;
 }
+
+/* Grupo de atalhos: os itens que ele abre */
+.sa .members {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+.sa .members button {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 550;
+  transition: background 0.2s, color 0.2s;
+}
+.sa .members button:hover {
+  color: #fff;
+}
+.sa .members button.on {
+  background: var(--accent);
+  color: #0b0b0e;
+}
+.sa .hint-inline {
+  color: var(--ink3);
+  font-size: 12px;
+}

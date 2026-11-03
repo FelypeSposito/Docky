@@ -30,7 +30,9 @@ pub fn run() {
     tauri::Builder::default()
         // Tem que ser o primeiro plugin. Abrir o Docky de novo só abre a ilha que já está rodando.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            let _ = app.emit_to("island", "hotkey", "toggle");
+            if let Some(window) = island::window_under_cursor(app) {
+                let _ = app.emit_to(window.label(), "hotkey", "toggle");
+            }
         }))
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .manage(pointer::PointerState::default())
@@ -42,6 +44,7 @@ pub fn run() {
             config::get_config,
             config::set_config,
             pointer::set_island_rect,
+            island::list_monitors,
             power::get_power,
             settings_window::open_settings,
             lyrics::lrclib,
@@ -59,7 +62,7 @@ pub fn run() {
             notes::notes_open,
             notes::notes_delete,
             launcher::shortcut_icon,
-            picker::pick_image,
+            picker::pick_path,
             shelf::shelf_send,
             weather::weather,
             claude::claude_decide,
@@ -83,7 +86,8 @@ pub fn run() {
             }
             app.manage(claude::ClaudeState::load(&handle));
 
-            island::place(&handle)?;
+            island::reconcile(&handle)?;
+            island::watch(handle.clone());
             hotkeys::register(&handle)?;
             tray::build(&handle)?;
 

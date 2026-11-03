@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { ipc } from "../../lib/ipc";
+import { folderHint, usableFolders } from "../../shelf/folders";
 import { fileName, useShelfStore } from "../../shelf/store";
 import { EmptyState } from "../EmptyState";
 import { FileIcon, FolderIcon, TrayIcon } from "../icons";
@@ -10,7 +11,8 @@ const COLORS = ["#4c8dff", "#8b5cf6", "#ff9f43", "#34d399"];
 const MAX_FOLDERS = 4;
 
 export function ShelfPage() {
-  const folders = useConfigStore((s) => s.config.shelfFolders).slice(0, MAX_FOLDERS);
+  const configured = useConfigStore((s) => s.config.shelfFolders);
+  const folders = useMemo(() => usableFolders(configured).slice(0, MAX_FOLDERS), [configured]);
   const move = useConfigStore((s) => s.config.shelfMove);
   const { paths, dragging, clear } = useShelfStore();
   const [notice, setNotice] = useState<string | null>(null);
@@ -65,7 +67,7 @@ export function ShelfPage() {
         <EmptyState
           title="Falta cadastrar as pastas"
           text="Escolha os destinos em Configurações, em Shelf."
-          action={{ label: "Abrir configurações", onClick: () => ipc.openSettings() }}
+          action={{ label: "Abrir configurações", onClick: () => ipc.openSettings("shelf") }}
         />
       ) : (
         <div className={`dgrid${paths.length === 0 ? " off" : ""}`}>
@@ -76,7 +78,7 @@ export function ShelfPage() {
               </span>
               <div>
                 <b>{folder.name}</b>
-                <span>{folder.path.split(/[\\/]/).filter(Boolean).slice(-2).join(" › ")}</span>
+                <span>{folderHint(folder)}</span>
               </div>
             </button>
           ))}

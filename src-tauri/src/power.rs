@@ -1,7 +1,7 @@
 use std::{thread, time::Duration};
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -51,7 +51,7 @@ pub fn spawn(app: AppHandle) {
             let current = read();
             if current != last {
                 if let Some(power) = current {
-                    let _ = app.emit_to("island", "power", power);
+                    crate::island::emit(&app, "power", power);
                 }
                 last = current;
             }

@@ -23,7 +23,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
             // Criar janelas direto do handler da bandeja pode travar no Windows; faz fora dele.
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
-                let _ = settings_window::open(&app);
+                let _ = settings_window::open(&app, None);
             });
         }
         "quit" => app.exit(0),

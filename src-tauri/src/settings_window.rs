@@ -1,17 +1,31 @@
-use tauri::{AppHandle, Manager, Theme, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, Theme, WebviewUrl, WebviewWindowBuilder};
 
 const LABEL: &str = "settings";
 
-/// Abre a janela de configurações, ou traz a que já existe para a frente.
-pub fn open(app: &AppHandle) -> tauri::Result<()> {
+/// Só aceita letras minúsculas, para o nome da seção ir com segurança dentro do endereço da janela.
+fn clean_section(section: Option<&str>) -> Option<&str> {
+    section.filter(|s| !s.is_empty() && s.len() <= 24 && s.chars().all(|c| c.is_ascii_lowercase()))
+}
+
+/// Abre a janela de configurações (já na `section`, se for dada), ou traz a que já existe para a frente.
+pub fn open(app: &AppHandle, section: Option<&str>) -> tauri::Result<()> {
+    let section = clean_section(section);
+
     if let Some(window) = app.get_webview_window(LABEL) {
         window.show()?;
         window.unminimize()?;
         window.set_focus()?;
+        if let Some(section) = section {
+            let _ = app.emit_to(LABEL, "settings-section", section);
+        }
         return Ok(());
     }
 
-    WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("index.html".into()))
+    let url = match section {
+        Some(section) => format!("index.html?section={section}"),
+        None => "index.html".to_string(),
+    };
+    WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App(url.into()))
         .title("Docky — Configurações")
         // Sem moldura do Windows: a barra de cima, a borda e os cantos são desenhados pelo frontend, como na ilha.
         .decorations(false)
@@ -27,6 +41,20 @@ pub fn open(app: &AppHandle) -> tauri::Result<()> {
 
 // Assíncrono de propósito: criar janelas em comandos síncronos pode travar no Windows.
 #[tauri::command]
-pub async fn open_settings(app: AppHandle) -> Result<(), String> {
-    open(&app).map_err(|e| e.to_string())
+pub async fn open_settings(app: AppHandle, section: Option<String>) -> Result<(), String> {
+    open(&app, section.as_deref()).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::clean_section;
+
+    #[test]
+    fn so_aceita_nome_de_secao_simples() {
+        assert_eq!(clean_section(Some("atalhos")), Some("atalhos"));
+        assert_eq!(clean_section(Some("../x")), None);
+        assert_eq!(clean_section(Some("a b")), None);
+        assert_eq!(clean_section(Some("")), None);
+        assert_eq!(clean_section(None), None);
+    }
 }

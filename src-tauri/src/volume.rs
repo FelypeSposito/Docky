@@ -3,7 +3,7 @@
 use std::{thread, time::Duration};
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -98,7 +98,7 @@ pub fn spawn(app: AppHandle) {
                 // O primeiro valor lido não é uma "mudança": só registra, sem avisar.
                 if last.is_some() {
                     if let Some(volume) = current {
-                        let _ = app.emit_to("island", "volume", volume);
+                        crate::island::emit(&app, "volume", volume);
                     }
                 }
                 last = current;
