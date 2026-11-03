@@ -9,6 +9,9 @@ use tauri_plugin_autostart::ManagerExt;
 pub struct ShelfFolder {
     pub name: String,
     pub path: String,
+    /// Ícone da pasta: emoji, `lib:nome` (biblioteca do Docky) ou o caminho de uma imagem. Vazio = pasta padrão.
+    #[serde(default)]
+    pub icon: String,
 }
 
 /// Atalho do lançador: abre um app, pasta, arquivo ou site.

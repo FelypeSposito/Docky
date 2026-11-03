@@ -32,22 +32,37 @@ fn image_mime(path: &str) -> Option<&'static str> {
     })
 }
 
-/// A imagem do ícone do atalho, pronta para a tela (`data:`), ou `None` se o ícone for um emoji/texto ou estiver vazio.
-/// Recebe só a posição na lista, como o `launch`: não lê um caminho qualquer.
-#[tauri::command]
-pub fn shortcut_icon(state: State<ConfigState>, index: usize) -> Result<Option<String>, String> {
-    let Some(icon) = state.get().shortcuts.get(index).map(|s| s.icon.trim().to_string()) else {
+/// A imagem de um ícone, pronta para a tela (`data:`), ou `None` se o ícone for um emoji, da biblioteca ou vazio.
+/// Só lê arquivos de imagem de até 1,5 MB.
+pub fn read_icon_image(icon: &str) -> Result<Option<String>, String> {
+    let icon = icon.trim();
+    let Some(mime) = image_mime(icon) else {
         return Ok(None);
     };
-    let Some(mime) = image_mime(&icon) else {
-        return Ok(None);
-    };
-    let metadata = fs::metadata(&icon).map_err(|_| "não achei a imagem do ícone".to_string())?;
+    let metadata = fs::metadata(icon).map_err(|_| "não achei a imagem do ícone".to_string())?;
     if !metadata.is_file() || metadata.len() > MAX_ICON_BYTES {
         return Err("a imagem do ícone precisa ser um arquivo de até 1,5 MB".into());
     }
-    let bytes = fs::read(&icon).map_err(|e| e.to_string())?;
+    let bytes = fs::read(icon).map_err(|e| e.to_string())?;
     Ok(Some(format!("data:{mime};base64,{}", STANDARD.encode(bytes))))
+}
+
+/// O ícone de imagem do atalho da posição `index`. Recebe só a posição, como o `launch`: não lê um caminho qualquer.
+#[tauri::command]
+pub fn shortcut_icon(state: State<ConfigState>, index: usize) -> Result<Option<String>, String> {
+    match state.get().shortcuts.get(index) {
+        Some(shortcut) => read_icon_image(&shortcut.icon),
+        None => Ok(None),
+    }
+}
+
+/// O ícone de imagem da pasta da Shelf na posição `index`.
+#[tauri::command]
+pub fn shelf_icon(state: State<ConfigState>, index: usize) -> Result<Option<String>, String> {
+    match state.get().shelf_folders.get(index) {
+        Some(folder) => read_icon_image(&folder.icon),
+        None => Ok(None),
+    }
 }
 
 /// Tem cara de endereço com protocolo: `https://…`, mas também `steam://…` ou `spotify://…`, que abrem apps e jogos.

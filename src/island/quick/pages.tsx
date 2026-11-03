@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import type { ShelfFolder } from "../../config/types";
+import { IconPicker } from "../../launcher/IconPicker";
+import { useShelfImages } from "../../launcher/icons";
+import { ItemIcon, SHORTCUT_COLORS } from "../../launcher/ShortcutIcon";
 import { ipc } from "../../lib/ipc";
+import { FolderIcon } from "../icons";
 import { QButton, QPanel, QPath, QRow, QSegmented, QStepper, QText, QTitle, QToggle } from "./controls";
 
 /** Os ajustes de cada página, sem abrir a janela de configurações. Valem na hora: gravam a cada mudança. */
@@ -72,8 +77,25 @@ export function NotesQuick() {
 export function ShelfQuick() {
   const { config, update } = useConfigStore();
   const folders = config.shelfFolders;
+  const images = useShelfImages(folders);
+  /** A pasta cujo ícone está sendo escolhido (o seletor ocupa o lugar da lista). */
+  const [picking, setPicking] = useState<number | null>(null);
   const set = (next: ShelfFolder[]) => update({ shelfFolders: next });
   const change = (index: number, patch: Partial<ShelfFolder>) => set(folders.map((f, i) => (i === index ? { ...f, ...patch } : f)));
+
+  if (picking !== null && folders[picking]) {
+    const folder = folders[picking];
+    return (
+      <IconPicker
+        value={folder.icon ?? ""}
+        name={folder.name}
+        color={SHORTCUT_COLORS[picking % SHORTCUT_COLORS.length]}
+        image={images[picking]}
+        onChange={(icon) => change(picking, { icon })}
+        onDone={() => setPicking(null)}
+      />
+    );
+  }
 
   return (
     <QPanel>
@@ -91,6 +113,9 @@ export function ShelfQuick() {
       <QTitle>Pastas de destino</QTitle>
       {folders.map((folder, i) => (
         <div className="qs-line" key={i}>
+          <button className="le-ico" title="Escolher o ícone" aria-label={`Escolher o ícone de ${folder.name || "pasta"}`} onClick={() => setPicking(i)}>
+            <ItemIcon icon={folder.icon ?? ""} image={images[i]} color={SHORTCUT_COLORS[i % SHORTCUT_COLORS.length]} className="li" empty={<FolderIcon size={14} />} />
+          </button>
           <QText label="Nome da pasta" width={110} value={folder.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
           <QPath label="Caminho da pasta" kind="folder" width={210} value={folder.path} placeholder="Escolha a pasta" onCommit={(v) => change(i, { path: v, name: folder.name || v.split(/[\\/]/).filter(Boolean).pop() || "" })} />
           <QButton tone="danger" onClick={() => set(folders.filter((_, k) => k !== i))}>
@@ -99,7 +124,7 @@ export function ShelfQuick() {
         </div>
       ))}
       <div className="qs-line">
-        <QButton tone="primary" disabled={folders.length >= 4} onClick={() => set([...folders, { name: "", path: "" }])}>
+        <QButton tone="primary" disabled={folders.length >= 4} onClick={() => set([...folders, { name: "", path: "", icon: "" }])}>
           Adicionar pasta
         </QButton>
         {folders.length >= 4 && <span className="qs-note">No máximo 4 pastas.</span>}

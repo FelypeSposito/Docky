@@ -1,5 +1,6 @@
 import type { ClaudeEvent, PermissionRequest } from "../claude/sessions";
 import type { CalEvent } from "../calendar/events";
+import type { AppEntry } from "../launcher/suggestions";
 import type { CalendarStatus } from "../calendar/store";
 import { type Config, DEFAULT_CONFIG } from "../config/types";
 
@@ -378,6 +379,23 @@ export const ipc = {
   /** A imagem do ícone do atalho da posição `index` (data URL), ou `null` se o ícone for texto ou estiver vazio. */
   async shortcutIcon(index: number): Promise<string | null> {
     return isTauri ? invoke<string | null>("shortcut_icon", { index }) : null;
+  },
+
+  /** Os apps instalados (Menu Iniciar e Área de Trabalho), os mais usados primeiro. */
+  async listApps(): Promise<AppEntry[]> {
+    if (isTauri) return invoke<AppEntry[]>("list_apps");
+    return [
+      { name: "Google Chrome", target: "C:\Menu\Google Chrome.lnk", uses: 120, pinned: true, running: true },
+      { name: "Spotify", target: "C:\Menu\Spotify.lnk", uses: 80, pinned: false, running: true },
+      { name: "Discord", target: "C:\Menu\Discord.lnk", uses: 30, pinned: false, running: false },
+      { name: "Obsidian", target: "C:\Menu\Obsidian.lnk", uses: 12, pinned: false, running: false },
+      { name: "Steam", target: "C:\Menu\Steam.lnk", uses: 9, pinned: false, running: false },
+    ];
+  },
+
+  /** A imagem do ícone da pasta da Shelf na posição `index` (data URL), ou `null`. */
+  async shelfIcon(index: number): Promise<string | null> {
+    return isTauri ? invoke<string | null>("shelf_icon", { index }) : null;
   },
 
   /** Abre o seletor do Windows: uma imagem, um programa/arquivo ou uma pasta. `null` = cancelou. */

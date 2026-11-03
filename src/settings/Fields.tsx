@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import type { ShelfFolder, Shortcut } from "../config/types";
 import type { MonitorInfo } from "../lib/ipc";
-import { ArrowDownIcon, ArrowUpIcon, GripIcon } from "../island/icons";
+import { ArrowDownIcon, ArrowUpIcon, FolderIcon, GripIcon } from "../island/icons";
 import { moveItem, orderPages } from "../island/pageOrder";
 import { PAGES } from "../island/pages/registry";
-import { iconKind, useShortcutImages } from "../launcher/icons";
-import { SHORTCUT_COLORS, ShortcutIcon } from "../launcher/ShortcutIcon";
+import { useShelfImages, useShortcutImages } from "../launcher/icons";
+import { ItemIcon, SHORTCUT_COLORS, ShortcutIcon } from "../launcher/ShortcutIcon";
+import { IconPicker } from "../launcher/IconPicker";
 import { cleanTarget, newId, removeShortcut, toggleMember } from "../launcher/model";
+import { MIN_GROUP, TEMPLATES, addApp, buildGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
 import { ipc } from "../lib/ipc";
 import { Group, Row, Segmented, Toggle } from "./controls";
 import { useSortable } from "./useSortable";
@@ -84,15 +86,32 @@ export function ShelfFolders() {
     </Group>
   );
   const folders = config.shelfFolders;
+  const images = useShelfImages(folders);
+  const [picking, setPicking] = useState<number | null>(null);
   const set = (next: ShelfFolder[]) => update({ shelfFolders: next });
   const change = (index: number, patch: Partial<ShelfFolder>) => set(folders.map((f, i) => (i === index ? { ...f, ...patch } : f)));
 
   return (
     <>
+      {picking !== null && folders[picking] && (
+        <Group>
+          <IconPicker
+            value={folders[picking].icon ?? ""}
+            name={folders[picking].name}
+            color={SHORTCUT_COLORS[picking % SHORTCUT_COLORS.length]}
+            image={images[picking]}
+            onChange={(icon) => change(picking, { icon })}
+            onDone={() => setPicking(null)}
+          />
+        </Group>
+      )}
       <Group>
         {folders.length === 0 && <Row label="Nenhuma pasta ainda" hint="Adicione as pastas para onde os arquivos soltos na ilha serão copiados" />}
         {folders.map((folder, i) => (
           <div className="row folder-row" key={i}>
+            <button className="sico" aria-label={`Escolher o ícone de ${folder.name || "pasta"}`} title="Escolher o ícone" onClick={() => setPicking(i)}>
+              <ItemIcon icon={folder.icon ?? ""} image={images[i]} color={SHORTCUT_COLORS[i % SHORTCUT_COLORS.length]} className="li" empty={<FolderIcon size={14} />} />
+            </button>
             <TextField label="Nome da pasta" width={110} value={folder.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
             <TextField label="Caminho da pasta" width={230} value={folder.path} placeholder="C:\Users\você\Google Drive\Faculdade" onCommit={(v) => change(i, { path: v })} />
             <button
@@ -108,7 +127,7 @@ export function ShelfFolders() {
           </div>
         ))}
         <Row label="Adicionar pasta" hint="Os arquivos são copiados; os originais ficam onde estão. A pasta precisa existir">
-          <button className="btn primary" disabled={folders.length >= 4} onClick={() => set([...folders, { name: "", path: "" }])}>
+          <button className="btn primary" disabled={folders.length >= 4} onClick={() => set([...folders, { name: "", path: "", icon: "" }])}>
             Adicionar
           </button>
         </Row>
@@ -139,12 +158,26 @@ export function ShortcutsEditor() {
     (order) => set(order.flatMap((id) => items.filter((s) => s.id === id))),
   );
   const images = useShortcutImages(items);
-  const pickImage = (index: number) => void ipc.pickPath("image").then((path) => path && change(index, { icon: path }));
+  /** O atalho cujo ícone está sendo escolhido (o seletor aparece acima da lista). */
+  const [picking, setPicking] = useState<string | null>(null);
+  const pickingIndex = picking === null ? -1 : items.findIndex((s) => s.id === picking);
   const pickApp = (index: number) => void ipc.pickPath("app").then((path) => path && change(index, { target: path }));
   const add = (group: boolean) => set([...items, { name: "", target: "", icon: "", id: newId(), group, members: [] }]);
 
   return (
     <>
+      {pickingIndex >= 0 && (
+        <Group>
+          <IconPicker
+            value={items[pickingIndex].icon ?? ""}
+            name={items[pickingIndex].name}
+            color={SHORTCUT_COLORS[pickingIndex % SHORTCUT_COLORS.length]}
+            image={images[pickingIndex]}
+            onChange={(icon) => change(pickingIndex, { icon })}
+            onDone={() => setPicking(null)}
+          />
+        </Group>
+      )}
       <Group>
         {items.length === 0 && <Row label="Nenhum atalho ainda" hint="Apps, jogos, pastas, arquivos e sites que você abre sempre" />}
         <div className="sortable">
@@ -160,9 +193,9 @@ export function ShortcutsEditor() {
               </span>
               <button
                 className="sico"
-                aria-label={`Escolher a imagem do ícone de ${item.name || "atalho"}`}
-                title="Escolher uma imagem para o ícone"
-                onClick={() => pickImage(i)}
+                aria-label={`Escolher o ícone de ${item.name || "atalho"}`}
+                title="Escolher o ícone"
+                onClick={() => setPicking(item.id)}
               >
                 <ShortcutIcon shortcut={item} image={images[i]} color={SHORTCUT_COLORS[i % SHORTCUT_COLORS.length]} className="li" />
               </button>
@@ -190,19 +223,7 @@ export function ShortcutsEditor() {
                   <button className="btn" title="Escolher um programa, atalho ou arquivo" onClick={() => pickApp(i)}>
                     Escolher…
                   </button>
-                  <TextField
-                    label="Emoji do ícone"
-                    width={56}
-                    value={iconKind(item.icon ?? "") === "text" ? item.icon : ""}
-                    placeholder="Emoji"
-                    onCommit={(v) => change(i, { icon: v })}
-                  />
                 </>
-              )}
-              {(item.icon ?? "").trim() !== "" && (
-                <button className="btn" title="Voltar para a inicial do nome" onClick={() => change(i, { icon: "" })}>
-                  Limpar
-                </button>
               )}
               <button className="btn danger" onClick={() => set(removeShortcut(items, i))}>
                 Remover
@@ -222,6 +243,7 @@ export function ShortcutsEditor() {
           <Toggle label="Confirmar antes de abrir" value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
         </Row>
       </Group>
+      <SuggestionsGroup />
       <Group>
         {HOTKEYS.map(([label, keys]) => (
           <Row key={label} label={label}>
@@ -333,6 +355,46 @@ export function ScreensRow() {
         </Row>
       ))}
       {monitors.length === 0 && <Row label="Telas" hint="Procurando as telas conectadas…" />}
+    </>
+  );
+}
+
+/** Grupos prontos (Trabalho, Jogos…) e os apps que você mais usa, para virar atalho com um clique. */
+function SuggestionsGroup() {
+  const { config, update } = useConfigStore();
+  const shortcuts = config.shortcuts;
+  const apps = useInstalledApps();
+  const loading = useAppsStore((s) => s.loading || !s.loaded);
+  const top = suggestedApps(apps, shortcuts, 8);
+
+  return (
+    <>
+      <Group>
+        <Row label="Grupos prontos" hint="Um clique cria o grupo e os atalhos que faltam, com os apps que você tem instalados" />
+        {TEMPLATES.map((template) => {
+          const resolved = resolveTemplate(template, shortcuts, apps);
+          const ready = resolved.found >= MIN_GROUP && !resolved.exists;
+          const names = resolved.apps.map((item) => (item.shortcutId || item.app ? item.label : `${item.label} (não achei)`)).join(", ");
+          return (
+            <Row key={template.id} label={template.name} hint={`${template.blurb}: ${names}`}>
+              <button className={`btn${ready ? " primary" : ""}`} disabled={!ready} onClick={() => update({ shortcuts: buildGroup(template, shortcuts, apps, newId) })}>
+                {resolved.exists ? "Criado" : "Criar grupo"}
+              </button>
+            </Row>
+          );
+        })}
+      </Group>
+      <Group>
+        <Row label="Apps que você mais usa" hint="Do Menu Iniciar e da Área de Trabalho, pelos fixados na barra, abertos agora e o histórico do Windows" />
+        {loading && apps.length === 0 && <Row label="Procurando os apps instalados…" />}
+        {top.map((entry) => (
+          <Row key={entry.target} label={entry.name} hint={whySuggested(entry)}>
+            <button className="btn" onClick={() => update({ shortcuts: addApp(shortcuts, entry, newId) })}>
+              Adicionar
+            </button>
+          </Row>
+        ))}
+      </Group>
     </>
   );
 }

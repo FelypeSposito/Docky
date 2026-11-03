@@ -1,3 +1,4 @@
+mod apps;
 mod claude;
 mod claude_hooks;
 mod config;
@@ -63,6 +64,8 @@ pub fn run() {
             notes::notes_open,
             notes::notes_delete,
             launcher::shortcut_icon,
+            launcher::shelf_icon,
+            apps::list_apps,
             picker::pick_path,
             shelf::shelf_send,
             weather::weather,

@@ -9,7 +9,9 @@ import { ipc } from "../../lib/ipc";
 import { useSortable } from "../../settings/useSortable";
 import { EmptyState } from "../EmptyState";
 import { GripIcon, PencilIcon, SearchIcon } from "../icons";
+import { IconPicker } from "../../launcher/IconPicker";
 import { QButton, QPath, QText } from "../quick/controls";
+import { Suggestions } from "../quick/Suggestions";
 
 const MAX_TILES = 6;
 
@@ -128,6 +130,7 @@ function EditRow({
   sortable,
   change,
   remove,
+  pickIcon,
 }: {
   shortcut: Shortcut;
   index: number;
@@ -136,6 +139,7 @@ function EditRow({
   sortable: ReturnType<typeof useSortable>;
   change: (patch: Partial<Shortcut>) => void;
   remove: () => void;
+  pickIcon: () => void;
 }) {
   const [sure, setSure] = useState(false);
   const plain = shortcuts.filter((s) => !s.group && s.id !== shortcut.id);
@@ -145,7 +149,7 @@ function EditRow({
       <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, id)}>
         <GripIcon />
       </span>
-      <button className="le-ico" title="Escolher uma imagem para o ícone" onClick={() => void ipc.pickPath("image").then((path) => path && change({ icon: path }))}>
+      <button className="le-ico" title="Escolher o ícone" aria-label={`Escolher o ícone de ${shortcut.name || "atalho"}`} onClick={pickIcon}>
         <Tile shortcut={shortcut} index={index} image={image} shortcuts={shortcuts} />
       </button>
       <QText label="Nome do atalho" width={104} value={shortcut.name} placeholder={shortcut.group ? "Nome do grupo" : "Nome"} onCommit={(v) => change({ name: v })} />
@@ -160,8 +164,7 @@ function EditRow({
         </div>
       ) : (
         <>
-          <QPath label="Destino do atalho" kind="app" width={170} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: v })} />
-          <QText label="Emoji do ícone" width={44} value={/\.(png|jpe?g|gif|webp|svg|ico|bmp)$/i.test(shortcut.icon) ? "" : shortcut.icon} placeholder="🙂" onCommit={(v) => change({ icon: v })} />
+          <QPath label="Destino do atalho" kind="app" width={230} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: v })} />
         </>
       )}
       {sure ? (
@@ -186,6 +189,9 @@ export function LauncherLarge() {
   const update = useConfigStore((s) => s.update);
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState(false);
+  /** O atalho cujo ícone está sendo escolhido (o seletor ocupa o lugar da lista). */
+  const [picking, setPicking] = useState<string | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
   const matches = useMemo(() => filterShortcuts(shortcuts, query), [shortcuts, query]);
 
   const set = (next: Shortcut[]) => update({ shortcuts: next });
@@ -194,6 +200,31 @@ export function LauncherLarge() {
     (order) => set(order.flatMap((id) => shortcuts.filter((s) => s.id === id))),
   );
   const add = (group: boolean) => set([...shortcuts, { id: newId(), name: "", target: "", icon: "", group, members: [] }]);
+
+  const pickingIndex = picking === null ? -1 : shortcuts.findIndex((s) => s.id === picking);
+  if (pickingIndex >= 0) {
+    const shortcut = shortcuts[pickingIndex];
+    return (
+      <div className="bento lcx">
+        <IconPicker
+          value={shortcut.icon ?? ""}
+          name={shortcut.name}
+          color={SHORTCUT_COLORS[pickingIndex % SHORTCUT_COLORS.length]}
+          image={images[pickingIndex]}
+          onChange={(icon) => set(shortcuts.map((s, i) => (i === pickingIndex ? { ...s, icon } : s)))}
+          onDone={() => setPicking(null)}
+        />
+      </div>
+    );
+  }
+
+  if (suggesting) {
+    return (
+      <div className="bento lcx">
+        <Suggestions onClose={() => setSuggesting(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="bento lcx">
@@ -206,7 +237,10 @@ export function LauncherLarge() {
             <QButton disabled={shortcuts.length >= 40} onClick={() => add(true)}>
               + Grupo
             </QButton>
-            <span className="qs-note">Arraste pela alça para ordenar. Um grupo abre vários atalhos de uma vez.</span>
+            <QButton onClick={() => setSuggesting(true)} title="Grupos prontos e apps que você mais usa">
+              ✦ Sugestões
+            </QButton>
+            <span className="qs-note">Arraste pela alça para ordenar.</span>
           </>
         ) : (
           <label className="tile nin">
@@ -236,6 +270,7 @@ export function LauncherLarge() {
               sortable={sortable}
               change={(patch) => set(shortcuts.map((s, i) => (i === index ? { ...s, ...patch } : s)))}
               remove={() => set(removeShortcut(shortcuts, index))}
+              pickIcon={() => setPicking(shortcut.id)}
             />
           ))}
         </div>

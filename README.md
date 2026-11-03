@@ -46,6 +46,11 @@ Música (com letra sincronizada), Foco (Pomodoro e contador livre), Notas (fixar
 Agenda (clima com chuva, sensação, umidade, vento, UV e sol), Atalhos (apps, jogos, pastas, sites e grupos, com ícone
 próprio e confirmação ao abrir), Sistema e Claude.
 
+Os ícones de atalhos e pastas da Shelf podem ser uma foto, um emoji ou um desenho da biblioteca minimalista do
+Docky (`lib:nome`, em `src/launcher/iconLibrary.tsx`). Na tela expandida dos atalhos, o botão Sugestões oferece grupos
+prontos (Trabalho, Jogos, Estudos…) e os apps que você mais usa: o Docky lê o Menu Iniciar, os apps fixados na barra,
+os que estão abertos e o histórico do Windows, tudo no seu computador (`src-tauri/src/apps.rs`).
+
 O botão pequeno do cabeçalho da ilha abre a tela maior da página (Agenda, Notas e Atalhos têm uma) e, dentro dela, os
 ajustes da própria página, sem abrir a janela de configurações. Para dar uma tela maior ou ajustes a uma página, é só
 preencher `Large` e `Settings` dela em `registry.ts`.

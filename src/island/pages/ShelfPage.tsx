@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { ipc } from "../../lib/ipc";
-import { folderHint, usableFolders } from "../../shelf/folders";
+import { useShelfImages } from "../../launcher/icons";
+import { ItemIcon } from "../../launcher/ShortcutIcon";
+import { folderHint, usableFolderEntries } from "../../shelf/folders";
 import { fileName, useShelfStore } from "../../shelf/store";
 import { EmptyState } from "../EmptyState";
 import { FileIcon, FolderIcon, TrayIcon } from "../icons";
@@ -12,7 +14,8 @@ const MAX_FOLDERS = 4;
 
 export function ShelfPage() {
   const configured = useConfigStore((s) => s.config.shelfFolders);
-  const folders = useMemo(() => usableFolders(configured).slice(0, MAX_FOLDERS), [configured]);
+  const folders = useMemo(() => usableFolderEntries(configured).slice(0, MAX_FOLDERS), [configured]);
+  const images = useShelfImages(configured);
   const move = useConfigStore((s) => s.config.shelfMove);
   const { paths, dragging, clear } = useShelfStore();
   const [notice, setNotice] = useState<string | null>(null);
@@ -71,15 +74,10 @@ export function ShelfPage() {
         />
       ) : (
         <div className={`dgrid${paths.length === 0 ? " off" : ""}`}>
-          {folders.map((folder, i) => (
-            <button key={folder.path} className="tile fd" title={folder.path} onClick={() => send(folder)}>
-              <span className="fi" style={{ background: COLORS[i % COLORS.length] }}>
-                <FolderIcon />
-              </span>
-              <div>
-                <b>{folder.name}</b>
-                <span>{folderHint(folder)}</span>
-              </div>
+          {folders.map(({ folder, index }, i) => (
+            <button key={folder.path} className="tile fd" title={`${folder.name} (${folderHint(folder)})\n${folder.path}`} onClick={() => send(folder)}>
+              <ItemIcon icon={folder.icon ?? ""} image={images[index]} color={COLORS[i % COLORS.length]} className="fi" empty={<FolderIcon />} />
+              <b>{folder.name}</b>
             </button>
           ))}
         </div>

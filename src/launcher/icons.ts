@@ -4,16 +4,18 @@ import { ipc } from "../lib/ipc";
 
 /** Espelha a lista de extensões de `launcher.rs` (`image_mime`): só estas viram imagem. */
 const IMAGE_EXTENSION = /\.(png|jpe?g|gif|webp|svg|ico|bmp)$/i;
+const LIBRARY_ICON = /^lib:[a-z0-9-]+$/;
 
-export type IconKind = "none" | "text" | "image";
+export type IconKind = "none" | "text" | "image" | "library";
 
 /**
- * O que o campo de ícone guarda: nada (vale a inicial do nome), um emoji/texto curto, ou o caminho de uma imagem.
- * Um caminho que não termina numa extensão de imagem não é ícone.
+ * O que o campo de ícone guarda: nada (vale a inicial do nome), `lib:nome` (a biblioteca do Docky), o caminho de uma
+ * imagem ou um emoji/texto curto. Um caminho que não termina numa extensão de imagem não é ícone.
  */
 export function iconKind(icon: string): IconKind {
   const value = icon.trim();
   if (!value) return "none";
+  if (LIBRARY_ICON.test(value)) return "library";
   if (IMAGE_EXTENSION.test(value)) return "image";
   return /[\\/]/.test(value) ? "none" : "text";
 }
@@ -26,18 +28,17 @@ export function iconText(icon: string): string {
   return segments.slice(0, 2).join("");
 }
 
-/** A imagem (data URL) de cada atalho que tem um arquivo como ícone, pela posição na lista. */
-export function useShortcutImages(shortcuts: Shortcut[]): Record<number, string> {
+/** A imagem (data URL) de cada item que tem um arquivo como ícone, pela posição na lista. */
+export function useIconImages(icons: string[], fetchImage: (index: number) => Promise<string | null>): Record<number, string> {
   const [images, setImages] = useState<Record<number, string>>({});
-  // Muda só quando o ícone muda (o resto do atalho não interessa).
-  const signature = shortcuts.map((s) => (iconKind(s.icon ?? "") === "image" ? s.icon.trim() : "")).join("\n");
+  // Muda só quando o ícone muda (o resto do item não interessa).
+  const signature = icons.map((icon) => (iconKind(icon ?? "") === "image" ? icon.trim() : "")).join("\n");
 
   useEffect(() => {
     let alive = true;
     const timers: ReturnType<typeof setTimeout>[] = [];
     const load = (index: number, retry: boolean) =>
-      ipc
-        .shortcutIcon(index)
+      fetchImage(index)
         .then((url) => alive && url && setImages((prev) => ({ ...prev, [index]: url })))
         .catch(() => {
           // A configuração é gravada em seguida à mudança; se a leitura chegou antes, tenta mais uma vez.
@@ -50,7 +51,22 @@ export function useShortcutImages(shortcuts: Shortcut[]): Record<number, string>
       alive = false;
       timers.forEach(clearTimeout);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 
   return images;
 }
+
+/** As imagens dos ícones dos atalhos. */
+export const useShortcutImages = (shortcuts: Shortcut[]) =>
+  useIconImages(
+    shortcuts.map((s) => s.icon ?? ""),
+    (index) => ipc.shortcutIcon(index),
+  );
+
+/** As imagens dos ícones das pastas da Shelf. */
+export const useShelfImages = (folders: { icon?: string }[]) =>
+  useIconImages(
+    folders.map((f) => f.icon ?? ""),
+    (index) => ipc.shelfIcon(index),
+  );

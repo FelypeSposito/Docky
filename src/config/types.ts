@@ -2,6 +2,8 @@
 export interface ShelfFolder {
   name: string;
   path: string;
+  /** Emoji, `lib:nome` (biblioteca do Docky) ou o caminho de uma imagem. Vazio = pasta padrão. */
+  icon?: string;
 }
 
 export interface Shortcut {
