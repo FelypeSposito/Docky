@@ -37,7 +37,7 @@ integration only talks to a local server on `127.0.0.1`.
 
 ## Contact
 
-Questions or removal requests: open an issue at <https://github.com/FelypeSposito/Docky/issues>.
+Questions or removal requests: contact the developer through his GitHub profile, <https://github.com/FelypeSposito>.
 
 ---
 
@@ -53,4 +53,4 @@ análise de uso nem telemetria, e não envia seus dados ao desenvolvedor nem a t
   <https://myaccount.google.com/permissions>.
 - **Letras:** título, artista e duração da faixa vão para o LRCLIB. **Clima:** a cidade que você digitou vai para o Open-Meteo.
 - Notas, arquivos do Shelf, timers e configurações ficam no seu computador.
-- Contato: abra uma issue em <https://github.com/FelypeSposito/Docky/issues>.
+- Contato: pelo perfil do desenvolvedor no GitHub, <https://github.com/FelypeSposito>.
