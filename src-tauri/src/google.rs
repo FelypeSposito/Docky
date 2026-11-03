@@ -403,12 +403,16 @@ pub async fn google_events(app: AppHandle) -> Result<Vec<CalEvent>, String> {
     .map_err(|e| e.to_string())?
 }
 
-/// Abre o link de uma videochamada. Só endereços https, nunca outro tipo de destino.
+/// Só endereços https podem ser abertos como videochamada, nunca outro tipo de destino.
+fn check_meeting_url(url: &str) -> Result<(), String> {
+    if url.to_ascii_lowercase().starts_with("https://") { Ok(()) } else { Err("só links https podem ser abertos".into()) }
+}
+
+/// Abre o link de uma videochamada (na tela da ilha que foi clicada).
 #[tauri::command]
-pub fn open_meeting(url: String) -> Result<(), String> {
-    if !url.to_ascii_lowercase().starts_with("https://") {
-        return Err("só links https podem ser abertos".into());
-    }
+pub fn open_meeting(window: tauri::WebviewWindow, url: String) -> Result<(), String> {
+    check_meeting_url(&url)?;
+    crate::placement::follow(crate::placement::Screen::of_window(&window), 8);
     tauri_plugin_opener::open_url(&url, None::<&str>).map_err(|e| e.to_string())
 }
 
@@ -548,8 +552,9 @@ mod tests {
 
     #[test]
     fn so_abre_links_https() {
-        assert!(open_meeting("http://meet.google.com/x".into()).is_err());
-        assert!(open_meeting("file:///C:/Windows/system32/calc.exe".into()).is_err());
-        assert!(open_meeting("javascript:alert(1)".into()).is_err());
+        assert!(check_meeting_url("http://meet.google.com/x").is_err());
+        assert!(check_meeting_url("file:///C:/Windows/system32/calc.exe").is_err());
+        assert!(check_meeting_url("javascript:alert(1)").is_err());
+        assert!(check_meeting_url("https://meet.google.com/abc").is_ok());
     }
 }

@@ -4,9 +4,15 @@
 use std::{fs, path::Path};
 
 use base64::{Engine, engine::general_purpose::STANDARD};
-use tauri::State;
+use tauri::{State, WebviewWindow};
 
-use crate::config::{ConfigState, Shortcut};
+use crate::{
+    config::{ConfigState, Shortcut},
+    placement,
+};
+
+/// Por quanto tempo, depois de abrir, a ilha procura a janela nova do app para levá-la à tela certa.
+const FOLLOW_SECONDS: u64 = 10;
 
 /// Imagens de ícone maiores que isso não são lidas (o ícone vai embutido na tela).
 const MAX_ICON_BYTES: u64 = 1_500_000;
@@ -123,8 +129,10 @@ const GROUP_GAP: std::time::Duration = std::time::Duration::from_millis(400);
 
 /// Abre o atalho da posição `index` (um destino, ou todos os de um grupo). A confirmação é feita na tela, antes.
 #[tauri::command]
-pub async fn launch(state: State<'_, ConfigState>, index: usize) -> Result<(), String> {
+pub async fn launch(window: WebviewWindow, state: State<'_, ConfigState>, index: usize) -> Result<(), String> {
     let targets = targets_of(&state.get().shortcuts, index)?;
+    // As janelas que os apps abrirem vão para a tela da ilha que foi clicada, não para a principal.
+    placement::follow(placement::Screen::of_window(&window), FOLLOW_SECONDS + targets.len() as u64 * 2);
     tauri::async_runtime::spawn_blocking(move || {
         let mut errors = Vec::new();
         for (i, target) in targets.iter().enumerate() {

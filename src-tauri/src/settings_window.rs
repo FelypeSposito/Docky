@@ -1,4 +1,6 @@
-use tauri::{AppHandle, Emitter, Manager, Theme, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, Theme, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+
+use crate::placement::Screen;
 
 const LABEL: &str = "settings";
 
@@ -8,10 +10,11 @@ fn clean_section(section: Option<&str>) -> Option<&str> {
 }
 
 /// Abre a janela de configurações (já na `section`, se for dada), ou traz a que já existe para a frente.
-pub fn open(app: &AppHandle, section: Option<&str>) -> tauri::Result<()> {
+pub fn open(app: &AppHandle, section: Option<&str>, screen: Option<Screen>) -> tauri::Result<()> {
     let section = clean_section(section);
 
     if let Some(window) = app.get_webview_window(LABEL) {
+        center_on(&window, screen);
         window.show()?;
         window.unminimize()?;
         window.set_focus()?;
@@ -25,7 +28,7 @@ pub fn open(app: &AppHandle, section: Option<&str>) -> tauri::Result<()> {
         Some(section) => format!("index.html?section={section}"),
         None => "index.html".to_string(),
     };
-    WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App(url.into()))
+    let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App(url.into()))
         .title("Docky — Configurações")
         // Sem moldura do Windows: a barra de cima, a borda e os cantos são desenhados pelo frontend, como na ilha.
         .decorations(false)
@@ -35,14 +38,28 @@ pub fn open(app: &AppHandle, section: Option<&str>) -> tauri::Result<()> {
         .inner_size(860.0, 620.0)
         .theme(Some(Theme::Dark))
         .center()
+        .visible(screen.is_none())
         .build()?;
+    if screen.is_some() {
+        center_on(&window, screen);
+        window.show()?;
+    }
     Ok(())
+}
+
+/// Centraliza a janela na tela dada (a da ilha que pediu); sem tela, deixa onde está.
+fn center_on(window: &WebviewWindow, screen: Option<Screen>) {
+    let (Some(screen), Ok(size)) = (screen, window.outer_size()) else { return };
+    let x = screen.left + (screen.width - size.width as i32) / 2;
+    let y = screen.top + (screen.height - size.height as i32) / 2;
+    let _ = window.set_position(PhysicalPosition::new(x, y));
 }
 
 // Assíncrono de propósito: criar janelas em comandos síncronos pode travar no Windows.
 #[tauri::command]
-pub async fn open_settings(app: AppHandle, section: Option<String>) -> Result<(), String> {
-    open(&app, section.as_deref()).map_err(|e| e.to_string())
+pub async fn open_settings(app: AppHandle, window: WebviewWindow, section: Option<String>) -> Result<(), String> {
+    // Abre na tela da ilha que foi clicada.
+    open(&app, section.as_deref(), Screen::of_window(&window)).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

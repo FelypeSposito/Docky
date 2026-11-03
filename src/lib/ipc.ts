@@ -124,8 +124,10 @@ async function invoke<T>(command: string, args?: Record<string, unknown>): Promi
 }
 
 async function listen<T>(event: string, handler: (payload: T) => void): Promise<Unlisten> {
-  const { listen } = await import("@tauri-apps/api/event");
-  return listen<T>(event, (e) => handler(e.payload));
+  // Escuta só como ESTA janela: o `listen` solto recebe os eventos de todas as janelas, e com a ilha em duas telas
+  // o hover e o "clique fora" de uma abriam e fechavam a outra. Eventos para todos (`emit`) continuam chegando.
+  const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  return getCurrentWebviewWindow().listen<T>(event, (e) => handler(e.payload));
 }
 
 /** Registra um ouvinte assíncrono e devolve uma função de cancelamento síncrona. */

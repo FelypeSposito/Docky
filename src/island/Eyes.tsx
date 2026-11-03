@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cursor, onCursorMove } from "../lib/cursor";
+import type { EyesPhase } from "./hooks";
 
 export type EyesMood = "normal" | "wide" | "work" | "ask";
 
@@ -9,6 +10,8 @@ interface EyesProps {
   follow: boolean;
   /** Cada vez que aumenta, os olhos balançam "não" (você negou um pedido). */
   shake: number;
+  /** Ao desligar nas configurações: fecham, encolhem e somem; ao ligar, voltam e abrem. */
+  phase?: EyesPhase;
 }
 
 const MAX_PUPIL_OFFSET = 3.6;
@@ -33,7 +36,7 @@ function lookTarget(mood: EyesMood, now: number, follow: boolean, glance: { x: n
  * O mascote do Docky: dois olhinhos que seguem o cursor, piscam e olham em volta quando nada acontece.
  * O laço de animação só roda enquanto há algo se mexendo; parado, não gasta CPU.
  */
-export function Eyes({ mood, follow, shake }: EyesProps) {
+export function Eyes({ mood, follow, shake, phase = "open" }: EyesProps) {
   const root = useRef<HTMLDivElement>(null);
   const [blink, setBlink] = useState(false);
   const [sleepy, setSleepy] = useState(false);
@@ -146,7 +149,7 @@ export function Eyes({ mood, follow, shake }: EyesProps) {
   return (
     <div
       ref={root}
-      className={`eyes${blink ? " blink" : ""}${shaking ? " shake" : ""}`}
+      className={`eyes${blink ? " blink" : ""}${shaking ? " shake" : ""}${phase !== "open" ? " closed" : ""}${phase === "shrinking" || phase === "opening" ? " tiny" : ""}`}
       data-mood={state}
       aria-hidden="true"
     >

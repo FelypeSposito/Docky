@@ -14,9 +14,9 @@ import { useMediaStore, useMediaSync, usePositionMs } from "../media/store";
 import { Dock } from "./Dock";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
-import { useIslandSpring, useNow, usePower } from "./hooks";
-import { BatteryIcon, BoltIcon, CheckIcon, Equalizer, ExpandIcon, ShrinkIcon, SlidersIcon, VolumeIcon } from "./icons";
-import { bodyHeight, type ClaudeActivity, EXPANDED_LARGE, type Mode, resolveMode, SIZES } from "./modes";
+import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
+import { BatteryIcon, BoltIcon, CheckIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, SlidersIcon, VolumeIcon } from "./icons";
+import { bodyHeight, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { visiblePages } from "./pageOrder";
@@ -77,6 +77,7 @@ export function Island() {
   const accent = useMediaStore((s) => s.accent) ?? DEFAULT_ACCENT;
   const volume = useMediaStore((s) => s.volume);
   const now = useNow();
+  const eyesPhase = useEyesPhase(config.eyes, config.reduceMotion);
   const power = usePower(() => useIslandStore.getState().showOverlay("charge", CHARGE_NOTICE_MS));
   useMediaSync();
   useEffect(() => startClaudeSync(), []);
@@ -185,13 +186,13 @@ export function Island() {
   } as React.CSSProperties;
 
   return (
-    <div ref={notchRef} className={`notch${config.eyes ? "" : " no-eyes"}`} data-mode={mode}>
+    <div ref={notchRef} className={`notch${eyesPhase === "gone" ? " no-eyes" : ""}`} data-mode={mode}>
       <div className="ear l" />
       <div className="ear r" />
       <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick}>
         <div className={`glow${mode === "expanded" ? " on" : ""}`} />
         <div className="grain" />
-        {config.eyes && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} />}
+        {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
 
         <div className={`layer${mode === "idle" ? " on" : ""}`} style={{ width: SIZES.idle.w }}>
           <div className="strip">
@@ -203,10 +204,15 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "lyric" ? " on" : ""}`} style={{ width: SIZES.lyric.w }}>
+        <div className={`layer${mode === "lyric" ? " on" : ""}${claudeBadge(mode, claude) ? " claude" : ""}`} style={{ width: SIZES.lyric.w }}>
           <div className="strip">
             {mode === "lyric" && <PillLyric text={lineText} />}
             <div className="r">
+              {claudeBadge(mode, claude) && (
+                <span className="cw-badge" title={`Claude trabalhando em ${running[0]?.project ?? "um projeto"}`}>
+                  <ClaudeSpinner />
+                </span>
+              )}
               <Equalizer playing={playing} />
             </div>
           </div>

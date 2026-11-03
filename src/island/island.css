@@ -158,6 +158,41 @@
   height: 36px;
   display: flex;
   align-items: center;
+  gap: 9px;
+}
+/* O Claude trabalhando, no canto da pílula de letra: a letra continua, só ganha o selo ao lado do equalizador */
+.cw-badge {
+  display: grid;
+  place-items: center;
+  color: #d97757;
+}
+.cw {
+  animation: cw-turn 6s linear infinite;
+}
+.cw-ray {
+  transform-origin: 12px 12px;
+  animation: cw-pulse 1.4s ease-in-out infinite;
+}
+@keyframes cw-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes cw-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  45% {
+    opacity: 1;
+  }
+}
+.reduce-motion .cw,
+.reduce-motion .cw-ray {
+  animation: none;
+}
+.layer.claude .pl {
+  right: 76px;
 }
 
 .time {
@@ -287,7 +322,7 @@
   pointer-events: none;
   --lt: 0%;
   --lb: 0%;
-  transition: transform 0.5s var(--ease);
+  transition: transform 0.5s var(--ease), opacity 0.28s ease, scale 0.28s var(--ease);
 }
 .eye {
   position: relative;
@@ -345,6 +380,18 @@
 .eyes.blink {
   --lt: 58%;
   --lb: 44%;
+}
+/* Desligar os olhinhos: fecham as pálpebras, encolhem e somem; ao ligar, abrem. */
+.eyes.closed {
+  --lt: 56%;
+  --lb: 56%;
+}
+.eyes.closed .lid {
+  transition: height 0.34s ease-in-out;
+}
+.eyes.tiny {
+  opacity: 0;
+  scale: 0.3;
 }
 
 /* Equalizador */
@@ -410,6 +457,7 @@
 .pl {
   position: absolute;
   left: 58px;
+  transition: left 0.6s var(--ease);
   right: 46px;
   top: 0;
   height: 36px;

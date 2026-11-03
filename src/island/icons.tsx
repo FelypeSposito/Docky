@@ -27,6 +27,17 @@ export const BoltIcon = ({ size = 11 }: IconProps) => (
   </svg>
 );
 
+/** O Claude trabalhando: uma estrela de raios que gira devagar e pulsa (desenho próprio, na cor do Claude). */
+export function ClaudeSpinner({ size = 18 }: { size?: number }) {
+  return (
+    <svg className="cw" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" aria-hidden="true">
+      {Array.from({ length: 8 }, (_, i) => (
+        <path key={i} className="cw-ray" style={{ animationDelay: `${i * -0.17}s` }} transform={`rotate(${i * 45} 12 12)`} d={i % 2 === 0 ? "M12 3.2v6.2" : "M12 5.4v4"} />
+      ))}
+    </svg>
+  );
+}
+
 export const PencilIcon = ({ size = 13, stroke = 2, ...p }: IconProps) => (
   <Stroke size={size} stroke={stroke} {...p}>
     <path d="M12 20h9" />

@@ -35,6 +35,8 @@ export const COLLAPSED_HEIGHT = SIZES.idle.h;
 /**
  * Prioridade: um pedido de permissão aparece sempre (você precisa ver); depois a ilha aberta por você,
  * depois os avisos curtos, depois o Claude trabalhando, e por fim a letra ou o relógio.
+ * Com letra ativa, o Claude trabalhando não toma o lugar dela: a letra continua e a ilha mostra só um
+ * pequeno selo animado no canto (veja `claudeBadge`).
  */
 export function resolveMode(state: {
   expanded: boolean;
@@ -45,6 +47,9 @@ export function resolveMode(state: {
   if (state.claude === "ask") return "ask";
   if (state.expanded) return "expanded";
   if (state.overlay) return state.overlay;
-  if (state.claude === "work") return "work";
+  if (state.claude === "work" && !state.lyricActive) return "work";
   return state.lyricActive ? "lyric" : "idle";
 }
+
+/** O selo do Claude trabalhando no canto da pílula de letra (só quando a letra aparece no lugar da faixa de trabalho). */
+export const claudeBadge = (mode: Mode, claude: ClaudeActivity): boolean => mode === "lyric" && claude === "work";

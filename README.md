@@ -51,6 +51,11 @@ ajustes da própria página, sem abrir a janela de configurações. Para dar uma
 preencher `Large` e `Settings` dela em `registry.ts`.
 
 A ilha pode aparecer em várias telas (Configurações → Geral): cada tela tem a sua janela, e o Foco é compartilhado.
+Cada janela só escuta os eventos dela (`getCurrentWebviewWindow().listen`); o `listen` solto recebe os de todas as
+janelas e faria uma ilha abrir e fechar a outra. Apps, links, notas e configurações abrem na tela da ilha clicada.
+
+Com a letra da música ativa e o Claude Code trabalhando, a letra continua e um selo animado do Claude aparece no
+canto da pílula; sem letra, a faixa "Claude trabalhando" aparece como antes.
 
 ## Teclas globais
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveMode } from "./modes";
+import { claudeBadge, resolveMode } from "./modes";
 
 const base = { expanded: false, overlay: null, lyricActive: false, claude: null } as const;
 
@@ -18,10 +18,18 @@ describe("resolveMode", () => {
     expect(resolveMode({ ...base, overlay: "done" })).toBe("done");
   });
 
-  it("o Claude trabalhando vence a letra, mas não um aviso nem a ilha aberta", () => {
-    expect(resolveMode({ ...base, claude: "work", lyricActive: true })).toBe("work");
+  it("o Claude trabalhando vence o relógio, mas não um aviso nem a ilha aberta", () => {
+    expect(resolveMode({ ...base, claude: "work" })).toBe("work");
     expect(resolveMode({ ...base, claude: "work", overlay: "volume" })).toBe("volume");
     expect(resolveMode({ ...base, claude: "work", expanded: true })).toBe("expanded");
+  });
+
+  it("com letra ativa, a letra continua e o Claude vira só um selo no canto", () => {
+    expect(resolveMode({ ...base, claude: "work", lyricActive: true })).toBe("lyric");
+    expect(claudeBadge("lyric", "work")).toBe(true);
+    expect(claudeBadge("lyric", null)).toBe(false);
+    expect(claudeBadge("work", "work")).toBe(false);
+    expect(claudeBadge("idle", "work")).toBe(false);
   });
 
   it("um pedido de permissão vence tudo, até a ilha aberta", () => {

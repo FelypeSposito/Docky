@@ -105,7 +105,7 @@ fn is_plain_file_name(name: &str) -> bool {
 
 /// Abre a nota no programa padrão dos arquivos .md (por exemplo, o Obsidian).
 #[tauri::command]
-pub fn notes_open(state: State<ConfigState>, file: String) -> Result<(), String> {
+pub fn notes_open(window: tauri::WebviewWindow, state: State<ConfigState>, file: String) -> Result<(), String> {
     if !is_plain_file_name(&file) {
         return Err("nome de nota inválido".into());
     }
@@ -113,6 +113,7 @@ pub fn notes_open(state: State<ConfigState>, file: String) -> Result<(), String>
     if !path.is_file() {
         return Err("essa nota não existe mais".into());
     }
+    crate::placement::follow(crate::placement::Screen::of_window(&window), 8);
     tauri_plugin_opener::open_path(path, None::<&str>).map_err(|e| e.to_string())
 }
 

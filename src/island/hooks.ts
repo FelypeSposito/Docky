@@ -123,3 +123,34 @@ export function useIslandSpring(
 
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
 }
+
+/**
+ * As fases dos olhinhos ao ligar e desligar nas configurações: ao desligar, fecham as pálpebras, encolhem e somem
+ * (`gone`, e só então a letra da pílula desliza para a esquerda); ao ligar, voltam fechados e abrem.
+ */
+export type EyesPhase = "open" | "closing" | "shrinking" | "opening" | "gone";
+
+const CLOSE_MS = 380;
+const SHRINK_MS = 280;
+
+export function useEyesPhase(enabled: boolean, reduceMotion: boolean): EyesPhase {
+  const [phase, setPhase] = useState<EyesPhase>(enabled ? "open" : "gone");
+
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const after = (ms: number, next: EyesPhase) => timers.push(setTimeout(() => setPhase(next), ms));
+    if (enabled) {
+      setPhase((current) => (current === "open" ? current : reduceMotion ? "open" : "opening"));
+      if (!reduceMotion) after(60, "open"); // um instante fechados, para a abertura aparecer
+    } else if (reduceMotion) {
+      setPhase("gone");
+    } else {
+      setPhase("closing");
+      after(CLOSE_MS, "shrinking");
+      after(CLOSE_MS + SHRINK_MS, "gone");
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [enabled, reduceMotion]);
+
+  return phase;
+}

@@ -8,6 +8,7 @@ mod hotkeys;
 mod file_drop;
 mod island;
 mod picker;
+mod placement;
 mod launcher;
 mod lyrics;
 mod media;
