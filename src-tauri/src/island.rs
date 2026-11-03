@@ -3,8 +3,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition};
 
 /// A janela é um painel transparente fixo no topo da tela; a ilha em si é desenhada pelo frontend.
-const WINDOW_WIDTH: f64 = 600.0;
-const WINDOW_HEIGHT: f64 = 290.0;
+/// Cabe a ilha na versão maior das páginas (640 x 400 mais as orelhas); fora da ilha a janela não recebe cliques.
+const WINDOW_WIDTH: f64 = 720.0;
+const WINDOW_HEIGHT: f64 = 440.0;
 
 /// A ilha só aparece quando nem o usuário (bandeja) nem um app em tela cheia pediram para escondê-la.
 #[derive(Default)]

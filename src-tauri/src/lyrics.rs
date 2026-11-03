@@ -28,9 +28,36 @@ pub async fn lrclib(path: String) -> Result<Option<String>, String> {
     .map_err(|e| e.to_string())?
 }
 
+/// Fonte reserva, com bem mais música brasileira que o LRCLIB. É uma API pública não oficial do NetEase Music
+/// (sem conta nem chave); só a busca e a letra são aceitas.
+fn netease_allowed(path: &str) -> bool {
+    path.starts_with("api/search/get?") || path.starts_with("api/song/lyric?")
+}
+
+/// Devolve o corpo da resposta do NetEase (JSON), ou um erro se o serviço não responder.
+#[tauri::command]
+pub async fn netease(path: String) -> Result<String, String> {
+    if !netease_allowed(&path) {
+        return Err("caminho não permitido".into());
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let url = format!("https://music.163.com/{path}");
+        ureq::get(&url)
+            .header("User-Agent", "Mozilla/5.0")
+            .header("Referer", "https://music.163.com")
+            .call()
+            .map_err(|e| e.to_string())?
+            .body_mut()
+            .read_to_string()
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[cfg(test)]
 mod tests {
-    use super::allowed;
+    use super::{allowed, netease_allowed};
 
     #[test]
     fn aceita_so_get_e_search() {
@@ -38,5 +65,13 @@ mod tests {
         assert!(allowed("search?track_name=a"));
         assert!(!allowed("../admin"));
         assert!(!allowed("publish"));
+    }
+
+    #[test]
+    fn netease_so_busca_e_letra() {
+        assert!(netease_allowed("api/search/get?s=a&type=1"));
+        assert!(netease_allowed("api/song/lyric?id=1&lv=1"));
+        assert!(!netease_allowed("api/user/account"));
+        assert!(!netease_allowed("../api/search/get?s=a"));
     }
 }

@@ -16,6 +16,9 @@ pub struct ShelfFolder {
 pub struct Shortcut {
     pub name: String,
     pub target: String,
+    /// Ícone do atalho: um emoji ou texto curto, ou o caminho de uma imagem. Vazio = a inicial do nome.
+    #[serde(default)]
+    pub icon: String,
 }
 
 /// Preferências do usuário. O formato (camelCase) é o mesmo que o frontend usa em `config/types.ts`.
@@ -67,6 +70,10 @@ pub struct Config {
     pub shortcuts: Vec<Shortcut>,
     /// Ordem das páginas do dock (ids). Vazio = ordem original.
     pub page_order: Vec<String>,
+    /// Notas fixadas no topo da lista (nomes de arquivo).
+    pub pinned_notes: Vec<String>,
+    /// Duração do contador personalizado do Foco, em minutos.
+    pub timer_custom_minutes: u32,
 }
 
 /// Se existir um cofre do Obsidian chamado "brain" em Documentos, as notas vão para a Inbox dele.
@@ -111,6 +118,8 @@ impl Default for Config {
             shelf_move: false,
             shortcuts: Vec::new(),
             page_order: Vec::new(),
+            pinned_notes: Vec::new(),
+            timer_custom_minutes: 10,
         }
     }
 }

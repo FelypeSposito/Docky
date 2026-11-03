@@ -4,7 +4,10 @@ mod config;
 mod fullscreen;
 mod google;
 mod hotkeys;
+#[cfg(windows)]
+mod file_drop;
 mod island;
+mod picker;
 mod launcher;
 mod lyrics;
 mod media;
@@ -42,6 +45,7 @@ pub fn run() {
             power::get_power,
             settings_window::open_settings,
             lyrics::lrclib,
+            lyrics::netease,
             google::google_status,
             google::google_save_secret,
             google::google_connect,
@@ -53,6 +57,9 @@ pub fn run() {
             notes::notes_save,
             notes::notes_recent,
             notes::notes_open,
+            notes::notes_delete,
+            launcher::shortcut_icon,
+            picker::pick_image,
             shelf::shelf_send,
             weather::weather,
             claude::claude_decide,
@@ -80,6 +87,8 @@ pub fn run() {
             hotkeys::register(&handle)?;
             tray::build(&handle)?;
 
+            #[cfg(windows)]
+            file_drop::spawn(handle.clone());
             pointer::spawn(handle.clone());
             power::spawn(handle.clone());
             media::spawn(handle.clone());

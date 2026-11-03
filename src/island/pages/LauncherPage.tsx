@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { filterShortcuts } from "../../launcher/filter";
+import { useShortcutImages } from "../../launcher/icons";
+import { SHORTCUT_COLORS, ShortcutIcon } from "../../launcher/ShortcutIcon";
 import { ipc } from "../../lib/ipc";
 import { EmptyState } from "../EmptyState";
 import { SearchIcon } from "../icons";
 
-const COLORS = ["#4c8dff", "#8b5cf6", "#ff9f43", "#34d399", "#ff5c7a", "#30b0c7"];
 const MAX_TILES = 6;
 
 export function LauncherPage() {
@@ -13,6 +14,7 @@ export function LauncherPage() {
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const matches = useMemo(() => filterShortcuts(shortcuts, query), [shortcuts, query]);
+  const images = useShortcutImages(shortcuts);
 
   const open = (index: number) => {
     setError(null);
@@ -53,9 +55,7 @@ export function LauncherPage() {
         <div className="lgrid">
           {matches.slice(0, MAX_TILES).map(({ item, index }, i) => (
             <button key={index} className="tile lt" title={item.target} onClick={() => open(index)}>
-              <span className="li" style={{ background: COLORS[index % COLORS.length] }}>
-                {item.name.trim().charAt(0).toUpperCase()}
-              </span>
+              <ShortcutIcon shortcut={item} image={images[index]} color={SHORTCUT_COLORS[index % SHORTCUT_COLORS.length]} />
               <b>{item.name}</b>
               {i === 0 && query && <kbd>↵</kbd>}
             </button>

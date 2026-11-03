@@ -22,6 +22,43 @@ export function upcoming(events: CalEvent[], now: number): CalEvent[] {
   return events.filter((e) => e.endMs > now).sort((a, b) => a.startMs - b.startMs);
 }
 
+const WEEKDAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+/** O dia (meia-noite local) em que o evento cai. Os de dia todo vêm à meia-noite UTC, então o dia é o da data UTC. */
+function eventDay(event: CalEvent): number {
+  const start = new Date(event.startMs);
+  return event.allDay ? new Date(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()).getTime() : dayStart(start);
+}
+
+export interface DayGroup {
+  label: string;
+  events: CalEvent[];
+}
+
+/** Agrupa os eventos (já em ordem) por dia: "Hoje", "Amanhã" e depois "quinta, 05 nov". */
+export function groupByDay(events: CalEvent[], now: number): DayGroup[] {
+  const today = dayStart(new Date(now));
+  const groups = new Map<number, CalEvent[]>();
+  for (const event of events) {
+    const day = eventDay(event);
+    groups.set(day, [...(groups.get(day) ?? []), event]);
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([day, list]) => {
+      const date = new Date(day);
+      const days = Math.round((day - today) / (24 * HOUR));
+      const label = days === 0 ? "Hoje" : days === 1 ? "Amanhã" : `${WEEKDAYS[date.getDay()]}, ${String(date.getDate()).padStart(2, "0")} ${MONTHS[date.getMonth()]}`;
+      return { label, events: list };
+    });
+}
+
+/** "15:30 – 16:00", ou "dia todo". */
+export function timeRange(event: CalEvent): string {
+  if (event.allDay) return "dia todo";
+  return event.endMs > event.startMs ? `${formatClock(new Date(event.startMs))} – ${formatClock(new Date(event.endMs))}` : formatClock(new Date(event.startMs));
+}
+
 /** Quando o evento começa, em poucas palavras: "agora", "em 12 min", "em 2 h", "hoje · 15:30", "amanhã · 09:00". */
 export function untilLabel(event: CalEvent, now: number): string {
   if (event.allDay) return "dia todo";

@@ -15,8 +15,8 @@ import { Dock } from "./Dock";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
 import { useIslandSpring, useNow, usePower } from "./hooks";
-import { BatteryIcon, BoltIcon, CheckIcon, Equalizer, VolumeIcon } from "./icons";
-import { type ClaudeActivity, type Mode, resolveMode, SIZES } from "./modes";
+import { BatteryIcon, BoltIcon, CheckIcon, Equalizer, ExpandIcon, ShrinkIcon, VolumeIcon } from "./icons";
+import { bodyHeight, type ClaudeActivity, EXPANDED_LARGE, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { visiblePages } from "./pageOrder";
@@ -69,6 +69,7 @@ export function Island() {
   const expanded = useIslandStore((s) => s.expanded);
   const overlay = useIslandStore((s) => s.overlay);
   const page = useIslandStore((s) => s.page);
+  const large = useIslandStore((s) => s.large);
   const media = useMediaStore((s) => s.media);
   const lyrics = useMediaStore((s) => s.lyrics);
   const accent = useMediaStore((s) => s.accent) ?? DEFAULT_ACCENT;
@@ -93,11 +94,14 @@ export function Island() {
   const lines = lyrics?.synced ?? null;
   const lyricActive = config.lyricPill && !!media?.playing && !!lines;
   const mode: Mode = resolveMode({ expanded, overlay, lyricActive, claude });
-  const size = SIZES[mode];
+  const shownPages = visiblePages(PAGES, config.pageOrder, config.hiddenPages);
+  const ActivePage = shownPages.find((p) => p.id === page) ?? shownPages[0];
+  const largeOn = large && !!ActivePage.Large;
+  const size = mode === "expanded" && largeOn ? EXPANDED_LARGE : SIZES[mode];
 
   const notchRef = useRef<HTMLDivElement>(null);
   const islandRef = useRef<HTMLDivElement>(null);
-  useIslandSpring(notchRef, islandRef, size, config.reduceMotion, SIZES.expanded.h);
+  useIslandSpring(notchRef, islandRef, size, config.reduceMotion, EXPANDED_LARGE.h);
 
   // Linha atual da letra para a pílula (a posição só é atualizada enquanto ela está visível).
   const position = usePositionMs(mode === "lyric");
@@ -157,7 +161,7 @@ export function Island() {
   const date = useMemo(() => formatDate(now), [now]);
 
   const onIslandClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button, input, .track")) return;
+    if ((e.target as HTMLElement).closest("button, input, .track, [role=button]")) return;
     useIslandStore.getState().togglePin();
   };
 
@@ -167,8 +171,6 @@ export function Island() {
   const volumeLevel = volume?.muted ? 0 : (volume?.level ?? 0);
   const eyesMood: EyesMood = mode === "ask" ? "ask" : mode === "work" ? "work" : mode === "charge" || mode === "done" || mode === "timer" ? "wide" : "normal";
   const workSeconds = useSeconds(mode === "work" ? running[0]?.since : undefined);
-  const shownPages = visiblePages(PAGES, config.pageOrder, config.hiddenPages);
-  const ActivePage = shownPages.find((p) => p.id === page) ?? shownPages[0];
 
   const islandStyle = {
     "--glow-strength": config.glow / 100,
@@ -251,8 +253,8 @@ export function Island() {
         <div className={`layer${mode === "timer" ? " on" : ""}`} style={{ width: SIZES.timer.w }}>
           <div className="strip">
             <div className="c pad">
-              <span className="txt">{timerFinished === "focus" ? "Foco concluído" : "Pausa acabou"}</span>
-              <span className="txt sub">{timerFinished ? LABELS[timerFinished] : ""}</span>
+              <span className="txt">{timerFinished === "focus" ? "Foco concluído" : timerFinished === "custom" ? "Contador acabou" : "Pausa acabou"}</span>
+              <span className="txt sub">{timerFinished === "custom" ? "Tempo esgotado" : timerFinished ? LABELS[timerFinished] : ""}</span>
             </div>
             <div className="r">
               <span className="okc">
@@ -302,7 +304,10 @@ export function Island() {
           )}
         </div>
 
-        <div className={`layer${mode === "expanded" ? " on" : ""}`} style={{ width: SIZES.expanded.w }}>
+        <div
+          className={`layer${mode === "expanded" ? " on" : ""}`}
+          style={{ width: largeOn ? EXPANDED_LARGE.w : SIZES.expanded.w, "--body-h": `${bodyHeight(largeOn)}px` } as React.CSSProperties}
+        >
           <div className="hdr">
             {charging ? (
               <span className="bolt">
@@ -318,13 +323,23 @@ export function Island() {
             )}
             <span className="date">{date}</span>
             <span className="time">{clock}</span>
+            {ActivePage.Large && (
+              <button
+                className="xbtn"
+                aria-label={largeOn ? "Voltar ao tamanho normal" : "Expandir esta página"}
+                title={largeOn ? "Voltar ao tamanho normal" : "Expandir"}
+                onClick={() => useIslandStore.getState().toggleLarge()}
+              >
+                {largeOn ? <ShrinkIcon /> : <ExpandIcon />}
+              </button>
+            )}
             <div className="hdr-eq">
               <Equalizer playing={playing} />
             </div>
           </div>
 
           <div className="body">
-            <ActivePage.Component active={mode === "expanded"} />
+            {largeOn && ActivePage.Large ? <ActivePage.Large active={mode === "expanded"} /> : <ActivePage.Component active={mode === "expanded"} />}
           </div>
 
           <Dock page={ActivePage.id} onPage={(id) => useIslandStore.getState().setPage(id)} />

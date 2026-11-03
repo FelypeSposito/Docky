@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { ipc } from "../../lib/ipc";
 import { lineIndexAt } from "../../media/lrc";
@@ -12,18 +12,40 @@ const fmt = (ms: number) => {
 };
 
 const LYRIC_ROW = 24;
+const NOTICE_MS = 4000;
+
+const lyricsNotice = (status: "loading" | "found" | "none" | "error") =>
+  status === "loading" ? "Buscando a letra…" : status === "error" ? "Não consegui buscar a letra agora" : "Não encontrei a letra desta música";
 
 export function MusicPage({ active }: { active: boolean }) {
   const media = useMediaStore((s) => s.media);
   const thumbnail = useMediaStore((s) => s.thumbnail);
   const lyrics = useMediaStore((s) => s.lyrics);
+  const lyricsStatus = useMediaStore((s) => s.lyricsStatus);
   const volume = useMediaStore((s) => s.volume);
   const delay = useConfigStore((s) => s.config.lyricDelayMs);
+  const lines = lyrics?.synced ?? null;
 
   const [showLyrics, setShowLyrics] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [dragRatio, setDragRatio] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const position = usePositionMs(active && !!media);
+
+  const say = useCallback((text: string) => {
+    setNotice(text);
+    clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), NOTICE_MS);
+  }, []);
+  useEffect(() => () => clearTimeout(noticeTimer.current), []);
+
+  // Com a letra ligada e a faixa sem letra (a música mudou, ou nenhuma fonte tem), volta ao player e avisa.
+  useEffect(() => {
+    if (!showLyrics || lines || lyricsStatus === "loading") return;
+    setShowLyrics(false);
+    say(lyricsNotice(lyricsStatus));
+  }, [showLyrics, lines, lyricsStatus, say]);
 
   if (!media) {
     return (
@@ -46,7 +68,6 @@ export function MusicPage({ active }: { active: boolean }) {
     setDragRatio(null);
   };
 
-  const lines = lyrics?.synced ?? null;
   const current = lines ? lineIndexAt(lines, position, delay) : -1;
 
   const level = volume?.level ?? 0;
@@ -63,6 +84,12 @@ export function MusicPage({ active }: { active: boolean }) {
           <div className="m-artist">{media.artist || media.app}</div>
         </div>
       </div>
+
+      {notice && (
+        <div className="m-note" role="status">
+          {notice}
+        </div>
+      )}
 
       <div className="m-lyrics" aria-hidden={!showLyrics}>
         <div className="ls" style={{ transform: `translateY(${(1 - Math.max(0, current)) * LYRIC_ROW}px)` }}>
@@ -96,11 +123,10 @@ export function MusicPage({ active }: { active: boolean }) {
 
       <div className="m-ctrl">
         <button
-          className={`ib${showLyrics ? " on" : ""}`}
+          className={`ib${showLyrics ? " on" : ""}${lines ? "" : " dim"}`}
           aria-label="Letra"
-          disabled={!lines}
-          title={lines ? "Mostrar a letra" : "Sem letra sincronizada para esta faixa"}
-          onClick={() => setShowLyrics((v) => !v)}
+          title={lines ? "Mostrar a letra" : lyricsNotice(lyricsStatus)}
+          onClick={() => (lines ? setShowLyrics((v) => !v) : say(lyricsNotice(lyricsStatus)))}
         >
           <LyricsIcon />
         </button>

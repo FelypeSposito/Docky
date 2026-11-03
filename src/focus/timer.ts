@@ -1,19 +1,21 @@
-export type TimerMode = "focus" | "short" | "long";
+export type TimerMode = "focus" | "short" | "long" | "custom";
 
 /** Durações (em segundos) e quantos focos formam um ciclo; vêm das configurações. */
 export interface TimerSettings {
   focus: number;
   short: number;
   long: number;
+  /** O contador livre, que você ajusta na própria página. */
+  custom: number;
   perSet: number;
 }
 
-export const DEFAULT_SETTINGS: TimerSettings = { focus: 25 * 60, short: 5 * 60, long: 15 * 60, perSet: 4 };
+export const DEFAULT_SETTINGS: TimerSettings = { focus: 25 * 60, short: 5 * 60, long: 15 * 60, custom: 10 * 60, perSet: 4 };
 
 /** Padrões, mantidos como constantes para quem só precisa deles. */
-export const DURATIONS: Record<TimerMode, number> = { focus: DEFAULT_SETTINGS.focus, short: DEFAULT_SETTINGS.short, long: DEFAULT_SETTINGS.long };
+export const DURATIONS: Record<TimerMode, number> = { focus: DEFAULT_SETTINGS.focus, short: DEFAULT_SETTINGS.short, long: DEFAULT_SETTINGS.long, custom: DEFAULT_SETTINGS.custom };
 export const FOCUS_PER_SET = DEFAULT_SETTINGS.perSet;
-export const LABELS: Record<TimerMode, string> = { focus: "Foco", short: "Pausa", long: "Longa" };
+export const LABELS: Record<TimerMode, string> = { focus: "Foco", short: "Pausa", long: "Longa", custom: "Livre" };
 
 export interface TimerState {
   mode: TimerMode;
@@ -52,12 +54,14 @@ export const reset = (state: TimerState): TimerState => ({ ...state, left: state
 /**
  * Passa um segundo. Quando chega a zero, para e já deixa o próximo modo pronto
  * (foco → pausa, ou pausa longa depois do último foco do ciclo; pausa → foco).
+ * O contador livre só para e volta ao tempo escolhido: não mexe no ciclo de focos.
  */
 export function tick(state: TimerState, settings: TimerSettings = DEFAULT_SETTINGS): { state: TimerState; finished: TimerMode | null } {
   if (!state.running) return { state, finished: null };
   if (state.left > 1) return { state: { ...state, left: state.left - 1 }, finished: null };
 
   const finished = state.mode;
+  if (finished === "custom") return { state: setMode(state, "custom", settings), finished };
   if (finished !== "focus") {
     const next = setMode(state, "focus", settings);
     return { state: { ...next, cycle: finished === "long" ? 0 : state.cycle }, finished };

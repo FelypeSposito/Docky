@@ -32,20 +32,27 @@ tauri-plugin-single-instance = "2"
 tauri-plugin-global-shortcut = "2"
 
 [target.'cfg(windows)'.dependencies]
+# The `implement` macro of `windows` expands to paths in `windows_core`, so it has to be a direct dependency.
+windows-core = "0.61"
 windows = { version = "0.61", features = [
   "Foundation",
   "Media_Control",
   "Storage_Streams",
   "Win32_Foundation",
   "Win32_Media_Audio",
+  "Win32_Graphics_Gdi",
   "Win32_Media_Audio_Endpoints",
   "Win32_System_Com",
   "Win32_System_Com_StructuredStorage",
+  "Win32_System_Ole",
+  "Win32_System_SystemServices",
   "Win32_System_Performance",
+  "Win32_UI_WindowsAndMessaging",
   "Win32_UI_Input_KeyboardAndMouse",
   "Win32_System_Power",
   "Win32_System_Variant",
   "Win32_UI_Shell",
+  "Win32_UI_Shell_Common",
 ] }
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

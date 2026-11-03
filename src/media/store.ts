@@ -11,6 +11,8 @@ interface MediaStore {
   receivedAt: number;
   thumbnail: string | null;
   lyrics: Lyrics | null;
+  /** Em que pé está a busca da letra da faixa atual: buscando, achou, nenhuma fonte tem, ou as fontes falharam. */
+  lyricsStatus: "loading" | "found" | "none" | "error";
   accent: Accent | null;
   volume: Volume | null;
   setMedia: (media: Media | null) => void;
@@ -23,17 +25,19 @@ export const useMediaStore = create<MediaStore>((set) => ({
   receivedAt: 0,
   thumbnail: null,
   lyrics: null,
+  lyricsStatus: "loading",
   accent: null,
   volume: null,
   setMedia: (media) =>
     set((s) => {
-      if (!media) return { media: null, thumbnail: null, lyrics: null, accent: null };
+      if (!media) return { media: null, thumbnail: null, lyrics: null, lyricsStatus: "loading", accent: null };
       const changed = !s.media || trackKey(s.media) !== trackKey(media);
       return {
         media,
         receivedAt: performance.now(),
         thumbnail: changed ? media.thumbnail : (media.thumbnail ?? s.thumbnail),
         lyrics: changed ? null : s.lyrics,
+        lyricsStatus: changed ? "loading" : s.lyricsStatus,
         accent: changed ? null : s.accent,
       };
     }),
@@ -94,10 +98,12 @@ export function useMediaSync(): void {
     let attempt = 0;
     const load = () =>
       fetchLyrics(query, controller.signal)
-        .then((lyrics) => !controller.signal.aborted && useMediaStore.setState({ lyrics }))
+        .then((lyrics) => !controller.signal.aborted && useMediaStore.setState({ lyrics, lyricsStatus: lyrics ? "found" : "none" }))
         .catch(() => {
           // O LRCLIB às vezes sai do ar: tenta de novo em 30 s, 60 s e 90 s e depois desiste desta faixa.
-          if (controller.signal.aborted || attempt >= 3) return;
+          if (controller.signal.aborted) return;
+          useMediaStore.setState({ lyricsStatus: "error" });
+          if (attempt >= 3) return;
           attempt += 1;
           timer = setTimeout(load, attempt * 30_000);
         });

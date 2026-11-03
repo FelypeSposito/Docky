@@ -48,7 +48,7 @@ describe("timer", () => {
 });
 
 describe("configurações do timer", () => {
-  const custom = { focus: 50 * 60, short: 10 * 60, long: 30 * 60, perSet: 2 };
+  const custom = { focus: 50 * 60, short: 10 * 60, long: 30 * 60, custom: 7 * 60, perSet: 2 };
 
   it("usa as durações e o tamanho do ciclo configurados", () => {
     const s = setMode(initialTimer, "focus", custom);
@@ -67,5 +67,25 @@ describe("configurações do timer", () => {
     expect(applySettings(initialTimer, custom).left).toBe(custom.focus);
     const running = toggle(initialTimer);
     expect(applySettings(running, custom)).toBe(running);
+  });
+});
+
+describe("contador livre", () => {
+  const settings = { focus: 25 * 60, short: 5 * 60, long: 15 * 60, custom: 7 * 60, perSet: 4 };
+
+  it("usa o tempo escolhido", () => {
+    expect(setMode(initialTimer, "custom", settings)).toMatchObject({ mode: "custom", total: 7 * 60, left: 7 * 60, running: false });
+  });
+
+  it("ao acabar, para e volta ao tempo escolhido sem mexer no ciclo de focos", () => {
+    const state: TimerState = { ...toggle(setMode({ ...initialTimer, cycle: 2, done: 5 }, "custom", settings)), left: 1 };
+    const { state: after, finished } = tick(state, settings);
+    expect(finished).toBe("custom");
+    expect(after).toMatchObject({ mode: "custom", running: false, left: 7 * 60, cycle: 2, done: 5 });
+  });
+
+  it("mudar o tempo nas configurações vale para o contador parado", () => {
+    const state = setMode(initialTimer, "custom", settings);
+    expect(applySettings(state, { ...settings, custom: 20 * 60 }).left).toBe(20 * 60);
   });
 });

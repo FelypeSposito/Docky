@@ -15,8 +15,8 @@
         "label": "island",
         "title": "Docky",
         "url": "index.html",
-        "width": 600,
-        "height": 290,
+        "width": 720,
+        "height": 440,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
@@ -24,7 +24,7 @@
         "resizable": false,
         "shadow": false,
         "focus": false,
-        "visible": false
+        "visible": true
       }
     ],
     "security": {

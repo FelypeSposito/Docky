@@ -22,6 +22,13 @@ export const SIZES: Record<Mode, Size> = {
   expanded: { w: 500, h: 244 },
 };
 
+/** A ilha aberta na versão maior de uma página (botão de expandir no cabeçalho). Cabe na janela de `island.rs`. */
+export const EXPANDED_LARGE: Size = { w: 640, h: 400 };
+
+/** Altura do corpo da ilha aberta: as páginas têm 148 px, e a versão maior ganha o que a ilha cresceu. */
+export const BODY_HEIGHT = 148;
+export const bodyHeight = (large: boolean) => (large ? EXPANDED_LARGE.h - (SIZES.expanded.h - BODY_HEIGHT) : BODY_HEIGHT);
+
 /** Altura de repouso (recolhida); a ilha nunca fica menor que isso. */
 export const COLLAPSED_HEIGHT = SIZES.idle.h;
 

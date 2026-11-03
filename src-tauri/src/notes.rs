@@ -56,6 +56,19 @@ fn modified_ms(path: &Path) -> u64 {
         .map_or(0, |d| d.as_millis() as u64)
 }
 
+/// As `limit` notas mais recentes (a lista já vem da mais nova para a mais antiga), mais as fixadas que ficaram
+/// de fora: uma nota fixada antiga não pode sumir da lista só por ser velha.
+fn select_notes(files: Vec<(u64, PathBuf)>, limit: usize, pinned: &[String]) -> Vec<(u64, PathBuf)> {
+    let is_pinned = |path: &Path| path.file_name().is_some_and(|n| pinned.iter().any(|p| n == p.as_str()));
+    let mut selected = Vec::new();
+    for (i, entry) in files.into_iter().enumerate() {
+        if i < limit || is_pinned(&entry.1) {
+            selected.push(entry);
+        }
+    }
+    selected
+}
+
 /// As notas mais recentes da pasta, de qualquer origem (a pasta pode ser um cofre do Obsidian com notas de
 /// outros lugares), da mais nova para a mais antiga pela data de modificação.
 #[tauri::command]
@@ -72,9 +85,8 @@ pub fn notes_recent(state: State<ConfigState>, limit: usize) -> Result<Vec<Note>
         .collect();
     files.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| b.1.file_name().cmp(&a.1.file_name())));
 
-    Ok(files
+    Ok(select_notes(files, limit, &state.get().pinned_notes)
         .into_iter()
-        .take(limit)
         .filter_map(|(modified_ms, path)| {
             let text = fs::read_to_string(&path).ok()?;
             Some(Note {
@@ -104,9 +116,61 @@ pub fn notes_open(state: State<ConfigState>, file: String) -> Result<(), String>
     tauri_plugin_opener::open_path(path, None::<&str>).map_err(|e| e.to_string())
 }
 
+/// Manda o arquivo para a Lixeira do Windows (dá para restaurar de lá).
+#[cfg(windows)]
+fn move_to_recycle_bin(path: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+
+    use windows::Win32::UI::Shell::{FO_DELETE, FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT, SHFILEOPSTRUCTW, SHFileOperationW};
+    use windows::core::PCWSTR;
+
+    // O SHFileOperation espera uma lista de caminhos terminada por dois zeros.
+    let from: Vec<u16> = path.as_os_str().encode_wide().chain([0, 0]).collect();
+    let mut operation = SHFILEOPSTRUCTW {
+        wFunc: FO_DELETE,
+        pFrom: PCWSTR(from.as_ptr()),
+        fFlags: (FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT).0 as u16,
+        ..Default::default()
+    };
+    let code = unsafe { SHFileOperationW(&mut operation) };
+    if code != 0 || operation.fAnyOperationsAborted.as_bool() {
+        return Err(format!("não consegui mandar a nota para a Lixeira (código {code})"));
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn move_to_recycle_bin(path: &Path) -> Result<(), String> {
+    fs::remove_file(path).map_err(|e| e.to_string())
+}
+
+/// Exclui a nota (vai para a Lixeira). A confirmação é feita na tela, antes deste comando.
+#[tauri::command]
+pub fn notes_delete(state: State<ConfigState>, file: String) -> Result<(), String> {
+    if !is_plain_file_name(&file) {
+        return Err("nome de nota inválido".into());
+    }
+    let path = notes_dir(&state)?.join(&file);
+    if !path.is_file() {
+        return Err("essa nota não existe mais".into());
+    }
+    move_to_recycle_bin(&path)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{clean_stamp, is_plain_file_name};
+    use std::path::PathBuf;
+
+    use super::{clean_stamp, is_plain_file_name, select_notes};
+
+    #[test]
+    fn nota_fixada_antiga_continua_na_lista() {
+        let files: Vec<(u64, PathBuf)> = (0..5).map(|i| (100 - i, PathBuf::from(format!("n{i}.md")))).collect();
+        let names = |v: Vec<(u64, PathBuf)>| v.into_iter().map(|(_, p)| p.to_string_lossy().into_owned()).collect::<Vec<_>>();
+        assert_eq!(names(select_notes(files.clone(), 2, &[])), ["n0.md", "n1.md"]);
+        assert_eq!(names(select_notes(files.clone(), 2, &["n4.md".into()])), ["n0.md", "n1.md", "n4.md"]);
+        assert_eq!(names(select_notes(files, 2, &["n1.md".into()])), ["n0.md", "n1.md"]);
+    }
 
     #[test]
     fn carimbo_so_aceita_digitos_e_hifen() {

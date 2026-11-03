@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type CalEvent, untilLabel, upcoming, waitProgress } from "./events";
+import { type CalEvent, groupByDay, timeRange, untilLabel, upcoming, waitProgress } from "./events";
 
 const at = (h: number, m = 0, day = 2) => new Date(2026, 10, day, h, m).getTime();
 const now = at(10, 0);
@@ -43,5 +43,28 @@ describe("waitProgress", () => {
     expect(waitProgress(event(at(12)), now)).toBe(0);
     expect(waitProgress(event(at(11)), now)).toBeCloseTo(0.5);
     expect(waitProgress(event(at(10, 0) - 1), now)).toBe(1);
+  });
+});
+
+describe("groupByDay e timeRange", () => {
+  it("agrupa por dia, com Hoje e Amanhã", () => {
+    const groups = groupByDay([event(at(11, 0)), event(at(15, 0)), event(at(9, 0, 3)), event(at(9, 0, 6))], now);
+    expect(groups.map((g) => [g.label, g.events.length])).toEqual([
+      ["Hoje", 2],
+      ["Amanhã", 1],
+      ["sexta, 06 nov", 1],
+    ]);
+  });
+
+  it("evento de dia todo cai no dia da data, em qualquer fuso", () => {
+    const allDay = event(Date.UTC(2026, 10, 3), Date.UTC(2026, 10, 4), { allDay: true });
+    expect(groupByDay([allDay], now)[0].label).toBe("Amanhã");
+    expect(groupByDay([], now)).toEqual([]);
+  });
+
+  it("mostra o horário de início e fim", () => {
+    expect(timeRange(event(at(15, 30), at(16, 0)))).toBe("15:30 – 16:00");
+    expect(timeRange(event(at(15, 30), at(15, 30)))).toBe("15:30");
+    expect(timeRange(event(at(0, 0), at(0, 0, 3), { allDay: true }))).toBe("dia todo");
   });
 });

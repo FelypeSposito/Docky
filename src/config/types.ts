@@ -7,6 +7,8 @@ export interface ShelfFolder {
 export interface Shortcut {
   name: string;
   target: string;
+  /** Emoji ou texto curto, ou o caminho de uma imagem. Vazio = a inicial do nome. */
+  icon: string;
 }
 
 export interface Config {
@@ -39,6 +41,10 @@ export interface Config {
   shelfMove: boolean;
   shortcuts: Shortcut[];
   pageOrder: string[];
+  /** Notas fixadas no topo da lista (nomes de arquivo). */
+  pinnedNotes: string[];
+  /** Duração do contador personalizado do Foco, em minutos. */
+  timerCustomMinutes: number;
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -71,4 +77,6 @@ export const DEFAULT_CONFIG: Config = {
   shelfMove: false,
   shortcuts: [],
   pageOrder: [],
+  pinnedNotes: [],
+  timerCustomMinutes: 10,
 };

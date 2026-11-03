@@ -27,6 +27,34 @@ export const BoltIcon = ({ size = 11 }: IconProps) => (
   </svg>
 );
 
+export const PinIcon = ({ size = 13, stroke = 2, ...p }: IconProps) => (
+  <Stroke size={size} stroke={stroke} {...p}>
+    <path d="M12 17v5" />
+    <path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+  </Stroke>
+);
+
+export const TrashIcon = ({ size = 13, stroke = 2, ...p }: IconProps) => (
+  <Stroke size={size} stroke={stroke} {...p}>
+    <path d="M3 6h18" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <path d="M10 11v6M14 11v6" />
+  </Stroke>
+);
+
+export const ExpandIcon = ({ size = 12, stroke = 2, ...p }: IconProps) => (
+  <Stroke size={size} stroke={stroke} {...p}>
+    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+  </Stroke>
+);
+
+export const ShrinkIcon = ({ size = 12, stroke = 2, ...p }: IconProps) => (
+  <Stroke size={size} stroke={stroke} {...p}>
+    <path d="M14 10l7-7M10 14l-7 7M4 14h6v6M20 10h-6V4" />
+  </Stroke>
+);
+
 export const BatteryIcon = (p: IconProps) => (
   <Stroke size={17} stroke={1.8} {...p}>
     <rect x="2.5" y="7" width="16" height="10" rx="3" />

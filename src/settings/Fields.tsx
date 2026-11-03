@@ -4,6 +4,9 @@ import type { ShelfFolder, Shortcut } from "../config/types";
 import { ArrowDownIcon, ArrowUpIcon, GripIcon } from "../island/icons";
 import { moveItem, orderPages } from "../island/pageOrder";
 import { PAGES } from "../island/pages/registry";
+import { iconKind, useShortcutImages } from "../launcher/icons";
+import { SHORTCUT_COLORS, ShortcutIcon } from "../launcher/ShortcutIcon";
+import { ipc } from "../lib/ipc";
 import { Group, Row, Segmented, Toggle } from "./controls";
 import { useSortable } from "./useSortable";
 
@@ -126,6 +129,8 @@ export function ShortcutsEditor() {
     items.map((_, i) => String(i)),
     (order) => set(order.map((id) => items[Number(id)])),
   );
+  const images = useShortcutImages(items);
+  const pickImage = (index: number) => void ipc.pickImage().then((path) => path && change(index, { icon: path }));
 
   return (
     <>
@@ -142,14 +147,34 @@ export function ShortcutsEditor() {
             <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, String(i))}>
               <GripIcon />
             </span>
-            <TextField label="Nome do atalho" width={110} value={item.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
+            <button
+              className="sico"
+              aria-label={`Escolher a imagem do ícone de ${item.name || "atalho"}`}
+              title="Escolher uma imagem para o ícone"
+              onClick={() => pickImage(i)}
+            >
+              <ShortcutIcon shortcut={item} image={images[i]} color={SHORTCUT_COLORS[i % SHORTCUT_COLORS.length]} className="li" />
+            </button>
+            <TextField label="Nome do atalho" width={100} value={item.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
             <TextField
               label="Destino do atalho"
-              width={280}
+              width={200}
               value={item.target}
               placeholder="C:\Apps\app.exe, uma pasta ou https://…"
               onCommit={(v) => change(i, { target: v })}
             />
+            <TextField
+              label="Emoji do ícone"
+              width={56}
+              value={iconKind(item.icon ?? "") === "text" ? item.icon : ""}
+              placeholder="Emoji"
+              onCommit={(v) => change(i, { icon: v })}
+            />
+            {(item.icon ?? "").trim() !== "" && (
+              <button className="btn" title="Voltar para a inicial do nome" onClick={() => change(i, { icon: "" })}>
+                Limpar
+              </button>
+            )}
             <button className="btn danger" onClick={() => set(items.filter((_, k) => k !== i))}>
               Remover
             </button>
@@ -157,7 +182,7 @@ export function ShortcutsEditor() {
         ))}
         </div>
         <Row label="Adicionar atalho" hint="Só os atalhos desta lista podem ser abertos pela ilha">
-          <button className="btn primary" disabled={items.length >= 12} onClick={() => set([...items, { name: "", target: "" }])}>
+          <button className="btn primary" disabled={items.length >= 12} onClick={() => set([...items, { name: "", target: "", icon: "" }])}>
             Adicionar
           </button>
         </Row>

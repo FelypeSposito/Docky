@@ -284,6 +284,14 @@ export const ipc = {
     return isTauri ? invoke<void>("notes_open", { file }) : Promise.resolve();
   },
 
+  /** Manda a nota para a Lixeira do Windows. */
+  notesDelete(file: string): Promise<void> {
+    if (isTauri) return invoke<void>("notes_delete", { file });
+    const at = DEV_NOTES.findIndex((n) => n.file === file);
+    if (at >= 0) DEV_NOTES.splice(at, 1);
+    return Promise.resolve();
+  },
+
   async notesRecent(limit: number): Promise<Note[]> {
     if (isTauri) return invoke<Note[]>("notes_recent", { limit });
     return DEV_NOTES.slice(0, limit);
@@ -302,11 +310,12 @@ export const ipc = {
   /** Arquivos sendo arrastados para a ilha (o Tauri entrega os caminhos). */
   onFileDrop(handler: (event: FileDropEvent) => void): Unlisten {
     if (!isTauri) return devListen("docky:file-drop", handler);
-    const offs = [
-      subscribe<{ paths: string[] }>("tauri://drag-enter", (p) => handler({ type: "enter", paths: p.paths ?? [] })),
-      subscribe<unknown>("tauri://drag-leave", () => handler({ type: "leave", paths: [] })),
-      subscribe<{ paths: string[] }>("tauri://drag-drop", (p) => handler({ type: "drop", paths: p.paths ?? [] })),
-    ];
+    // `docky://` vem do alvo próprio do Rust (file_drop.rs); `tauri://` é o do wry, que na ilha não chega a registrar.
+    const offs = ["tauri://", "docky://"].flatMap((prefix) => [
+      subscribe<{ paths: string[] }>(`${prefix}drag-enter`, (p) => handler({ type: "enter", paths: p.paths ?? [] })),
+      subscribe<unknown>(`${prefix}drag-leave`, () => handler({ type: "leave", paths: [] })),
+      subscribe<{ paths: string[] }>(`${prefix}drag-drop`, (p) => handler({ type: "drop", paths: p.paths ?? [] })),
+    ]);
     return () => offs.forEach((off) => off());
   },
 
@@ -321,6 +330,16 @@ export const ipc = {
     return isTauri ? invoke<void>("launch", { index }) : Promise.resolve();
   },
 
+  /** A imagem do ícone do atalho da posição `index` (data URL), ou `null` se o ícone for texto ou estiver vazio. */
+  async shortcutIcon(index: number): Promise<string | null> {
+    return isTauri ? invoke<string | null>("shortcut_icon", { index }) : null;
+  },
+
+  /** Abre o seletor de arquivo do Windows para escolher uma imagem. `null` = cancelou. */
+  async pickImage(): Promise<string | null> {
+    return isTauri ? invoke<string | null>("pick_image") : null;
+  },
+
   onHotkey(handler: (key: Hotkey) => void): Unlisten {
     return isTauri ? subscribe("hotkey", handler) : devListen("docky:hotkey", handler);
   },
@@ -330,6 +349,11 @@ export const ipc = {
     if (isTauri) return invoke<string | null>("lrclib", { path });
     const response = await fetch(`https://lrclib.net/api/${path}`);
     return response.ok ? response.text() : null;
+  },
+
+  /** GET na API pública do NetEase Music (fonte reserva de letras), feito pelo Rust. `null` no navegador (sem CORS). */
+  async netease(path: string): Promise<string | null> {
+    return isTauri ? invoke<string>("netease", { path }) : null;
   },
 
   async getVolume(): Promise<Volume | null> {

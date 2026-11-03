@@ -105,8 +105,8 @@ function Section({ id }: { id: SectionId }) {
             </Row>
           </Group>
           <Group>
-            <Row label="Fonte das letras" hint="Letras sincronizadas, sem chave de API">
-              <span className="badge">LRCLIB</span>
+            <Row label="Fonte das letras" hint="Letras sincronizadas, sem chave de API. Se o LRCLIB não tiver, o NetEase (bom em música brasileira) é a reserva">
+              <span className="badge">LRCLIB + NetEase</span>
             </Row>
             <Row label="Players" hint="Qualquer app com controle de mídia do Windows">
               <span className="badge">Spotify · Navegador · Outros</span>

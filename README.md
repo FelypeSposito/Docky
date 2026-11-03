@@ -29,7 +29,8 @@ src/lib        molas, formatação, ponte com o Rust (ipc.ts), cursor global
 src/config     tipos e store da configuração (espelha src-tauri/src/config.rs)
 src/island     a ilha: modos/tamanhos, hover, olhos, estilos
 src/settings   janela de configurações
-src-tauri/src  config, island (janela), pointer (cursor/hover), power, fullscreen, tray, settings_window
+src-tauri/src  config, island (janela), pointer (cursor/hover), power, fullscreen, tray, settings_window,
+               file_drop (arrastar arquivos do Explorer), picker (seletor de arquivo), lyrics (LRCLIB e NetEase)
 prototype/     protótipos visuais descartáveis (Fase 0); a v2 é a referência de visual e movimento
 ```
 
@@ -38,6 +39,12 @@ prototype/     protótipos visuais descartáveis (Fase 0); a v2 é a referência
 Opcional e somente leitura (escopo `calendar.readonly`, OAuth de app para computador com PKCE). O ID do cliente vai na
 configuração e a chave secreta e o token de renovação ficam no Gerenciador de Credenciais do Windows. O passo a passo
 para criar o ID do cliente está em Configurações → Integrações. Veja também a [política de privacidade](PRIVACY.md).
+
+## Páginas
+
+Música (com letra sincronizada), Foco (Pomodoro e contador livre), Notas (fixar e excluir para a Lixeira), Shelf,
+Agenda, Atalhos (com ícone próprio: emoji ou imagem), Sistema e Claude. Páginas com versão maior (Agenda e Notas)
+têm um botão pequeno de expandir no cabeçalho da ilha: para criar uma, é só dar um `Large` à página em `registry.ts`.
 
 ## Teclas globais
 

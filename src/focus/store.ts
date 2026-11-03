@@ -7,12 +7,13 @@ import { applySettings, initialTimer, reset, setMode, tick, type TimerMode, type
 const FINISHED_NOTICE_MS = 4200;
 
 /** Converte as configurações (em minutos) para o que o timer usa (em segundos). */
-export function settingsFromConfig(config: Pick<Config, "focusMinutes" | "shortBreakMinutes" | "longBreakMinutes" | "focusPerSet">): TimerSettings {
+export function settingsFromConfig(config: Pick<Config, "focusMinutes" | "shortBreakMinutes" | "longBreakMinutes" | "focusPerSet" | "timerCustomMinutes">): TimerSettings {
   const seconds = (minutes: number) => Math.max(1, Math.round(minutes)) * 60;
   return {
     focus: seconds(config.focusMinutes),
     short: seconds(config.shortBreakMinutes),
     long: seconds(config.longBreakMinutes),
+    custom: seconds(config.timerCustomMinutes),
     perSet: Math.max(1, Math.round(config.focusPerSet)),
   };
 }
@@ -65,7 +66,7 @@ export const useFocusStore = create<FocusStore>((set, get) => {
 useConfigStore.subscribe((state, previous) => {
   const a = settingsFromConfig(state.config);
   const b = settingsFromConfig(previous.config);
-  if (a.focus === b.focus && a.short === b.short && a.long === b.long && a.perSet === b.perSet) return;
+  if (a.focus === b.focus && a.short === b.short && a.long === b.long && a.custom === b.custom && a.perSet === b.perSet) return;
   const current = useFocusStore.getState();
   useFocusStore.setState({ ...applySettings(current, a), perSet: a.perSet });
 });

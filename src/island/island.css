@@ -23,7 +23,7 @@
 .island {
   position: absolute;
   inset: 0 16px;
-  overflow: hidden;
+  overflow: clip; /* clip, não hidden: foco e rolagem automática não conseguem deslocar o conteúdo da ilha */
   pointer-events: auto;
   background: #000;
   border-radius: 0 0 18px 18px;
@@ -211,7 +211,7 @@
 .body {
   position: absolute;
   inset: 40px 34px auto 34px;
-  height: 148px;
+  height: var(--body-h, 148px);
 }
 .tile {
   position: relative;
@@ -380,6 +380,26 @@
   position: absolute;
   right: 20px;
   top: 11px;
+}
+/* Botão pequeno que abre a versão maior da página */
+.xbtn {
+  position: absolute;
+  right: 46px;
+  top: 7px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  color: var(--ink2);
+  transition: color 0.2s, background 0.2s, transform 0.15s;
+}
+.xbtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+.xbtn:active {
+  transform: scale(0.9);
 }
 
 /* Letra na pílula */
@@ -591,6 +611,36 @@
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Aviso curto no player (por exemplo, "Não encontrei a letra desta música") */
+.mp > .m-note {
+  top: 76px;
+  left: 50%;
+  right: auto;
+  z-index: 2;
+  max-width: 92%;
+  padding: 5px 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(40, 40, 46, 0.92);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: note-in 0.35s var(--ease) both;
+}
+@keyframes note-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+.ib.dim {
+  opacity: 0.4;
 }
 
 /* Visão de letras */
@@ -1012,6 +1062,76 @@
 .st .cyc i.on {
   background: #ff6b4a;
 }
+/* Contador livre: o tempo se escolhe aqui mesmo */
+.st.cust {
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 10px;
+}
+.stp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stp button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: var(--fill);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1;
+}
+.stp button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+.stp button:disabled,
+.st.cust .chips button:disabled,
+.st.cust .mins:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.mins {
+  width: 32px;
+  padding: 3px 0;
+  border: 0;
+  border-radius: 8px;
+  outline: 0;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font: 650 13px Inter, sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  user-select: text;
+}
+.mins:focus {
+  box-shadow: 0 0 0 1.5px #ff6b4a;
+}
+.st .stp span {
+  margin: 0 2px 0 1px;
+  font-size: 11px;
+}
+.chips {
+  display: flex;
+  gap: 3px;
+}
+.chips button {
+  min-width: 25px;
+  padding: 4px 0;
+  border-radius: 8px;
+  background: var(--fill);
+  color: var(--ink2);
+  font: 600 11px Inter, sans-serif;
+}
+.chips button:hover {
+  color: #fff;
+}
+.chips button.on {
+  background: #ff6b4a;
+  color: #1a0500;
+}
 .st b {
   display: block;
   font-size: 12.5px;
@@ -1377,6 +1497,16 @@
   font-size: 12.5px;
   font-weight: 700;
 }
+.lt .li.txt {
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 15px;
+  font-weight: 600;
+}
+.lt .li.img {
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  object-fit: contain;
+}
 .lt b {
   flex: 1;
   overflow: hidden;
@@ -1491,6 +1621,164 @@
 }
 .nlist .ncard.empty {
   grid-column: 1 / 4;
+}
+.nlist .ncard {
+  position: relative;
+}
+.nlist .ncard.pinned {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 55%, transparent);
+}
+/* Fixar e excluir: aparecem ao passar o mouse; o pino de uma nota fixada fica sempre à vista */
+.nact {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 2px;
+}
+.nact button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  color: var(--ink2);
+  background: rgba(28, 28, 32, 0.92);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.nlist .ncard:hover .nact button,
+.nlist .ncard:focus-within .nact button,
+.nact button.on {
+  opacity: 1;
+}
+.nact button:hover {
+  color: #fff;
+  background: rgba(70, 70, 78, 0.95);
+}
+.nact button.on {
+  color: var(--accent, #ff5c7a);
+}
+.nact button:last-child:hover {
+  color: #ff6b6b;
+}
+.nconfirm {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  height: 100%;
+  cursor: default;
+}
+.nconfirm b {
+  font-size: 12px;
+  font-weight: 650;
+}
+.nconfirm span {
+  color: var(--ink3);
+  font-size: 10.5px;
+}
+.nconfirm div {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.nbtn {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: 8px;
+  background: var(--fill);
+  color: var(--ink);
+  font: 600 11px Inter, sans-serif;
+}
+.nbtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.nbtn.danger {
+  background: #e5484d;
+  color: #fff;
+}
+.nbtn.danger:hover {
+  background: #f0575c;
+}
+
+/* Versões maiores das páginas (botão de expandir): ocupam o corpo inteiro da ilha ampliada */
+.bento.nt.big {
+  height: var(--body-h);
+  grid-template-rows: 42px minmax(0, 1fr);
+}
+.nt.big .nlist {
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 118px;
+}
+.nt.big .ncard p {
+  -webkit-line-clamp: 5;
+}
+.nt.big .nlist .ncard.empty {
+  grid-column: 1 / 5;
+}
+.bento.ag.big {
+  height: var(--body-h);
+  grid-template-columns: 190px minmax(0, 1fr);
+}
+.tile.calx {
+  padding: 8px 14px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.tile.calx::-webkit-scrollbar {
+  width: 4px;
+}
+.tile.calx::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.calx h3 {
+  position: sticky;
+  top: -8px;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 0 4px;
+  color: var(--ink3);
+  background: linear-gradient(#1c1c20, rgba(28, 28, 32, 0.9));
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.calx-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.calx-row time {
+  flex: none;
+  width: 92px;
+  color: var(--ink2);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.calx-tx {
+  flex: 1;
+  min-width: 0;
+}
+.calx-tx b,
+.calx-tx span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calx-tx b {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.calx-tx span {
+  color: var(--ink3);
+  font-size: 11px;
 }
 
 /* Agenda: eventos do Google */
