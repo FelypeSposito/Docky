@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { ipc } from "../lib/ipc";
 import { GearIcon } from "./icons";
-import { moveItem, visiblePages } from "./pageOrder";
+import { mergeOrder, moveItem, orderPages, visiblePages } from "./pageOrder";
 import { PAGES } from "./pages/registry";
 
 interface DockProps {
@@ -44,12 +44,12 @@ export function Dock({ page, onPage }: DockProps) {
   const suppressClick = useRef(false);
   const before = useRef<Map<string, number> | null>(null);
   /** Sempre o estado mais recente, para os ouvintes da janela não usarem valores velhos. */
-  const live = useRef({ ids: [] as string[], draft: null as string[] | null });
+  const live = useRef({ ids: [] as string[], draft: null as string[] | null, full: [] as string[] });
 
   const shown = visiblePages(PAGES, savedOrder, hidden);
   const shownIds = new Set(shown.map((p) => p.id));
   const ids = draft ?? shown.map((p) => p.id);
-  live.current = { ids, draft };
+  live.current = { ids, draft, full: orderPages(PAGES, savedOrder).map((p) => p.id) };
   const position = new Map(ids.map((id, index) => [id, index]));
 
   // Os ouvintes da janela precisam ser sempre as mesmas funções (para o removeEventListener achar), então
@@ -80,7 +80,8 @@ export function Dock({ page, onPage }: DockProps) {
         const el = buttons.current.get(d.id);
         if (el) el.style.transform = "";
         const finalOrder = live.current.draft;
-        if (commit && finalOrder) update({ pageOrder: finalOrder });
+        // As páginas escondidas não aparecem no dock, mas guardam o lugar delas na ordem.
+        if (commit && finalOrder) update({ pageOrder: mergeOrder(live.current.full, finalOrder) });
       }
       drag.current = null;
       setDragId(null);

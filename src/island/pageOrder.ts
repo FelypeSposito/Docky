@@ -26,6 +26,16 @@ export function moveItem<T>(list: T[], from: number, to: number): T[] {
 }
 
 /**
+ * A ordem completa depois de reordenar só uma parte dela (as páginas à mostra no dock): os ids que não estão em
+ * `subset` (as escondidas) ficam onde estavam, e os de `subset` ocupam, na ordem nova, os lugares que já eram deles.
+ */
+export function mergeOrder(full: string[], subset: string[]): string[] {
+  const inSubset = new Set(subset);
+  const queue = subset.filter((id) => full.includes(id));
+  return full.map((id) => (inSubset.has(id) ? (queue.shift() ?? id) : id));
+}
+
+/**
  * As páginas que aparecem no dock: na ordem escolhida e sem as escondidas. Nunca devolve uma lista vazia:
  * se todas estiverem escondidas, a primeira continua à vista.
  */

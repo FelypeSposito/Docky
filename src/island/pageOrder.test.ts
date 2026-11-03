@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { moveItem, orderPages, visiblePages } from "./pageOrder";
+import { mergeOrder, moveItem, orderPages, visiblePages } from "./pageOrder";
 
 const pages = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
 const ids = (list: { id: string }[]) => list.map((p) => p.id);
@@ -36,6 +36,17 @@ describe("moveItem", () => {
 
   it("não deixa o destino sair da lista", () => {
     expect(moveItem(["a", "b", "c"], 0, 99)).toEqual(["b", "c", "a"]);
+  });
+});
+
+describe("mergeOrder", () => {
+  it("reordenar só as visíveis mantém as escondidas no lugar", () => {
+    // Foco e Claude estão escondidas: trocar música e atalhos não pode perdê-las nem mudar o lugar delas.
+    expect(mergeOrder(["music", "timer", "launch", "claude", "note"], ["launch", "note", "music"])).toEqual(["launch", "timer", "note", "claude", "music"]);
+  });
+
+  it("sem escondidas, é a própria ordem nova", () => {
+    expect(mergeOrder(["a", "b", "c"], ["c", "a", "b"])).toEqual(["c", "a", "b"]);
   });
 });
 
