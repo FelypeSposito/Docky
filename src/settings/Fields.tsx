@@ -13,6 +13,7 @@ import { cleanTarget, hideGrouped, hideableCount, memberSummary, newId, removeSh
 import { MIN_GROUP, TEMPLATES, addApp, buildGroup, completeGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
 import { ipc } from "../lib/ipc";
 import { Group, IconButton, Row, Segmented, Toggle } from "./controls";
+import { usePanelScroll } from "./usePanelScroll";
 import { useSortable } from "./useSortable";
 
 interface TextFieldProps {
@@ -95,20 +96,24 @@ export function ShelfFolders() {
   const set = (next: ShelfFolder[]) => update({ shelfFolders: next });
   const change = (index: number, patch: Partial<ShelfFolder>) => set(folders.map((f, i) => (i === index ? { ...f, ...patch } : f)));
 
+  const panelRef = usePanelScroll(picking !== null && folders[picking] ? `icon:${picking}` : null);
+
   return (
     <>
-      {picking !== null && folders[picking] && (
-        <Group>
-          <IconPicker
-            value={folders[picking].icon ?? ""}
-            name={folders[picking].name}
-            color={SHORTCUT_COLORS[picking % SHORTCUT_COLORS.length]}
-            image={images[picking]}
-            onChange={(icon) => change(picking, { icon })}
-            onDone={() => setPicking(null)}
-          />
-        </Group>
-      )}
+      <div ref={panelRef}>
+        {picking !== null && folders[picking] && (
+          <Group>
+            <IconPicker
+              value={folders[picking].icon ?? ""}
+              name={folders[picking].name}
+              color={SHORTCUT_COLORS[picking % SHORTCUT_COLORS.length]}
+              image={images[picking]}
+              onChange={(icon) => change(picking, { icon })}
+              onDone={() => setPicking(null)}
+            />
+          </Group>
+        )}
+      </div>
       <Group>
         {folders.length === 0 && <Row label="Nenhuma pasta ainda" hint="Adicione as pastas para onde os arquivos soltos na ilha serão copiados" />}
         {folders.map((folder, i) => (
@@ -229,26 +234,31 @@ export function ShortcutsEditor() {
     </div>
   );
 
+  // Os painéis abrem acima da lista: a tela rola até eles (e volta quando fecham).
+  const panelRef = usePanelScroll(pickingIndex >= 0 ? `icon:${picking}` : groupToEdit ? `group:${editingGroup}` : suggesting ? "suggestions" : null);
+
   return (
     <>
-      {groupToEdit && (
-        <Group>
-          <GroupEditor group={groupToEdit} shortcuts={items} onChange={set} onDone={() => setEditingGroup(null)} />
-        </Group>
-      )}
-      {suggesting && <SuggestionsGroup onClose={() => setSuggesting(false)} />}
-      {pickingIndex >= 0 && (
-        <Group>
-          <IconPicker
-            value={items[pickingIndex].icon ?? ""}
-            name={items[pickingIndex].name}
-            color={SHORTCUT_COLORS[pickingIndex % SHORTCUT_COLORS.length]}
-            image={images[pickingIndex]}
-            onChange={(icon) => change(items[pickingIndex].id, { icon })}
-            onDone={() => setPicking(null)}
-          />
-        </Group>
-      )}
+      <div ref={panelRef}>
+        {groupToEdit && (
+          <Group>
+            <GroupEditor group={groupToEdit} shortcuts={items} onChange={set} onDone={() => setEditingGroup(null)} />
+          </Group>
+        )}
+        {suggesting && <SuggestionsGroup onClose={() => setSuggesting(false)} />}
+        {pickingIndex >= 0 && (
+          <Group>
+            <IconPicker
+              value={items[pickingIndex].icon ?? ""}
+              name={items[pickingIndex].name}
+              color={SHORTCUT_COLORS[pickingIndex % SHORTCUT_COLORS.length]}
+              image={images[pickingIndex]}
+              onChange={(icon) => change(items[pickingIndex].id, { icon })}
+              onDone={() => setPicking(null)}
+            />
+          </Group>
+        )}
+      </div>
 
       <Group>
         <Row label="Grupos" hint="Abrem vários atalhos de uma vez">
