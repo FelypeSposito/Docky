@@ -120,3 +120,16 @@ describe("app instalado direto num grupo", () => {
     expect(addAppToGroup(list, "zzz", app("Claude"), ids())).toBe(list);
   });
 });
+
+describe("atalhos criados para grupos ficam ocultos", () => {
+  it("criar um grupo esconde os atalhos novos, mas não os que você já tinha", () => {
+    const list = buildGroup(games, [shortcut("a", "Discord", "C:\\discord.exe")], [app("Spotify"), app("Steam")], ids());
+    expect(list.filter((s) => !s.group).map((s) => [s.name, !!s.hidden])).toEqual([["Discord", false], ["Spotify", true], ["Steam", true]]);
+  });
+
+  it("completar e pôr um app no grupo também criam ocultos; adicionar um app solto não", () => {
+    const base = [shortcut("a", "Chrome", "C:\\Menu\\Chrome.lnk"), shortcut("g", "Trabalho", "", { group: true, members: ["a"] })];
+    expect(addAppToGroup(base, "g", app("Claude"), ids()).find((s) => s.name === "Claude")?.hidden).toBe(true);
+    expect(addApp([], app("Obsidian"), ids())[0].hidden).toBeUndefined();
+  });
+});

@@ -16,6 +16,8 @@ export interface Shortcut {
   /** É um grupo: abre todos os atalhos de `members` de uma vez. */
   group: boolean;
   members: string[];
+  /** Fica fora da lista de atalhos, mas continua valendo como item de um grupo. */
+  hidden?: boolean;
 }
 
 export interface Config {

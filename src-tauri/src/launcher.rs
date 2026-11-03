@@ -206,7 +206,7 @@ mod tests {
     }
 
     fn item(id: &str, target: &str, group: bool, members: &[&str]) -> Shortcut {
-        Shortcut { name: id.into(), target: target.into(), icon: String::new(), id: id.into(), group, members: members.iter().map(|m| m.to_string()).collect() }
+        Shortcut { name: id.into(), target: target.into(), icon: String::new(), id: id.into(), group, members: members.iter().map(|m| m.to_string()).collect(), hidden: false }
     }
 
     #[test]

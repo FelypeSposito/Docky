@@ -66,3 +66,45 @@ export function removeShortcut(shortcuts: Shortcut[], index: number): Shortcut[]
   const gone = shortcuts[index]?.id;
   return shortcuts.filter((_, i) => i !== index).map((s) => (s.group ? { ...s, members: s.members.filter((m) => m !== gone) } : s));
 }
+
+export interface Indexed {
+  item: Shortcut;
+  /** A posição na lista de atalhos (é por ela que o Rust acha o item a abrir). */
+  index: number;
+}
+
+/** Os grupos e os atalhos comuns em duas partes separadas, cada uma na ordem em que estão. */
+export function splitShortcuts(shortcuts: Shortcut[]): { groups: Indexed[]; items: Indexed[] } {
+  const all = shortcuts.map((item, index) => ({ item, index }));
+  return { groups: all.filter((e) => e.item.group), items: all.filter((e) => !e.item.group) };
+}
+
+/**
+ * Nova ordem de uma das partes (`group` = os grupos; senão, os atalhos). A lista fica sempre com os grupos primeiro,
+ * então cada parte se reordena sozinha, sem misturar.
+ */
+export function reorderSection(shortcuts: Shortcut[], group: boolean, order: string[]): Shortcut[] {
+  const { groups, items } = splitShortcuts(shortcuts);
+  const section = (list: Indexed[]) => list.map((e) => e.item);
+  const sorted = (list: Indexed[]) => order.flatMap((id) => list.filter((e) => e.item.id === id).map((e) => e.item));
+  return group ? [...sorted(groups), ...section(items)] : [...section(groups), ...sorted(items)];
+}
+
+/** Os ids dos atalhos que fazem parte de algum grupo. */
+export const groupedIds = (shortcuts: Shortcut[]): Set<string> => new Set(shortcuts.filter((s) => s.group).flatMap((s) => s.members));
+
+/** Quantos atalhos comuns, de grupo e ainda visíveis, dá para ocultar (eles continuam funcionando nos grupos). */
+export const hideableCount = (shortcuts: Shortcut[]): number => {
+  const inGroups = groupedIds(shortcuts);
+  return shortcuts.filter((s) => !s.group && !s.hidden && inGroups.has(s.id)).length;
+};
+
+/** Oculta os atalhos comuns que já estão em algum grupo. */
+export function hideGrouped(shortcuts: Shortcut[]): Shortcut[] {
+  const inGroups = groupedIds(shortcuts);
+  return shortcuts.map((s) => (!s.group && inGroups.has(s.id) && !s.hidden ? { ...s, hidden: true } : s));
+}
+
+/** Mostra ou oculta um atalho da lista. */
+export const setHidden = (shortcuts: Shortcut[], id: string, hidden: boolean): Shortcut[] =>
+  shortcuts.map((s) => (s.id === id ? (hidden ? { ...s, hidden: true } : { ...s, hidden: false }) : s));

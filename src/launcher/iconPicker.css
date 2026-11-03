@@ -183,3 +183,31 @@
 .ge {
   gap: 14px;
 }
+.ge-name,
+.ge-search {
+  min-width: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  outline: 0;
+  background: rgba(0, 0, 0, 0.32);
+  color: #fff;
+  font: 600 13px Inter, system-ui, sans-serif;
+  user-select: text;
+}
+.ge-name {
+  flex: 1;
+}
+.ge-search {
+  width: 190px;
+  font-weight: 500;
+  font-size: 12px;
+}
+.ge-name:focus,
+.ge-search:focus {
+  box-shadow: 0 0 0 1.5px var(--accent, #4c8dff);
+}
+.ge-name::placeholder,
+.ge-search::placeholder {
+  color: var(--ink3, #8e8e93);
+}

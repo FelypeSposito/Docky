@@ -16,6 +16,29 @@ export function Row({ label, hint, children }: { label: string; hint?: string; c
   );
 }
 
+/** Botão só com ícone, para as ações das linhas (escolher, ocultar, remover): o texto vai no tooltip. */
+export function IconButton({
+  children,
+  label,
+  onClick,
+  danger,
+  active,
+  disabled,
+}: {
+  children: ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  active?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button className={`icb${danger ? " danger" : ""}${active ? " on" : ""}`} title={label} aria-label={label} aria-pressed={active} disabled={disabled} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
 export function Toggle({ value, onChange, label }: { value: boolean; onChange: (value: boolean) => void; label: string }) {
   return (
     <button className={`tg${value ? " on" : ""}`} role="switch" aria-checked={value} aria-label={label} onClick={() => onChange(!value)}>

@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { ipc } from "../../lib/ipc";
+import { FolderIcon } from "../icons";
 
 /** Os controles dos ajustes rápidos: os mesmos da janela de configurações, no visual da ilha. */
 
@@ -116,7 +117,30 @@ export function QText({
   );
 }
 
-/** Texto com o botão que abre o seletor de arquivo ou pasta do Windows. */
+/** Botão só com ícone, para as ações das linhas (abrir seletor, ocultar, excluir…): o texto vai no tooltip. */
+export function QIconButton({
+  children,
+  label,
+  onClick,
+  tone,
+  active,
+  disabled,
+}: {
+  children: ReactNode;
+  label: string;
+  onClick: () => void;
+  tone?: "danger";
+  active?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button className={`qs-ib${tone ? ` ${tone}` : ""}${active ? " on" : ""}`} title={label} aria-label={label} aria-pressed={active} disabled={disabled} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+/** Texto com o botão (só o ícone de pasta) que abre o seletor de arquivo ou pasta do Windows. */
 export function QPath({
   value,
   kind,
@@ -135,9 +159,9 @@ export function QPath({
   return (
     <span className="qs-path">
       <QText value={value} placeholder={placeholder} label={label} width={width} onCommit={onCommit} />
-      <button className="qs-btn" title="Escolher no computador" onClick={() => void ipc.pickPath(kind).then((path) => path && onCommit(path))}>
-        Escolher…
-      </button>
+      <QIconButton label={kind === "folder" ? "Escolher a pasta" : "Escolher no computador"} onClick={() => void ipc.pickPath(kind).then((path) => path && onCommit(path))}>
+        <FolderIcon />
+      </QIconButton>
     </span>
   );
 }

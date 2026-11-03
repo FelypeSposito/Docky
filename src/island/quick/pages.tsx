@@ -5,8 +5,8 @@ import { IconPicker } from "../../launcher/IconPicker";
 import { useShelfImages } from "../../launcher/icons";
 import { ItemIcon, SHORTCUT_COLORS } from "../../launcher/ShortcutIcon";
 import { ipc } from "../../lib/ipc";
-import { FolderIcon } from "../icons";
-import { QButton, QPanel, QPath, QRow, QSegmented, QStepper, QText, QTitle, QToggle } from "./controls";
+import { FolderIcon, TrashIcon } from "../icons";
+import { QButton, QIconButton, QPanel, QPath, QRow, QSegmented, QStepper, QText, QTitle, QToggle } from "./controls";
 
 /** Os ajustes de cada página, sem abrir a janela de configurações. Valem na hora: gravam a cada mudança. */
 
@@ -118,9 +118,9 @@ export function ShelfQuick() {
           </button>
           <QText label="Nome da pasta" width={110} value={folder.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
           <QPath label="Caminho da pasta" kind="folder" width={210} value={folder.path} placeholder="Escolha a pasta" onCommit={(v) => change(i, { path: v, name: folder.name || v.split(/[\\/]/).filter(Boolean).pop() || "" })} />
-          <QButton tone="danger" onClick={() => set(folders.filter((_, k) => k !== i))}>
-            Remover
-          </QButton>
+          <QIconButton label="Remover a pasta" tone="danger" onClick={() => set(folders.filter((_, k) => k !== i))}>
+            <TrashIcon />
+          </QIconButton>
         </div>
       ))}
       <div className="qs-line">

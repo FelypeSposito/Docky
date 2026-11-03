@@ -561,3 +561,65 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Botões só de ícone nas linhas */
+.qs-ib {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: var(--ink2);
+  transition: background 0.18s, color 0.18s, transform 0.1s;
+}
+.qs-ib:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.qs-ib:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.qs-ib.on {
+  color: var(--accent, #4c8dff);
+}
+.qs-ib.danger:hover:not(:disabled) {
+  background: rgba(229, 72, 77, 0.2);
+  color: #ff7b80;
+}
+.qs-ib:disabled {
+  opacity: 0.35;
+}
+.le-row.is-hidden .le-ico,
+.le-row.is-hidden .qs-inp,
+.le-row.is-hidden .le-summary {
+  opacity: 0.5;
+}
+.lcx-sec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px 2px;
+}
+.lcx-sec h3,
+.lcx-h {
+  margin: 0;
+  color: var(--ink3);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.lcx-sec h3 {
+  flex: 1;
+}
+.lcx-h {
+  grid-column: 1 / -1;
+  padding: 4px 2px 0;
+}
+.lcx-list .sc {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

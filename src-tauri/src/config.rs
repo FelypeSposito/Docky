@@ -30,6 +30,9 @@ pub struct Shortcut {
     pub group: bool,
     #[serde(default)]
     pub members: Vec<String>,
+    /// Fica fora da lista de atalhos, mas continua valendo como item de um grupo.
+    #[serde(default)]
+    pub hidden: bool,
 }
 
 /// Dá um id a cada atalho que não tem (ou que repete o de outro) e tira dos grupos os membros que não existem mais
@@ -253,6 +256,7 @@ mod tests {
             id: id.into(),
             group,
             members: members.iter().map(|m| m.to_string()).collect(),
+            hidden: false,
         }
     }
 

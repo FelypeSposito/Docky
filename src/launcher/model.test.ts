@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Shortcut } from "../config/types";
-import { cleanTarget, confirmationText, isUsable, memberSummary, membersOf, needsConfirmation, removeShortcut, targetKind, toggleMember } from "./model";
+import { cleanTarget, confirmationText, groupedIds, hideGrouped, hideableCount, isUsable, memberSummary, membersOf, needsConfirmation, removeShortcut, reorderSection, setHidden, splitShortcuts, targetKind, toggleMember } from "./model";
 
 const item = (id: string, name: string, target = "", extra: Partial<Shortcut> = {}): Shortcut => ({ id, name, target, icon: "", group: false, members: [], ...extra });
 
@@ -74,5 +74,35 @@ describe("resumo dos itens do grupo", () => {
     expect(memberSummary(list[3], list)).toBe("Chrome, Claude +1");
     expect(memberSummary({ ...list[3], members: ["a", "b"] }, list)).toBe("Chrome, Claude");
     expect(memberSummary(list[4], list)).toBe("Sem itens");
+  });
+});
+
+describe("grupos separados dos atalhos", () => {
+  const list = [item("a", "A", "x"), item("g1", "G1", "", { group: true, members: ["a"] }), item("b", "B", "y"), item("g2", "G2", "", { group: true, members: ["b"] }), item("c", "C", "z")];
+
+  it("separa em duas partes sem perder a posição original", () => {
+    const { groups, items } = splitShortcuts(list);
+    expect(groups.map((e) => [e.item.id, e.index])).toEqual([["g1", 1], ["g2", 3]]);
+    expect(items.map((e) => [e.item.id, e.index])).toEqual([["a", 0], ["b", 2], ["c", 4]]);
+  });
+
+  it("reordenar uma parte não mexe na outra e deixa os grupos primeiro", () => {
+    expect(reorderSection(list, false, ["c", "a", "b"]).map((s) => s.id)).toEqual(["g1", "g2", "c", "a", "b"]);
+    expect(reorderSection(list, true, ["g2", "g1"]).map((s) => s.id)).toEqual(["g2", "g1", "a", "b", "c"]);
+  });
+
+  it("oculta só os atalhos que estão em grupos", () => {
+    expect([...groupedIds(list)].sort()).toEqual(["a", "b"]);
+    expect(hideableCount(list)).toBe(2);
+    const next = hideGrouped(list);
+    expect(next.filter((s) => s.hidden).map((s) => s.id)).toEqual(["a", "b"]);
+    expect(hideableCount(next)).toBe(0);
+    expect(hideGrouped(next)).toEqual(next);
+  });
+
+  it("mostra e oculta um atalho", () => {
+    const hidden = setHidden(list, "c", true);
+    expect(hidden.find((s) => s.id === "c")?.hidden).toBe(true);
+    expect(setHidden(hidden, "c", false).find((s) => s.id === "c")?.hidden).toBe(false);
   });
 });

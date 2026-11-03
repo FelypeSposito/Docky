@@ -634,3 +634,34 @@ body[data-window="settings"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Botões só de ícone nas linhas */
+.sa .icb {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--ink2);
+  transition: background 0.18s, color 0.18s, transform 0.1s;
+}
+.sa .icb:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.sa .icb:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.sa .icb.on {
+  color: var(--accent);
+}
+.sa .icb.danger:hover:not(:disabled) {
+  background: rgba(229, 72, 77, 0.2);
+  color: #ff7b80;
+}
+.sa .srow.is-hidden .sico,
+.sa .srow.is-hidden .inp,
+.sa .srow.is-hidden .summary {
+  opacity: 0.5;
+}

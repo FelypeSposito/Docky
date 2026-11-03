@@ -95,7 +95,16 @@ export function resolveTemplate(template: GroupTemplate, shortcuts: Shortcut[], 
   };
 }
 
-const newShortcut = (entry: AppEntry, id: string): Shortcut => ({ id, name: entry.name, target: entry.target, icon: "", group: false, members: [] });
+/** Um atalho novo a partir de um app instalado. Os criados para um grupo nascem ocultos: só existem dentro dele. */
+const newShortcut = (entry: AppEntry, id: string, hidden = false): Shortcut => ({
+  id,
+  name: entry.name,
+  target: entry.target,
+  icon: "",
+  group: false,
+  members: [],
+  ...(hidden ? { hidden: true } : {}),
+});
 
 /** A lista com o grupo criado e, antes dele, os atalhos dos apps que você ainda não tinha. */
 export function buildGroup(template: GroupTemplate, shortcuts: Shortcut[], apps: AppEntry[], makeId: () => string): Shortcut[] {
@@ -106,7 +115,7 @@ export function buildGroup(template: GroupTemplate, shortcuts: Shortcut[], apps:
   for (const item of resolved.apps) {
     if (item.shortcutId) members.push(item.shortcutId);
     else if (item.app) {
-      const created = newShortcut(item.app, makeId());
+      const created = newShortcut(item.app, makeId(), true);
       added.push(created);
       members.push(created.id);
     }
@@ -126,7 +135,7 @@ export function completeGroup(template: GroupTemplate, shortcuts: Shortcut[], ap
     if (item.shortcutId) {
       if (!members.includes(item.shortcutId)) members.push(item.shortcutId);
     } else if (item.app) {
-      const created = newShortcut(item.app, makeId());
+      const created = newShortcut(item.app, makeId(), true);
       added.push(created);
       members.push(created.id);
     }
@@ -139,7 +148,7 @@ export function addAppToGroup(shortcuts: Shortcut[], groupId: string, entry: App
   const group = shortcuts.find((s) => s.id === groupId && s.group);
   if (!group) return shortcuts;
   const own = shortcuts.find((s) => !s.group && sameApp(s, entry));
-  const created = own ? null : newShortcut(entry, makeId());
+  const created = own ? null : newShortcut(entry, makeId(), true);
   const id = (own ?? created)!.id;
   if (group.members.includes(id)) return shortcuts;
   const updated = shortcuts.map((s) => (s.id === groupId ? { ...group, members: [...group.members, id] } : s));

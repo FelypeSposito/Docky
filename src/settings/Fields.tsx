@@ -2,17 +2,17 @@ import { useEffect, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import type { ShelfFolder, Shortcut } from "../config/types";
 import type { MonitorInfo } from "../lib/ipc";
-import { ArrowDownIcon, ArrowUpIcon, FolderIcon, GripIcon } from "../island/icons";
+import { ArrowDownIcon, ArrowUpIcon, EyeIcon, EyeOffIcon, FolderIcon, GripIcon, ListIcon, TrashIcon } from "../island/icons";
 import { moveItem, orderPages } from "../island/pageOrder";
 import { PAGES } from "../island/pages/registry";
 import { useShelfImages, useShortcutImages } from "../launcher/icons";
 import { ItemIcon, SHORTCUT_COLORS, ShortcutIcon } from "../launcher/ShortcutIcon";
 import { GroupEditor } from "../launcher/GroupEditor";
 import { IconPicker } from "../launcher/IconPicker";
-import { cleanTarget, memberSummary, newId, removeShortcut } from "../launcher/model";
+import { cleanTarget, hideGrouped, hideableCount, memberSummary, newId, removeShortcut, reorderSection, setHidden, splitShortcuts } from "../launcher/model";
 import { MIN_GROUP, TEMPLATES, addApp, buildGroup, completeGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
 import { ipc } from "../lib/ipc";
-import { Group, Row, Segmented, Toggle } from "./controls";
+import { Group, IconButton, Row, Segmented, Toggle } from "./controls";
 import { useSortable } from "./useSortable";
 
 interface TextFieldProps {
@@ -56,9 +56,9 @@ export function NotesFolderRow() {
         placeholder="C:\Users\você\Documentos\brain\Inbox"
         onCommit={(v) => update({ notesFolder: v })}
       />
-      <button className="btn" title="Escolher a pasta no computador" onClick={() => void ipc.pickPath("folder").then((path) => path && update({ notesFolder: path }))}>
-        Escolher…
-      </button>
+      <IconButton label="Escolher a pasta" onClick={() => void ipc.pickPath("folder").then((path) => path && update({ notesFolder: path }))}>
+        <FolderIcon />
+      </IconButton>
     </Row>
   );
 }
@@ -118,16 +118,15 @@ export function ShelfFolders() {
             </button>
             <TextField label="Nome da pasta" width={110} value={folder.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
             <TextField label="Caminho da pasta" width={230} value={folder.path} placeholder="C:\Users\você\Google Drive\Faculdade" onCommit={(v) => change(i, { path: v })} />
-            <button
-              className="btn"
-              title="Escolher a pasta no computador"
+            <IconButton
+              label="Escolher a pasta"
               onClick={() => void ipc.pickPath("folder").then((path) => path && change(i, { path, name: folder.name || path.split(/[\\/]/).filter(Boolean).pop() || "" }))}
             >
-              Escolher…
-            </button>
-            <button className="btn danger" onClick={() => set(folders.filter((_, k) => k !== i))}>
-              Remover
-            </button>
+              <FolderIcon />
+            </IconButton>
+            <IconButton label="Remover a pasta" danger onClick={() => set(folders.filter((_, k) => k !== i))}>
+              <TrashIcon />
+            </IconButton>
           </div>
         ))}
         <Row label="Adicionar pasta" hint="Os arquivos são copiados; os originais ficam onde estão. A pasta precisa existir">
@@ -155,22 +154,80 @@ export function ShortcutsEditor() {
   const { config, update } = useConfigStore();
   const items = config.shortcuts;
   const set = (next: Shortcut[]) => update({ shortcuts: next });
-  const change = (index: number, patch: Partial<Shortcut>) => set(items.map((s, i) => (i === index ? { ...s, ...patch } : s)));
-  // Cada linha é identificada pelo id do atalho; ao soltar, a lista é remontada na nova ordem.
-  const sortable = useSortable(
-    items.map((s) => s.id),
-    (order) => set(order.flatMap((id) => items.filter((s) => s.id === id))),
+  const change = (id: string, patch: Partial<Shortcut>) => set(items.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const { groups, items: plain } = splitShortcuts(items);
+  // Os grupos e os atalhos são duas listas, cada uma se reordena sozinha (os grupos ficam primeiro).
+  const sortGroups = useSortable(
+    groups.map((e) => e.item.id),
+    (order) => set(reorderSection(items, true, order)),
+  );
+  const sortItems = useSortable(
+    plain.map((e) => e.item.id),
+    (order) => set(reorderSection(items, false, order)),
   );
   const images = useShortcutImages(items);
   /** O atalho cujo ícone está sendo escolhido (o seletor aparece acima da lista). */
   const [picking, setPicking] = useState<string | null>(null);
   const pickingIndex = picking === null ? -1 : items.findIndex((s) => s.id === picking);
-  /** O grupo cujos itens estão sendo editados, e se as sugestões estão abertas (cada um num painel acima da lista). */
+  /** O grupo cujo nome e itens estão sendo editados, e se as sugestões estão abertas (cada um num painel acima da lista). */
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [suggesting, setSuggesting] = useState(false);
   const groupToEdit = editingGroup === null ? undefined : items.find((s) => s.id === editingGroup && s.group);
-  const pickApp = (index: number) => void ipc.pickPath("app").then((path) => path && change(index, { target: path }));
-  const add = (group: boolean) => set([...items, { name: "", target: "", icon: "", id: newId(), group, members: [] }]);
+  const pickApp = (id: string) => void ipc.pickPath("app").then((path) => path && change(id, { target: path }));
+  const addItem = () => set([...items, { name: "", target: "", icon: "", id: newId(), group: false, members: [] }]);
+  /** Um grupo novo já abre o painel de itens, para dar nome e escolher o que ele abre. */
+  const addGroup = () => {
+    const group: Shortcut = { name: "", target: "", icon: "lib:briefcase", id: newId(), group: true, members: [] };
+    set([group, ...items]);
+    setEditingGroup(group.id);
+  };
+  const hideable = hideableCount(items);
+
+  const row = ({ item, index }: { item: Shortcut; index: number }, sortable: ReturnType<typeof useSortable>) => (
+    <div
+      className={`row folder-row srow${sortable.dragId === item.id ? " drag" : ""}${item.hidden ? " is-hidden" : ""}`}
+      key={item.id}
+      ref={sortable.rowRef(item.id)}
+      style={{ order: sortable.position.get(item.id) }}
+    >
+      <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, item.id)}>
+        <GripIcon />
+      </span>
+      <button className="sico" aria-label={`Escolher o ícone de ${item.name || "atalho"}`} title="Escolher o ícone" onClick={() => setPicking(item.id)}>
+        <ShortcutIcon shortcut={item} image={images[index]} color={SHORTCUT_COLORS[index % SHORTCUT_COLORS.length]} className="li" />
+      </button>
+      <TextField label="Nome do atalho" width={item.group ? 170 : 140} value={item.name} placeholder={item.group ? "Nome do grupo" : "Nome"} onCommit={(v) => change(item.id, { name: v })} />
+      {item.group ? (
+        <>
+          <span className="summary" title={memberSummary(item, items, 99)}>
+            {memberSummary(item, items)}
+          </span>
+          <IconButton label="Itens do grupo" onClick={() => setEditingGroup(item.id)}>
+            <ListIcon />
+          </IconButton>
+        </>
+      ) : (
+        <>
+          <TextField
+            label="Destino do atalho"
+            width={190}
+            value={item.target}
+            placeholder="C:\Apps\app.exe, uma pasta ou https://…"
+            onCommit={(v) => change(item.id, { target: cleanTarget(v) })}
+          />
+          <IconButton label="Escolher um programa, atalho ou arquivo" onClick={() => pickApp(item.id)}>
+            <FolderIcon />
+          </IconButton>
+        </>
+      )}
+      <IconButton label={item.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!item.hidden} onClick={() => set(setHidden(items, item.id, !item.hidden))}>
+        {item.hidden ? <EyeOffIcon /> : <EyeIcon />}
+      </IconButton>
+      <IconButton label="Remover" danger onClick={() => set(removeShortcut(items, index))}>
+        <TrashIcon />
+      </IconButton>
+    </div>
+  );
 
   return (
     <>
@@ -187,77 +244,43 @@ export function ShortcutsEditor() {
             name={items[pickingIndex].name}
             color={SHORTCUT_COLORS[pickingIndex % SHORTCUT_COLORS.length]}
             image={images[pickingIndex]}
-            onChange={(icon) => change(pickingIndex, { icon })}
+            onChange={(icon) => change(items[pickingIndex].id, { icon })}
             onDone={() => setPicking(null)}
           />
         </Group>
       )}
+
       <Group>
-        {items.length === 0 && <Row label="Nenhum atalho ainda" hint="Apps, jogos, pastas, arquivos e sites que você abre sempre" />}
-        <div className="sortable">
-          {items.map((item, i) => (
-            <div
-              className={`row folder-row srow${sortable.dragId === item.id ? " drag" : ""}`}
-              key={item.id}
-              ref={sortable.rowRef(item.id)}
-              style={{ order: sortable.position.get(item.id) }}
-            >
-              <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, item.id)}>
-                <GripIcon />
-              </span>
-              <button
-                className="sico"
-                aria-label={`Escolher o ícone de ${item.name || "atalho"}`}
-                title="Escolher o ícone"
-                onClick={() => setPicking(item.id)}
-              >
-                <ShortcutIcon shortcut={item} image={images[i]} color={SHORTCUT_COLORS[i % SHORTCUT_COLORS.length]} className="li" />
-              </button>
-              <TextField label="Nome do atalho" width={item.group ? 150 : 130} value={item.name} placeholder={item.group ? "Nome do grupo" : "Nome"} onCommit={(v) => change(i, { name: v })} />
-              {item.group ? (
-                <>
-                  <span className="summary" title={memberSummary(item, items, 99)}>
-                    {memberSummary(item, items)}
-                  </span>
-                  <button className="btn" onClick={() => setEditingGroup(item.id)}>
-                    Itens…
-                  </button>
-                </>
-              ) : (
-                <>
-                  <TextField
-                    label="Destino do atalho"
-                    width={160}
-                    value={item.target}
-                    placeholder="C:\Apps\app.exe, uma pasta ou https://…"
-                    onCommit={(v) => change(i, { target: cleanTarget(v) })}
-                  />
-                  <button className="btn" title="Escolher um programa, atalho ou arquivo" onClick={() => pickApp(i)}>
-                    Escolher…
-                  </button>
-                </>
-              )}
-              <button className="btn danger" onClick={() => set(removeShortcut(items, i))}>
-                Remover
-              </button>
-            </div>
-          ))}
-        </div>
-        <Row label="Adicionar" hint="Um atalho abre um app, pasta, arquivo ou site. Um grupo abre vários atalhos de uma vez">
-          <button className="btn primary" disabled={items.length >= 40} onClick={() => add(false)}>
-            Atalho
-          </button>
-          <button className="btn" disabled={items.length >= 40} onClick={() => add(true)}>
-            Grupo
+        <Row label="Grupos" hint="Abrem vários atalhos de uma vez">
+          <button className="btn primary" disabled={items.length >= 60} onClick={addGroup}>
+            + Grupo
           </button>
           <button className="btn" onClick={() => setSuggesting((v) => !v)} aria-pressed={suggesting}>
             Sugestões
           </button>
         </Row>
+        {groups.length === 0 && <Row label="Nenhum grupo ainda" hint="Crie um, ou veja as sugestões (Trabalho, Jogos, Estudos…)" />}
+        <div className="sortable">{groups.map((entry) => row(entry, sortGroups))}</div>
+      </Group>
+
+      <Group>
+        <Row label="Atalhos" hint="Apps, jogos, pastas, arquivos e sites. O olho oculta da lista, e o atalho continua valendo nos grupos">
+          {hideable > 0 && (
+            <button className="btn" onClick={() => set(hideGrouped(items))} title="Esconde da lista os atalhos que já estão em algum grupo">
+              Ocultar os de grupos ({hideable})
+            </button>
+          )}
+          <button className="btn primary" disabled={items.length >= 60} onClick={addItem}>
+            + Atalho
+          </button>
+        </Row>
+        {plain.length === 0 && <Row label="Nenhum atalho ainda" />}
+        <div className="sortable">{plain.map((entry) => row(entry, sortItems))}</div>
         <Row label="Confirmar antes de abrir" hint="Apps, jogos e grupos pedem confirmação antes de abrir">
           <Toggle label="Confirmar antes de abrir" value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
         </Row>
       </Group>
+
       <Group>
         {HOTKEYS.map(([label, keys]) => (
           <Row key={label} label={label}>

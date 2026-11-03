@@ -36,3 +36,14 @@ describe("filterShortcuts com grupos", () => {
     expect(filterShortcuts(list, "").map((m) => m.item.id)).toEqual(["a", "g"]);
   });
 });
+
+describe("filterShortcuts com ocultos", () => {
+  it("não mostra os ocultos", () => {
+    const list = [
+      { id: "a", name: "Chrome", target: "C:\\chrome.exe", hidden: true },
+      { id: "b", name: "Spotify", target: "C:\\spotify.exe" },
+      { id: "g", name: "Trabalho", target: "", group: true, members: ["a"] },
+    ];
+    expect(filterShortcuts(list, "").map((m) => m.item.id)).toEqual(["b", "g"]);
+  });
+});

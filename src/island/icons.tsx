@@ -38,6 +38,26 @@ export function ClaudeSpinner({ size = 18 }: { size?: number }) {
   );
 }
 
+export const EyeIcon = ({ size = 14, stroke = 1.9, ...p }: IconProps) => (
+  <Stroke size={size} stroke={stroke} {...p}>
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Stroke>
+);
+
+export const EyeOffIcon = ({ size = 14, stroke = 1.9, ...p }: IconProps) => (
+  <Stroke size={size} stroke={stroke} {...p}>
+    <path d="M3 3l18 18M10.6 6.2A9.8 9.8 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.5 7.6A17 17 0 0 0 2 12s3.6 7 10 7a9.6 9.6 0 0 0 4.2-.9" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </Stroke>
+);
+
+export const ListIcon = ({ size = 14, stroke = 1.9, ...p }: IconProps) => (
+  <Stroke size={size} stroke={stroke} {...p}>
+    <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+  </Stroke>
+);
+
 export const PencilIcon = ({ size = 13, stroke = 2, ...p }: IconProps) => (
   <Stroke size={size} stroke={stroke} {...p}>
     <path d="M12 20h9" />
