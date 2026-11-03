@@ -106,6 +106,39 @@ pub fn lnk_target(bytes: &[u8]) -> Option<String> {
     (!path.is_empty()).then_some(path)
 }
 
+/// As linhas "Nome<TAB>AppID" que o Windows lista para o Menu Iniciar (`Get-StartApps`). Fica só com o que abre um app
+/// (sai quem aponta para um site) e com o nome limpo.
+pub fn parse_start_apps(text: &str) -> Vec<(String, String)> {
+    text.lines()
+        .filter_map(|line| {
+            let (name, id) = line.split_once('\t')?;
+            let (name, id) = (name.trim(), id.trim());
+            let is_web = id.contains("://") || id.starts_with("http");
+            (!name.is_empty() && !id.is_empty() && !is_web && !is_noise(name)).then(|| (name.to_string(), id.to_string()))
+        })
+        .collect()
+}
+
+/// Todos os apps que o Windows mostra no Menu Iniciar, inclusive os da Loja da Microsoft (Spotify, WhatsApp, Claude…),
+/// que não têm atalho `.lnk`. Abrem por `shell:AppsFolder\<AppID>`.
+#[cfg(windows)]
+fn windows_start_apps() -> Vec<(String, String)> {
+    use std::os::windows::process::CommandExt;
+
+    const NO_WINDOW: u32 = 0x0800_0000;
+    let script = "[Console]::OutputEncoding = [Text.UTF8Encoding]::new(); Get-StartApps | ForEach-Object { $_.Name + [char]9 + $_.AppID }";
+    let output = std::process::Command::new("powershell.exe").args(["-NoProfile", "-NonInteractive", "-Command", script]).creation_flags(NO_WINDOW).output();
+    match output {
+        Ok(out) if out.status.success() => parse_start_apps(&String::from_utf8_lossy(&out.stdout)),
+        _ => Vec::new(),
+    }
+}
+
+#[cfg(not(windows))]
+fn windows_start_apps() -> Vec<(String, String)> {
+    Vec::new()
+}
+
 /// Atalhos do Menu Iniciar que não são o app em si.
 fn is_noise(name: &str) -> bool {
     let lower = name.to_lowercase();
@@ -233,7 +266,9 @@ pub async fn list_apps() -> Result<Vec<AppEntry>, String> {
     tauri::async_runtime::spawn_blocking(|| {
         let usage = usage_history();
         let (pinned, running) = (pinned_names(), running_programs());
-        let mut apps: Vec<AppEntry> = start_menu_apps()
+        let links = start_menu_apps();
+        let known: std::collections::HashSet<String> = links.iter().map(|(name, _)| normalize(name)).collect();
+        let mut apps: Vec<AppEntry> = links
             .into_iter()
             .map(|(name, path)| {
                 let key = normalize(&name);
@@ -243,12 +278,29 @@ pub async fn list_apps() -> Result<Vec<AppEntry>, String> {
                 AppEntry {
                     uses: by_program.max(usage_for(&name, &usage)),
                     pinned: pinned.contains(&key),
-                    running: program.as_ref().is_some_and(|p| running.contains(p)),
+                    // Apps que abrem por um atualizador (Discord: `Update.exe --processStart`) não mostram o programa no atalho;
+                    // então vale também o nome do app.
+                    running: program.as_ref().is_some_and(|p| running.contains(p)) || (key.len() >= 5 && running.iter().any(|p| p == &key || p.starts_with(&key))),
                     target: path.to_string_lossy().into_owned(),
                     name,
                 }
             })
             .collect();
+        // Apps da Loja e outros que o Menu Iniciar lista sem atalho `.lnk`.
+        for (name, id) in windows_start_apps() {
+            let key = normalize(&name);
+            if key.is_empty() || known.contains(&key) {
+                continue;
+            }
+            apps.push(AppEntry {
+                uses: usage_for(&name, &usage),
+                pinned: pinned.contains(&key),
+                // Sem o programa do atalho, vale o nome: o processo "Spotify" é o app "Spotify".
+                running: key.len() >= 5 && running.iter().any(|program| program == &key || program.starts_with(&key)),
+                target: format!(r"shell:AppsFolder\{id}"),
+                name,
+            });
+        }
         apps.sort_by(|a, b| b.score().cmp(&a.score()).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
         apps
     })
@@ -260,7 +312,16 @@ pub async fn list_apps() -> Result<Vec<AppEntry>, String> {
 mod tests {
     use std::collections::HashMap;
 
-    use super::{lnk_target, normalize, program_of, rot13, usage_for};
+    use super::{lnk_target, normalize, parse_start_apps, program_of, rot13, usage_for};
+
+    #[test]
+    fn le_a_lista_de_apps_do_menu_iniciar_do_windows() {
+        let text = "Spotify\tSpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify\r\nSteam Support Center\thttp://support.steampowered.com/\nObsidian\tmd.obsidian\n\nUninstall Foo\tfoo.uninstall\nsem tab\n";
+        assert_eq!(
+            parse_start_apps(text),
+            vec![("Spotify".to_string(), "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify".to_string()), ("Obsidian".to_string(), "md.obsidian".to_string())]
+        );
+    }
 
     /// Um `.lnk` mínimo: cabeçalho, sem lista de destino e com um LinkInfo que guarda o caminho local.
     fn fake_lnk(path: &str, with_id_list: bool) -> Vec<u8> {
