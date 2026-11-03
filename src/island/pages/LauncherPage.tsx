@@ -5,10 +5,11 @@ import { filterShortcuts } from "../../launcher/filter";
 import { GroupEditor } from "../../launcher/GroupEditor";
 import { IconPicker } from "../../launcher/IconPicker";
 import { useShortcutImages } from "../../launcher/icons";
-import { confirmationText, hideGrouped, hideableCount, memberSummary, membersOf, needsConfirmation, newId, removeShortcut, reorderSection, setHidden, splitShortcuts } from "../../launcher/model";
+import { confirmationText, hideGrouped, hideableCount, memberSummary, membersOf, needsConfirmation, newId, removeShortcut, reorderSection, reorderVisible, setHidden, splitShortcuts } from "../../launcher/model";
 import { SHORTCUT_COLORS, ShortcutIcon } from "../../launcher/ShortcutIcon";
 import { ipc } from "../../lib/ipc";
 import { useSortable } from "../../settings/useSortable";
+import { useGridSort } from "../useGridSort";
 import { EmptyState } from "../EmptyState";
 import { EyeIcon, EyeOffIcon, GripIcon, ListIcon, PencilIcon, SearchIcon, TrashIcon } from "../icons";
 import { QButton, QIconButton, QPath, QText } from "../quick/controls";
@@ -280,12 +281,39 @@ export function LauncherLarge() {
     />
   );
 
-  const tile = ({ item, index }: { item: Shortcut; index: number }) => (
-    <button key={item.id || index} className="tile lt" title={item.group ? `Grupo: ${confirmationText(item, shortcuts)}` : item.target} onClick={() => ask(index)}>
-      <Tile shortcut={item} index={index} image={images[index]} shortcuts={shortcuts} />
-      <b>{item.name}</b>
-    </button>
+  /** Os ícones se reordenam arrastando (só com a lista inteira à mostra, sem busca); cada parte sozinha. */
+  const canDrag = query.trim() === "";
+  const dragGroups = useGridSort(
+    shownGroups.map((e) => e.item.id),
+    (order) => set(reorderVisible(shortcuts, true, order)),
+    canDrag,
   );
+  const dragItems = useGridSort(
+    shownItems.map((e) => e.item.id),
+    (order) => set(reorderVisible(shortcuts, false, order)),
+    canDrag,
+  );
+  /** O `order` do CSS põe o título e os ícones de cada parte no lugar (os grupos antes dos atalhos). */
+  const ITEMS_BASE = 1000;
+
+  const tile = ({ item, index }: { item: Shortcut; index: number }) => {
+    const sorter = item.group ? dragGroups : dragItems;
+    return (
+      <button
+        key={item.id || index}
+        ref={sorter.tileRef(item.id)}
+        className={`tile lt${sorter.dragId === item.id ? " drag" : ""}`}
+        style={{ order: (item.group ? 1 : ITEMS_BASE + 1) + (sorter.position.get(item.id) ?? 0) }}
+        title={item.group ? `Grupo: ${confirmationText(item, shortcuts)}` : item.target}
+        onClick={() => ask(index)}
+        onPointerDown={(e) => sorter.down(e, item.id)}
+        onDragStart={(e) => e.preventDefault()}
+      >
+        <Tile shortcut={item} index={index} image={images[index]} shortcuts={shortcuts} />
+        <b>{item.name}</b>
+      </button>
+    );
+  };
 
   return (
     <div className="bento lcx">
@@ -349,9 +377,17 @@ export function LauncherLarge() {
           {matches.length === 0 && !error && (
             <div className="tile lc-empty">{shortcuts.length === 0 ? "Nenhum atalho ainda. Toque em Editar para criar." : "Nenhum atalho com esse nome."}</div>
           )}
-          {shownGroups.length > 0 && <h3 className="lcx-h">Grupos</h3>}
+          {shownGroups.length > 0 && (
+            <h3 className="lcx-h" style={{ order: 0 }}>
+              Grupos
+            </h3>
+          )}
           {shownGroups.map(tile)}
-          {shownItems.length > 0 && <h3 className="lcx-h">Atalhos</h3>}
+          {shownItems.length > 0 && (
+            <h3 className="lcx-h" style={{ order: ITEMS_BASE }}>
+              Atalhos
+            </h3>
+          )}
           {shownItems.map(tile)}
         </div>
       )}

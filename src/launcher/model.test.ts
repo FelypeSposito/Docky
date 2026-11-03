@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Shortcut } from "../config/types";
-import { cleanTarget, confirmationText, groupedIds, hideGrouped, hideableCount, isUsable, memberSummary, membersOf, needsConfirmation, removeShortcut, reorderSection, setHidden, splitShortcuts, targetKind, toggleMember } from "./model";
+import { cleanTarget, confirmationText, groupedIds, hideGrouped, hideableCount, isUsable, memberSummary, membersOf, needsConfirmation, removeShortcut, reorderSection, reorderVisible, setHidden, splitShortcuts, targetKind, toggleMember } from "./model";
 
 const item = (id: string, name: string, target = "", extra: Partial<Shortcut> = {}): Shortcut => ({ id, name, target, icon: "", group: false, members: [], ...extra });
 
@@ -89,6 +89,13 @@ describe("grupos separados dos atalhos", () => {
   it("reordenar uma parte não mexe na outra e deixa os grupos primeiro", () => {
     expect(reorderSection(list, false, ["c", "a", "b"]).map((s) => s.id)).toEqual(["g1", "g2", "c", "a", "b"]);
     expect(reorderSection(list, true, ["g2", "g1"]).map((s) => s.id)).toEqual(["g2", "g1", "a", "b", "c"]);
+  });
+
+  it("reordenar só os visíveis mantém os ocultos no lugar", () => {
+    const hidden = setHidden(list, "b", true);
+    // A tela mostra a e c; trocar os dois não pode perder o b.
+    expect(reorderVisible(hidden, false, ["c", "a"]).map((s) => s.id)).toEqual(["g1", "g2", "c", "b", "a"]);
+    expect(reorderVisible(hidden, true, ["g2", "g1"]).map((s) => s.id)).toEqual(["g2", "g1", "a", "b", "c"]);
   });
 
   it("oculta só os atalhos que estão em grupos", () => {

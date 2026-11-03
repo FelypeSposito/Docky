@@ -90,6 +90,19 @@ export function reorderSection(shortcuts: Shortcut[], group: boolean, order: str
   return group ? [...sorted(groups), ...section(items)] : [...section(groups), ...sorted(items)];
 }
 
+/**
+ * Reordena só o que está à mostra de uma parte: os atalhos ocultos ficam onde estavam e os visíveis ocupam, na ordem
+ * nova, os lugares que já eram dos visíveis.
+ */
+export function reorderVisible(shortcuts: Shortcut[], group: boolean, visibleOrder: string[]): Shortcut[] {
+  const { groups, items } = splitShortcuts(shortcuts);
+  const section = (group ? groups : items).map((e) => e.item.id);
+  const shown = new Set(visibleOrder);
+  const queue = visibleOrder.filter((id) => section.includes(id));
+  const order = section.map((id) => (shown.has(id) ? (queue.shift() ?? id) : id));
+  return reorderSection(shortcuts, group, order);
+}
+
 /** Os ids dos atalhos que fazem parte de algum grupo. */
 export const groupedIds = (shortcuts: Shortcut[]): Set<string> => new Set(shortcuts.filter((s) => s.group).flatMap((s) => s.members));
 
