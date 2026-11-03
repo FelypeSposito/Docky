@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Shortcut } from "../config/types";
 import { ipc } from "../lib/ipc";
 
@@ -28,45 +28,52 @@ export function iconText(icon: string): string {
   return segments.slice(0, 2).join("");
 }
 
-/** A imagem (data URL) de cada item que tem um arquivo como ícone, pela posição na lista. */
-export function useIconImages(icons: string[], fetchImage: (index: number) => Promise<string | null>): Record<number, string> {
-  const [images, setImages] = useState<Record<number, string>>({});
-  // Muda só quando o ícone muda (o resto do item não interessa).
-  const signature = icons.map((icon) => (iconKind(icon ?? "") === "image" ? icon.trim() : "")).join("\n");
+/** Tentativas de ler uma imagem: a configuração é gravada em seguida à mudança, e a leitura pode chegar antes. */
+const MAX_ATTEMPTS = 5;
+
+/**
+ * A imagem (data URL) de cada item que tem um arquivo como ícone, pela posição na lista. As imagens são lidas pelo
+ * caminho e guardadas por ele: reordenar a lista só muda quem usa qual imagem, sem reler nada (ler pela posição
+ * trocava ou apagava os ícones quando a ordem mudava antes de a configuração ser gravada).
+ */
+export function useIconImages(icons: string[], fetchImage: (path: string) => Promise<string | null>): Record<number, string> {
+  const [loaded, setLoaded] = useState<Record<string, string>>({});
+  const have = useRef(loaded);
+  have.current = loaded;
+  const paths = icons.map((icon) => (iconKind(icon ?? "") === "image" ? icon.trim() : ""));
+  // Muda só quando o conjunto de arquivos muda (a ordem e o resto do item não interessam).
+  const wanted = [...new Set(paths.filter(Boolean))].sort().join("\n");
 
   useEffect(() => {
     let alive = true;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const load = (index: number, retry: boolean) =>
-      fetchImage(index)
-        .then((url) => alive && url && setImages((prev) => ({ ...prev, [index]: url })))
+    const load = (path: string, attempt: number) =>
+      fetchImage(path)
+        .then((url) => alive && url && setLoaded((prev) => ({ ...prev, [path]: url })))
         .catch(() => {
-          // A configuração é gravada em seguida à mudança; se a leitura chegou antes, tenta mais uma vez.
-          if (alive && retry) timers.push(setTimeout(() => load(index, false), 600));
+          if (alive && attempt + 1 < MAX_ATTEMPTS) timers.push(setTimeout(() => load(path, attempt + 1), 400 * (attempt + 1)));
         });
-
-    setImages({});
-    signature.split("\n").forEach((icon, index) => icon && load(index, true));
+    wanted.split("\n").forEach((path) => path && !have.current[path] && load(path, 0));
     return () => {
       alive = false;
       timers.forEach(clearTimeout);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature]);
+  }, [wanted]);
 
-  return images;
+  return useMemo(() => Object.fromEntries(paths.flatMap((path, index) => (path && loaded[path] ? [[index, loaded[path]] as const] : []))), [paths.join("\n"), loaded]);
 }
 
 /** As imagens dos ícones dos atalhos. */
 export const useShortcutImages = (shortcuts: Shortcut[]) =>
   useIconImages(
     shortcuts.map((s) => s.icon ?? ""),
-    (index) => ipc.shortcutIcon(index),
+    (path) => ipc.iconImage(path),
   );
 
 /** As imagens dos ícones das pastas da Shelf. */
 export const useShelfImages = (folders: { icon?: string }[]) =>
   useIconImages(
     folders.map((f) => f.icon ?? ""),
-    (index) => ipc.shelfIcon(index),
+    (path) => ipc.iconImage(path),
   );

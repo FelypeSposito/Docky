@@ -230,6 +230,19 @@ export function LauncherLarge() {
     setEditingGroup(group.id);
   };
   const hideable = hideableCount(shortcuts);
+  // Os ícones se reordenam arrastando (só com a lista inteira à mostra, sem busca); cada parte sozinha.
+  // Hooks ficam antes dos `return` dos painéis abaixo: trocar de painel não pode mudar a quantidade deles.
+  const canDrag = query.trim() === "";
+  const dragGroups = useGridSort(
+    shownGroups.map((e) => e.item.id),
+    (order) => set(reorderVisible(shortcuts, true, order)),
+    canDrag,
+  );
+  const dragItems = useGridSort(
+    shownItems.map((e) => e.item.id),
+    (order) => set(reorderVisible(shortcuts, false, order)),
+    canDrag,
+  );
 
   const pickingIndex = picking === null ? -1 : shortcuts.findIndex((s) => s.id === picking);
   if (pickingIndex >= 0) {
@@ -281,18 +294,6 @@ export function LauncherLarge() {
     />
   );
 
-  /** Os ícones se reordenam arrastando (só com a lista inteira à mostra, sem busca); cada parte sozinha. */
-  const canDrag = query.trim() === "";
-  const dragGroups = useGridSort(
-    shownGroups.map((e) => e.item.id),
-    (order) => set(reorderVisible(shortcuts, true, order)),
-    canDrag,
-  );
-  const dragItems = useGridSort(
-    shownItems.map((e) => e.item.id),
-    (order) => set(reorderVisible(shortcuts, false, order)),
-    canDrag,
-  );
   /** O `order` do CSS põe o título e os ícones de cada parte no lugar (os grupos antes dos atalhos). */
   const ITEMS_BASE = 1000;
 

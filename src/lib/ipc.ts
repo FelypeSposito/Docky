@@ -376,9 +376,12 @@ export const ipc = {
     return isTauri ? invoke<void>("launch", { index }) : Promise.resolve();
   },
 
-  /** A imagem do ícone do atalho da posição `index` (data URL), ou `null` se o ícone for texto ou estiver vazio. */
-  async shortcutIcon(index: number): Promise<string | null> {
-    return isTauri ? invoke<string | null>("shortcut_icon", { index }) : null;
+  /**
+   * A imagem (data URL) de um arquivo de ícone. Só vale para um caminho que já é ícone de um atalho ou pasta da Shelf
+   * nas configurações; falha se a configuração ainda não foi gravada.
+   */
+  async iconImage(path: string): Promise<string | null> {
+    return isTauri ? invoke<string | null>("icon_image", { path }) : null;
   },
 
   /** Os apps instalados (Menu Iniciar e Área de Trabalho), os mais usados primeiro. */
@@ -391,11 +394,6 @@ export const ipc = {
       { name: "Obsidian", target: "C:\Menu\Obsidian.lnk", uses: 12, pinned: false, running: false },
       { name: "Steam", target: "C:\Menu\Steam.lnk", uses: 9, pinned: false, running: false },
     ];
-  },
-
-  /** A imagem do ícone da pasta da Shelf na posição `index` (data URL), ou `null`. */
-  async shelfIcon(index: number): Promise<string | null> {
-    return isTauri ? invoke<string | null>("shelf_icon", { index }) : null;
   },
 
   /** Abre o seletor do Windows: uma imagem, um programa/arquivo ou uma pasta. `null` = cancelou. */

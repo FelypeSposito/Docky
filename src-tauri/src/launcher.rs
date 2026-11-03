@@ -47,22 +47,20 @@ pub fn read_icon_image(icon: &str) -> Result<Option<String>, String> {
     Ok(Some(format!("data:{mime};base64,{}", STANDARD.encode(bytes))))
 }
 
-/// O ícone de imagem do atalho da posição `index`. Recebe só a posição, como o `launch`: não lê um caminho qualquer.
-#[tauri::command]
-pub fn shortcut_icon(state: State<ConfigState>, index: usize) -> Result<Option<String>, String> {
-    match state.get().shortcuts.get(index) {
-        Some(shortcut) => read_icon_image(&shortcut.icon),
-        None => Ok(None),
-    }
+/// Esse caminho é o ícone de algum atalho ou pasta da Shelf das configurações?
+fn is_configured_icon(config: &crate::config::Config, path: &str) -> bool {
+    let path = path.trim();
+    config.shortcuts.iter().any(|s| s.icon.trim() == path) || config.shelf_folders.iter().any(|f| f.icon.trim() == path)
 }
 
-/// O ícone de imagem da pasta da Shelf na posição `index`.
+/// A imagem de um ícone pelo caminho. Só lê um caminho que já é ícone nas configurações (não um arquivo qualquer);
+/// pelo caminho, e não pela posição na lista, a imagem não troca de lugar quando a lista é reordenada.
 #[tauri::command]
-pub fn shelf_icon(state: State<ConfigState>, index: usize) -> Result<Option<String>, String> {
-    match state.get().shelf_folders.get(index) {
-        Some(folder) => read_icon_image(&folder.icon),
-        None => Ok(None),
+pub fn icon_image(state: State<ConfigState>, path: String) -> Result<Option<String>, String> {
+    if !is_configured_icon(&state.get(), &path) {
+        return Err("esse arquivo não é o ícone de nenhum atalho".into());
     }
+    read_icon_image(&path)
 }
 
 /// Tem cara de endereço com protocolo: `https://…`, mas também `steam://…` ou `spotify://…`, que abrem apps e jogos.
@@ -166,7 +164,17 @@ pub async fn launch(window: WebviewWindow, state: State<'_, ConfigState>, index:
 
 #[cfg(test)]
 mod tests {
-    use super::{Shortcut, clean_target, image_mime, is_url, targets_of};
+    use super::{Shortcut, clean_target, image_mime, is_configured_icon, is_url, targets_of};
+
+    #[test]
+    fn so_serve_a_imagem_de_um_caminho_que_e_icone_nas_configuracoes() {
+        let mut config = crate::config::Config::default();
+        let mut shortcut = item("a", "x", false, &[]);
+        shortcut.icon = "C:\\img\\a.png".into();
+        config.shortcuts.push(shortcut);
+        assert!(is_configured_icon(&config, " C:\\img\\a.png "));
+        assert!(!is_configured_icon(&config, "C:\\Windows\\Fonts\\outra.png"));
+    }
 
     #[test]
     fn so_le_imagens_como_icone() {
