@@ -1,4 +1,5 @@
 import type { ShelfFolder } from "../config/types";
+import { mergeOrder } from "../island/pageOrder";
 
 const SEPARATOR = /[\\/]/;
 
@@ -16,6 +17,18 @@ export function usableFolderEntries(folders: ShelfFolder[]): { folder: ShelfFold
       seen.add(key);
       return true;
     });
+}
+
+/**
+ * A lista de pastas depois de arrastar as que aparecem na Shelf: `shownOrder` são as posições delas na lista
+ * completa, na ordem nova. As que não aparecem (incompletas ou repetidas) ficam onde estavam.
+ */
+export function reorderFolders(folders: ShelfFolder[], shownOrder: number[]): ShelfFolder[] {
+  const order = mergeOrder(
+    folders.map((_, i) => String(i)),
+    shownOrder.map(String),
+  );
+  return order.map((i) => folders[Number(i)]);
 }
 
 export const usableFolders = (folders: ShelfFolder[]): ShelfFolder[] => usableFolderEntries(folders).map((e) => e.folder);

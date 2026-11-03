@@ -3,11 +3,12 @@ import { useConfigStore } from "../../config/useConfig";
 import { ipc } from "../../lib/ipc";
 import { useShelfImages } from "../../launcher/icons";
 import { ItemIcon } from "../../launcher/ShortcutIcon";
-import { folderHint, usableFolderEntries } from "../../shelf/folders";
+import { folderHint, reorderFolders, usableFolderEntries } from "../../shelf/folders";
 import { fileName, useShelfStore } from "../../shelf/store";
 import { EmptyState } from "../EmptyState";
 import { FileIcon, FolderIcon, TrayIcon } from "../icons";
 import { useIslandStore } from "../store";
+import { useGridSort } from "../useGridSort";
 
 const COLORS = ["#4c8dff", "#8b5cf6", "#ff9f43", "#34d399"];
 const MAX_FOLDERS = 4;
@@ -17,6 +18,12 @@ export function ShelfPage() {
   const folders = useMemo(() => usableFolderEntries(configured).slice(0, MAX_FOLDERS), [configured]);
   const images = useShelfImages(configured);
   const move = useConfigStore((s) => s.config.shelfMove);
+  const update = useConfigStore((s) => s.update);
+  // Arrastar uma pasta muda a ordem dela na lista das configurações (a posição na lista é o id).
+  const sorter = useGridSort(
+    folders.map((e) => String(e.index)),
+    (order) => update({ shelfFolders: reorderFolders(configured, order.map(Number)) }),
+  );
   const { paths, dragging, clear } = useShelfStore();
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -75,7 +82,16 @@ export function ShelfPage() {
       ) : (
         <div className={`dgrid${paths.length === 0 ? " off" : ""}`}>
           {folders.map(({ folder, index }, i) => (
-            <button key={folder.path} className="tile fd" title={`${folder.name} (${folderHint(folder)})\n${folder.path}`} onClick={() => send(folder)}>
+            <button
+              key={folder.path}
+              ref={sorter.tileRef(String(index))}
+              className={`tile fd${sorter.dragId === String(index) ? " drag" : ""}`}
+              style={{ order: sorter.position.get(String(index)) }}
+              title={`${folder.name} (${folderHint(folder)})\n${folder.path}`}
+              onClick={() => send(folder)}
+              onPointerDown={(e) => sorter.down(e, String(index))}
+              onDragStart={(e) => e.preventDefault()}
+            >
               <ItemIcon icon={folder.icon ?? ""} image={images[index]} color={COLORS[i % COLORS.length]} className="fi" empty={<FolderIcon />} />
               <b>{folder.name}</b>
             </button>

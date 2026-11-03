@@ -118,6 +118,10 @@ pub struct Config {
     pub page_order: Vec<String>,
     /// Notas fixadas no topo da lista (nomes de arquivo).
     pub pinned_notes: Vec<String>,
+    /// Ordem das notas escolhida arrastando (nomes de arquivo). As notas novas, que não estão aqui, ficam no topo.
+    pub note_order: Vec<String>,
+    /// Ordem dos medidores da página Sistema (ids). Vazio = ordem original.
+    pub system_order: Vec<String>,
     /// Duração do contador personalizado do Foco, em minutos.
     pub timer_custom_minutes: u32,
     /// Em quais telas a ilha aparece (nomes dos monitores). Vazio = só na principal.
@@ -169,6 +173,8 @@ impl Default for Config {
             shortcuts: Vec::new(),
             page_order: Vec::new(),
             pinned_notes: Vec::new(),
+            note_order: Vec::new(),
+            system_order: Vec::new(),
             timer_custom_minutes: 10,
             screens: Vec::new(),
             confirm_apps: true,

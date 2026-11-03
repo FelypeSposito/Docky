@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { formatNoteDate } from "../../lib/format";
 import { ipc, type Note } from "../../lib/ipc";
-import { orderNotes, togglePinned } from "../../notes/order";
+import { nextNoteOrder, splitNotes, togglePinned } from "../../notes/order";
 import { EmptyState } from "../EmptyState";
 import { NoteIcon, PinIcon, TrashIcon } from "../icons";
+import { useGridSort } from "../useGridSort";
 
 /** Quantas notas a página carrega; a lista rola, então nenhuma some por falta de espaço. */
 const MAX_NOTES = 80;
+
+/** O `order` do CSS põe as notas fixadas antes das outras (cada grupo tem o seu intervalo). */
+const GROUP_GAP = 1000;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 /** 2026-10-31-153042: vira o nome do arquivo e mantém as notas em ordem cronológica. */
@@ -31,7 +35,18 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
   /** A nota que está pedindo confirmação para ser excluída. */
   const [confirming, setConfirming] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const ordered = useMemo(() => orderNotes(notes, pinned), [notes, pinned]);
+  const manual = useConfigStore((s) => s.config.noteOrder);
+  const groups = useMemo(() => splitNotes(notes, pinned, manual), [notes, pinned, manual]);
+  const ordered = useMemo(() => [...groups.pinned, ...groups.rest], [groups]);
+  // Arrastar muda a ordem dentro do grupo: as fixadas se ordenam entre si, e as outras entre si.
+  const dragPinned = useGridSort(
+    groups.pinned.map((n) => n.file),
+    (order) => update({ noteOrder: nextNoteOrder(order, groups.rest.map((n) => n.file)) }),
+  );
+  const dragRest = useGridSort(
+    groups.rest.map((n) => n.file),
+    (order) => update({ noteOrder: nextNoteOrder(groups.pinned.map((n) => n.file), order) }),
+  );
 
   const refresh = useCallback(() => {
     ipc
@@ -104,12 +119,16 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
         <div className="nlist" ref={listRef}>
           {ordered.map((note) => {
             const isPinned = pinned.includes(note.file);
+            const sorter = isPinned ? dragPinned : dragRest;
             const stop = (e: React.SyntheticEvent) => e.stopPropagation();
             const open = () => ipc.notesOpen(note.file).catch((e) => setError(message(e)));
             return (
               <div
                 key={note.file}
-                className={`tile ncard${isPinned ? " pinned" : ""}`}
+                ref={sorter.tileRef(note.file)}
+                className={`tile ncard${isPinned ? " pinned" : ""}${sorter.dragId === note.file ? " drag" : ""}`}
+                style={{ order: (isPinned ? 0 : GROUP_GAP) + (sorter.position.get(note.file) ?? 0) }}
+                onPointerDown={(e) => sorter.down(e, note.file)}
                 role="button"
                 tabIndex={0}
                 title={`${note.text}\n\nClique para abrir no Obsidian`}

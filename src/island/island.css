@@ -1947,3 +1947,25 @@
   color: var(--ink2);
   font-size: 11px;
 }
+
+/* Arrastar para mudar a ordem (notas, pastas da Shelf e medidores do Sistema): o item segue o mouse por cima dos outros. */
+.nlist,
+.dgrid,
+.bento.sy {
+  position: relative;
+}
+.nlist .ncard,
+.dgrid .fd,
+.bento.sy .sm {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.nlist .ncard.drag,
+.dgrid .fd.drag,
+.bento.sy .sm.drag {
+  z-index: 5;
+  transition: none;
+  cursor: grabbing;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}

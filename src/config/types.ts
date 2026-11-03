@@ -52,6 +52,10 @@ export interface Config {
   pageOrder: string[];
   /** Notas fixadas no topo da lista (nomes de arquivo). */
   pinnedNotes: string[];
+  /** Ordem das notas escolhida arrastando (nomes de arquivo). As notas novas, que não estão aqui, ficam no topo. */
+  noteOrder: string[];
+  /** Ordem dos medidores da página Sistema (ids). Vazio = ordem original. */
+  systemOrder: string[];
   /** Duração do contador personalizado do Foco, em minutos. */
   timerCustomMinutes: number;
   /** Em quais telas a ilha aparece (nomes dos monitores). Vazio = só na principal. */
@@ -91,6 +95,8 @@ export const DEFAULT_CONFIG: Config = {
   shortcuts: [],
   pageOrder: [],
   pinnedNotes: [],
+  noteOrder: [],
+  systemOrder: [],
   timerCustomMinutes: 10,
   screens: [],
   confirmApps: true,
