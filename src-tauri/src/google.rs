@@ -19,7 +19,7 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 use time::{Date, OffsetDateTime, format_description::well_known::Rfc3339, macros::format_description};
 
 use crate::{config::ConfigState, weather::encode};
@@ -298,10 +298,12 @@ fn access_token(state: &GoogleState, client_id: &str) -> Result<String, String> 
     }
     let refresh = read_secret(REFRESH_KEY).ok_or("o Google Agenda não está conectado")?;
     let secret = read_secret(SECRET_KEY).ok_or("falta o segredo do cliente nas configurações")?;
-    let tokens = tokens_from(&post_form(
+    let tokens = post_form(
         TOKEN_URL,
         &[("client_id", client_id), ("client_secret", &secret), ("refresh_token", &refresh), ("grant_type", "refresh_token")],
-    )?)?;
+    )
+    .and_then(|json| tokens_from(&json))
+    .map_err(|e| format!("ao renovar o acesso: {e}"))?;
     remember(state, &tokens);
     Ok(tokens.access)
 }
@@ -374,15 +376,12 @@ pub async fn google_connect(config: State<'_, ConfigState>, google: State<'_, Go
 
 /// Próximos eventos (agora até daqui a 36 horas) do calendário principal.
 #[tauri::command]
-pub async fn google_events(config: State<'_, ConfigState>, google: State<'_, GoogleState>) -> Result<Vec<CalEvent>, String> {
-    let client_id = config.get().google_client_id.trim().to_string();
-    let token = {
-        let google_ref: &GoogleState = &google;
-        let client_id = client_id.clone();
-        // O acesso ao estado é rápido; a rede roda fora da thread principal logo abaixo.
-        tauri::async_runtime::block_on(async { access_token(google_ref, &client_id) })?
-    };
+pub async fn google_events(app: AppHandle) -> Result<Vec<CalEvent>, String> {
+    // Tudo roda numa thread de bloqueio: renovar o token e buscar os eventos fazem rede, e `block_on` aqui
+    // dentro de um comando assíncrono derruba o app (o Tokio proíbe, e o build de release aborta no panic).
     tauri::async_runtime::spawn_blocking(move || {
+        let client_id = app.state::<ConfigState>().get().google_client_id.trim().to_string();
+        let token = access_token(&app.state::<GoogleState>(), &client_id)?;
         let now = OffsetDateTime::now_utc();
         let from = now.format(&Rfc3339).map_err(|e| e.to_string())?;
         let to = (now + time::Duration::hours(36)).format(&Rfc3339).map_err(|e| e.to_string())?;
@@ -391,7 +390,13 @@ pub async fn google_events(config: State<'_, ConfigState>, google: State<'_, Goo
             encode(&from),
             encode(&to)
         );
-        let json = read_json(agent().get(&url).header("Authorization", &format!("Bearer {token}")).call().map_err(|e| e.to_string())?)?;
+        let json = agent()
+            .get(&url)
+            .header("Authorization", &format!("Bearer {token}"))
+            .call()
+            .map_err(|e| e.to_string())
+            .and_then(read_json)
+            .map_err(|e| format!("ao buscar os eventos: {e}"))?;
         Ok(parse_events(&json))
     })
     .await
