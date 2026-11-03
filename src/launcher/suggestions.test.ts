@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Shortcut } from "../config/types";
-import { type AppEntry, MIN_GROUP, TEMPLATES, addApp, buildGroup, resolveTemplate, suggestedApps, whySuggested } from "./suggestions";
+import { type AppEntry, MIN_GROUP, TEMPLATES, addApp, buildGroup, completeGroup, resolveTemplate, suggestedApps, whySuggested } from "./suggestions";
 
 const app = (name: string, extra: Partial<AppEntry> = {}): AppEntry => ({ name, target: `C:\\Menu\\${name}.lnk`, uses: 0, pinned: false, running: false, ...extra });
 const shortcut = (id: string, name: string, target = "", extra: Partial<Shortcut> = {}): Shortcut => ({ id, name, target, icon: "", group: false, members: [], ...extra });
@@ -67,5 +67,37 @@ describe("apps sugeridos", () => {
     expect(whySuggested(app("X"))).toBe("instalado");
     const next = addApp([], app("Obsidian"), ids());
     expect(next).toEqual([{ id: "id1", name: "Obsidian", target: "C:\\Menu\\Obsidian.lnk", icon: "", group: false, members: [] }]);
+  });
+});
+
+describe("completar um grupo que já existe", () => {
+  const code = TEMPLATES.find((t) => t.id === "codigo")!;
+  const base = [
+    shortcut("v", "Visual Studio Code", "C:\\vscode.lnk"),
+    shortcut("t", "Developer PowerShell", "C:\\ps.lnk"),
+    shortcut("c", "Google Chrome", "C:\\chrome.lnk"),
+    shortcut("g", "Código", "", { group: true, members: ["v", "t", "c"] }),
+  ];
+
+  it("põe o app que faltava (o Claude da Loja) no grupo, criando o atalho", () => {
+    const apps = [app("Claude", { target: "shell:AppsFolder\\Claude_x!Claude" })];
+    expect(resolveTemplate(code, base, apps)).toMatchObject({ exists: true, missing: 1 });
+    const list = completeGroup(code, base, apps, ids());
+    const group = list.find((s) => s.group)!;
+    expect(list.map((s) => s.name)).toEqual(["Visual Studio Code", "Developer PowerShell", "Google Chrome", "Código", "Claude"]);
+    expect(group.members.map((id) => list.find((s) => s.id === id)?.name)).toEqual(["Visual Studio Code", "Developer PowerShell", "Google Chrome", "Claude"]);
+  });
+
+  it("usa um atalho que você já tem mas ainda não estava no grupo", () => {
+    const have = [...base.slice(0, 3), shortcut("k", "Claude", "shell:AppsFolder\\Claude_x!Claude"), base[3]];
+    const list = completeGroup(code, have, [], ids());
+    expect(list).toHaveLength(have.length); // nenhum atalho novo
+    expect(list.find((s) => s.group)!.members).toEqual(["v", "t", "c", "k"]);
+  });
+
+  it("não muda nada quando o grupo já está completo ou não existe", () => {
+    expect(resolveTemplate(code, base, []).missing).toBe(0);
+    expect(completeGroup(code, base, [], ids())).toBe(base);
+    expect(completeGroup(code, [], [app("Claude")], ids())).toEqual([]);
   });
 });

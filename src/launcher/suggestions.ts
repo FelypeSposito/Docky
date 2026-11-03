@@ -61,6 +61,8 @@ export interface ResolvedTemplate {
   found: number;
   /** Já existe um grupo com esse nome. */
   exists: boolean;
+  /** Quantos dos apps encontrados ainda não estão nesse grupo que já existe (dá para completá-lo). */
+  missing: number;
 }
 
 const sameApp = (shortcut: Shortcut, entry: AppEntry) =>
@@ -83,10 +85,13 @@ export function resolveTemplate(template: GroupTemplate, shortcuts: Shortcut[], 
     seen.add(key);
     return r;
   });
+  const group = shortcuts.find((s) => s.group && s.name.trim().toLowerCase() === template.name.toLowerCase());
   return {
     apps: unique,
     found: unique.filter((r) => r.shortcutId || r.app).length,
-    exists: shortcuts.some((s) => s.group && s.name.trim().toLowerCase() === template.name.toLowerCase()),
+    exists: !!group,
+    // Um app com atalho já feito conta como membro se o atalho está no grupo; um app ainda sem atalho sempre falta.
+    missing: group ? unique.filter((r) => (r.shortcutId ? !group.members.includes(r.shortcutId) : !!r.app)).length : 0,
   };
 }
 
@@ -108,6 +113,25 @@ export function buildGroup(template: GroupTemplate, shortcuts: Shortcut[], apps:
   }
   const group: Shortcut = { id: makeId(), name: template.name, target: "", icon: template.icon, group: true, members };
   return [...shortcuts, ...added, group];
+}
+
+/** Põe no grupo que já existe os apps do modelo que ainda não estavam nele (criando os atalhos que faltam). */
+export function completeGroup(template: GroupTemplate, shortcuts: Shortcut[], apps: AppEntry[], makeId: () => string): Shortcut[] {
+  const resolved = resolveTemplate(template, shortcuts, apps);
+  const group = shortcuts.find((s) => s.group && s.name.trim().toLowerCase() === template.name.toLowerCase());
+  if (!group || resolved.missing === 0) return shortcuts;
+  const added: Shortcut[] = [];
+  const members = [...group.members];
+  for (const item of resolved.apps) {
+    if (item.shortcutId) {
+      if (!members.includes(item.shortcutId)) members.push(item.shortcutId);
+    } else if (item.app) {
+      const created = newShortcut(item.app, makeId());
+      added.push(created);
+      members.push(created.id);
+    }
+  }
+  return [...shortcuts.map((s) => (s.id === group.id ? { ...group, members } : s)), ...added];
 }
 
 /** Os apps mais usados que ainda não são atalhos (só os que têm algum sinal de uso, ou os primeiros por nome). */

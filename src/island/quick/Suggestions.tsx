@@ -1,6 +1,6 @@
 import { useConfigStore } from "../../config/useConfig";
 import { newId } from "../../launcher/model";
-import { MIN_GROUP, TEMPLATES, addApp, buildGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../../launcher/suggestions";
+import { MIN_GROUP, TEMPLATES, addApp, buildGroup, completeGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../../launcher/suggestions";
 import { QButton, QPanel, QRow, QTitle } from "./controls";
 
 /** Sugestões de grupos e de apps para virar atalho, na tela maior dos atalhos (modo Editar). */
@@ -25,6 +25,7 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
       {TEMPLATES.map((template) => {
         const resolved = resolveTemplate(template, shortcuts, apps);
         const ready = resolved.found >= MIN_GROUP && !resolved.exists;
+        const completable = resolved.exists && resolved.missing > 0;
         return (
           <QRow key={template.id} label={template.name} hint={template.blurb}>
             <div className="sg-chips" aria-label={`Apps de ${template.name}`}>
@@ -35,12 +36,20 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
               ))}
             </div>
             <QButton
-              tone={ready ? "primary" : undefined}
-              disabled={!ready}
-              title={resolved.exists ? "Você já tem um grupo com esse nome" : ready ? undefined : `Precisa de pelo menos ${MIN_GROUP} apps`}
-              onClick={() => update({ shortcuts: buildGroup(template, shortcuts, apps, newId) })}
+              tone={ready || completable ? "primary" : undefined}
+              disabled={!ready && !completable}
+              title={
+                completable
+                  ? `Põe no grupo que você já tem: ${resolved.missing} ${resolved.missing === 1 ? "app" : "apps"}`
+                  : resolved.exists
+                    ? "O grupo já tem todos os apps"
+                    : ready
+                      ? undefined
+                      : `Precisa de pelo menos ${MIN_GROUP} apps`
+              }
+              onClick={() => update({ shortcuts: completable ? completeGroup(template, shortcuts, apps, newId) : buildGroup(template, shortcuts, apps, newId) })}
             >
-              {resolved.exists ? "Criado" : "Criar"}
+              {completable ? `Completar (+${resolved.missing})` : resolved.exists ? "Criado" : "Criar"}
             </QButton>
           </QRow>
         );

@@ -9,7 +9,7 @@ import { useShelfImages, useShortcutImages } from "../launcher/icons";
 import { ItemIcon, SHORTCUT_COLORS, ShortcutIcon } from "../launcher/ShortcutIcon";
 import { IconPicker } from "../launcher/IconPicker";
 import { cleanTarget, newId, removeShortcut, toggleMember } from "../launcher/model";
-import { MIN_GROUP, TEMPLATES, addApp, buildGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
+import { MIN_GROUP, TEMPLATES, addApp, buildGroup, completeGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
 import { ipc } from "../lib/ipc";
 import { Group, Row, Segmented, Toggle } from "./controls";
 import { useSortable } from "./useSortable";
@@ -374,11 +374,16 @@ function SuggestionsGroup() {
         {TEMPLATES.map((template) => {
           const resolved = resolveTemplate(template, shortcuts, apps);
           const ready = resolved.found >= MIN_GROUP && !resolved.exists;
+          const completable = resolved.exists && resolved.missing > 0;
           const names = resolved.apps.map((item) => (item.shortcutId || item.app ? item.label : `${item.label} (não achei)`)).join(", ");
           return (
             <Row key={template.id} label={template.name} hint={`${template.blurb}: ${names}`}>
-              <button className={`btn${ready ? " primary" : ""}`} disabled={!ready} onClick={() => update({ shortcuts: buildGroup(template, shortcuts, apps, newId) })}>
-                {resolved.exists ? "Criado" : "Criar grupo"}
+              <button
+                className={`btn${ready || completable ? " primary" : ""}`}
+                disabled={!ready && !completable}
+                onClick={() => update({ shortcuts: completable ? completeGroup(template, shortcuts, apps, newId) : buildGroup(template, shortcuts, apps, newId) })}
+              >
+                {completable ? `Completar (+${resolved.missing})` : resolved.exists ? "Criado" : "Criar grupo"}
               </button>
             </Row>
           );
