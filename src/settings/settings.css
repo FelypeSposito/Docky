@@ -624,3 +624,13 @@ body[data-window="settings"] {
   color: var(--ink3);
   font-size: 12px;
 }
+
+.sa .summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink2);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

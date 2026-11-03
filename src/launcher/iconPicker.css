@@ -135,3 +135,51 @@
   background: var(--accent, #4c8dff);
   color: #07101f;
 }
+
+/* Itens de um grupo */
+.ge-sec h4 {
+  margin: 0 0 6px;
+  color: var(--ink3, #8e8e93);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ge-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ge-chips button {
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink2, #c7c7cc);
+  font: 600 11.5px Inter, system-ui, sans-serif;
+  transition: background 0.18s, color 0.18s;
+}
+.ge-chips button:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.ge-chips button.on {
+  background: var(--accent, #4c8dff);
+  color: #07101f;
+}
+.ge-chips button.on i {
+  margin-left: 4px;
+  font-size: 10px;
+  font-style: normal;
+  opacity: 0.7;
+}
+.ge-chips button.app {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.ge-note {
+  color: var(--ink3, #8e8e93);
+  font-size: 11.5px;
+}
+.ge {
+  gap: 14px;
+}

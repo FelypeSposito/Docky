@@ -41,6 +41,14 @@ export function confirmationText(shortcut: Shortcut, shortcuts: Shortcut[]): str
   return names.length === 0 ? `${name} está vazio` : `Abrir ${name} (${names.join(", ")})?`;
 }
 
+/** Os itens de um grupo numa linha só: "Chrome, Claude, Spotify" ou "Chrome, Claude +2". */
+export function memberSummary(group: Shortcut, shortcuts: Shortcut[], show = 2): string {
+  const names = membersOf(group, shortcuts).map((s) => s.name.trim() || "sem nome");
+  if (names.length === 0) return "Sem itens";
+  const rest = names.length - show;
+  return rest > 0 ? `${names.slice(0, show).join(", ")} +${rest}` : names.join(", ");
+}
+
 /** Atalhos prontos para aparecer: têm nome e (destino ou, se for grupo, ao menos um membro). */
 export function isUsable(shortcut: Shortcut, shortcuts: Shortcut[]): boolean {
   if (!shortcut.name.trim()) return false;

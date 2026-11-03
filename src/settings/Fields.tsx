@@ -7,8 +7,9 @@ import { moveItem, orderPages } from "../island/pageOrder";
 import { PAGES } from "../island/pages/registry";
 import { useShelfImages, useShortcutImages } from "../launcher/icons";
 import { ItemIcon, SHORTCUT_COLORS, ShortcutIcon } from "../launcher/ShortcutIcon";
+import { GroupEditor } from "../launcher/GroupEditor";
 import { IconPicker } from "../launcher/IconPicker";
-import { cleanTarget, newId, removeShortcut, toggleMember } from "../launcher/model";
+import { cleanTarget, memberSummary, newId, removeShortcut } from "../launcher/model";
 import { MIN_GROUP, TEMPLATES, addApp, buildGroup, completeGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
 import { ipc } from "../lib/ipc";
 import { Group, Row, Segmented, Toggle } from "./controls";
@@ -161,11 +162,21 @@ export function ShortcutsEditor() {
   /** O atalho cujo ícone está sendo escolhido (o seletor aparece acima da lista). */
   const [picking, setPicking] = useState<string | null>(null);
   const pickingIndex = picking === null ? -1 : items.findIndex((s) => s.id === picking);
+  /** O grupo cujos itens estão sendo editados, e se as sugestões estão abertas (cada um num painel acima da lista). */
+  const [editingGroup, setEditingGroup] = useState<string | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
+  const groupToEdit = editingGroup === null ? undefined : items.find((s) => s.id === editingGroup && s.group);
   const pickApp = (index: number) => void ipc.pickPath("app").then((path) => path && change(index, { target: path }));
   const add = (group: boolean) => set([...items, { name: "", target: "", icon: "", id: newId(), group, members: [] }]);
 
   return (
     <>
+      {groupToEdit && (
+        <Group>
+          <GroupEditor group={groupToEdit} shortcuts={items} onChange={set} onDone={() => setEditingGroup(null)} />
+        </Group>
+      )}
+      {suggesting && <SuggestionsGroup onClose={() => setSuggesting(false)} />}
       {pickingIndex >= 0 && (
         <Group>
           <IconPicker
@@ -199,23 +210,21 @@ export function ShortcutsEditor() {
               >
                 <ShortcutIcon shortcut={item} image={images[i]} color={SHORTCUT_COLORS[i % SHORTCUT_COLORS.length]} className="li" />
               </button>
-              <TextField label="Nome do atalho" width={100} value={item.name} placeholder={item.group ? "Nome do grupo" : "Nome"} onCommit={(v) => change(i, { name: v })} />
+              <TextField label="Nome do atalho" width={item.group ? 150 : 130} value={item.name} placeholder={item.group ? "Nome do grupo" : "Nome"} onCommit={(v) => change(i, { name: v })} />
               {item.group ? (
-                <div className="members" role="group" aria-label={`Itens de ${item.name || "grupo"}`}>
-                  {items.filter((s) => !s.group && s.id !== item.id).length === 0 && <span className="hint-inline">Crie atalhos para colocar no grupo.</span>}
-                  {items
-                    .filter((s) => !s.group && s.id !== item.id)
-                    .map((s) => (
-                      <button key={s.id} className={item.members.includes(s.id) ? "on" : ""} aria-pressed={item.members.includes(s.id)} onClick={() => change(i, toggleMember(item, s.id))}>
-                        {s.name || "sem nome"}
-                      </button>
-                    ))}
-                </div>
+                <>
+                  <span className="summary" title={memberSummary(item, items, 99)}>
+                    {memberSummary(item, items)}
+                  </span>
+                  <button className="btn" onClick={() => setEditingGroup(item.id)}>
+                    Itens…
+                  </button>
+                </>
               ) : (
                 <>
                   <TextField
                     label="Destino do atalho"
-                    width={170}
+                    width={160}
                     value={item.target}
                     placeholder="C:\Apps\app.exe, uma pasta ou https://…"
                     onCommit={(v) => change(i, { target: cleanTarget(v) })}
@@ -238,12 +247,14 @@ export function ShortcutsEditor() {
           <button className="btn" disabled={items.length >= 40} onClick={() => add(true)}>
             Grupo
           </button>
+          <button className="btn" onClick={() => setSuggesting((v) => !v)} aria-pressed={suggesting}>
+            Sugestões
+          </button>
         </Row>
         <Row label="Confirmar antes de abrir" hint="Apps, jogos e grupos pedem confirmação antes de abrir">
           <Toggle label="Confirmar antes de abrir" value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
         </Row>
       </Group>
-      <SuggestionsGroup />
       <Group>
         {HOTKEYS.map(([label, keys]) => (
           <Row key={label} label={label}>
@@ -360,7 +371,7 @@ export function ScreensRow() {
 }
 
 /** Grupos prontos (Trabalho, Jogos…) e os apps que você mais usa, para virar atalho com um clique. */
-function SuggestionsGroup() {
+function SuggestionsGroup({ onClose }: { onClose: () => void }) {
   const { config, update } = useConfigStore();
   const shortcuts = config.shortcuts;
   const apps = useInstalledApps();
@@ -370,7 +381,11 @@ function SuggestionsGroup() {
   return (
     <>
       <Group>
-        <Row label="Grupos prontos" hint="Um clique cria o grupo e os atalhos que faltam, com os apps que você tem instalados" />
+        <Row label="Grupos prontos" hint="Um clique cria o grupo e os atalhos que faltam, com os apps que você tem instalados">
+          <button className="btn primary" onClick={onClose}>
+            Pronto
+          </button>
+        </Row>
         {TEMPLATES.map((template) => {
           const resolved = resolveTemplate(template, shortcuts, apps);
           const ready = resolved.found >= MIN_GROUP && !resolved.exists;

@@ -134,6 +134,18 @@ export function completeGroup(template: GroupTemplate, shortcuts: Shortcut[], ap
   return [...shortcuts.map((s) => (s.id === group.id ? { ...group, members } : s)), ...added];
 }
 
+/** Põe um app instalado num grupo: usa o atalho que você já tem para ele ou cria um, e o acrescenta aos itens. */
+export function addAppToGroup(shortcuts: Shortcut[], groupId: string, entry: AppEntry, makeId: () => string): Shortcut[] {
+  const group = shortcuts.find((s) => s.id === groupId && s.group);
+  if (!group) return shortcuts;
+  const own = shortcuts.find((s) => !s.group && sameApp(s, entry));
+  const created = own ? null : newShortcut(entry, makeId());
+  const id = (own ?? created)!.id;
+  if (group.members.includes(id)) return shortcuts;
+  const updated = shortcuts.map((s) => (s.id === groupId ? { ...group, members: [...group.members, id] } : s));
+  return created ? [...updated, created] : updated;
+}
+
 /** Os apps mais usados que ainda não são atalhos (só os que têm algum sinal de uso, ou os primeiros por nome). */
 export function suggestedApps(apps: AppEntry[], shortcuts: Shortcut[], limit = 10): AppEntry[] {
   const fresh = apps.filter((entry) => !shortcuts.some((s) => !s.group && sameApp(s, entry)));

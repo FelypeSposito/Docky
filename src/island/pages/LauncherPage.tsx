@@ -3,12 +3,13 @@ import type { Shortcut } from "../../config/types";
 import { useConfigStore } from "../../config/useConfig";
 import { filterShortcuts } from "../../launcher/filter";
 import { useShortcutImages } from "../../launcher/icons";
-import { confirmationText, membersOf, needsConfirmation, newId, removeShortcut, toggleMember } from "../../launcher/model";
+import { confirmationText, memberSummary, membersOf, needsConfirmation, newId, removeShortcut } from "../../launcher/model";
 import { SHORTCUT_COLORS, ShortcutIcon } from "../../launcher/ShortcutIcon";
 import { ipc } from "../../lib/ipc";
 import { useSortable } from "../../settings/useSortable";
 import { EmptyState } from "../EmptyState";
 import { GripIcon, PencilIcon, SearchIcon } from "../icons";
+import { GroupEditor } from "../../launcher/GroupEditor";
 import { IconPicker } from "../../launcher/IconPicker";
 import { QButton, QPath, QText } from "../quick/controls";
 import { Suggestions } from "../quick/Suggestions";
@@ -131,6 +132,7 @@ function EditRow({
   change,
   remove,
   pickIcon,
+  editItems,
 }: {
   shortcut: Shortcut;
   index: number;
@@ -140,9 +142,9 @@ function EditRow({
   change: (patch: Partial<Shortcut>) => void;
   remove: () => void;
   pickIcon: () => void;
+  editItems: () => void;
 }) {
   const [sure, setSure] = useState(false);
-  const plain = shortcuts.filter((s) => !s.group && s.id !== shortcut.id);
   const id = shortcut.id;
   return (
     <div className={`le-row${sortable.dragId === id ? " drag" : ""}`} ref={sortable.rowRef(id)} style={{ order: sortable.position.get(id) }}>
@@ -154,14 +156,12 @@ function EditRow({
       </button>
       <QText label="Nome do atalho" width={104} value={shortcut.name} placeholder={shortcut.group ? "Nome do grupo" : "Nome"} onCommit={(v) => change({ name: v })} />
       {shortcut.group ? (
-        <div className="le-members" role="group" aria-label={`Itens de ${shortcut.name || "grupo"}`}>
-          {plain.length === 0 && <span className="qs-note">Crie atalhos para colocar no grupo.</span>}
-          {plain.map((s) => (
-            <button key={s.id} className={shortcut.members.includes(s.id) ? "on" : ""} aria-pressed={shortcut.members.includes(s.id)} onClick={() => change(toggleMember(shortcut, s.id))}>
-              {s.name || "sem nome"}
-            </button>
-          ))}
-        </div>
+        <>
+          <span className="le-summary" title={memberSummary(shortcut, shortcuts, 99)}>
+            {memberSummary(shortcut, shortcuts)}
+          </span>
+          <QButton onClick={editItems}>Itens…</QButton>
+        </>
       ) : (
         <>
           <QPath label="Destino do atalho" kind="app" width={230} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: v })} />
@@ -192,6 +192,8 @@ export function LauncherLarge() {
   /** O atalho cujo ícone está sendo escolhido (o seletor ocupa o lugar da lista). */
   const [picking, setPicking] = useState<string | null>(null);
   const [suggesting, setSuggesting] = useState(false);
+  /** O grupo cujos itens estão sendo editados. */
+  const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const matches = useMemo(() => filterShortcuts(shortcuts, query), [shortcuts, query]);
 
   const set = (next: Shortcut[]) => update({ shortcuts: next });
@@ -214,6 +216,15 @@ export function LauncherLarge() {
           onChange={(icon) => set(shortcuts.map((s, i) => (i === pickingIndex ? { ...s, icon } : s)))}
           onDone={() => setPicking(null)}
         />
+      </div>
+    );
+  }
+
+  const groupToEdit = editingGroup === null ? undefined : shortcuts.find((s) => s.id === editingGroup && s.group);
+  if (groupToEdit) {
+    return (
+      <div className="bento lcx">
+        <GroupEditor group={groupToEdit} shortcuts={shortcuts} onChange={set} onDone={() => setEditingGroup(null)} />
       </div>
     );
   }
@@ -271,6 +282,7 @@ export function LauncherLarge() {
               change={(patch) => set(shortcuts.map((s, i) => (i === index ? { ...s, ...patch } : s)))}
               remove={() => set(removeShortcut(shortcuts, index))}
               pickIcon={() => setPicking(shortcut.id)}
+              editItems={() => setEditingGroup(shortcut.id)}
             />
           ))}
         </div>

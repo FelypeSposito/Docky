@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Shortcut } from "../config/types";
-import { cleanTarget, confirmationText, isUsable, membersOf, needsConfirmation, removeShortcut, targetKind, toggleMember } from "./model";
+import { cleanTarget, confirmationText, isUsable, memberSummary, membersOf, needsConfirmation, removeShortcut, targetKind, toggleMember } from "./model";
 
 const item = (id: string, name: string, target = "", extra: Partial<Shortcut> = {}): Shortcut => ({ id, name, target, icon: "", group: false, members: [], ...extra });
 
@@ -64,5 +64,15 @@ describe("grupos", () => {
   it("só aparece quem tem nome e destino (ou membros)", () => {
     const list = [item("a", "A", "x"), item("n", "", "y"), item("e", "E", "  "), item("g", "G", "", { group: true, members: ["a"] }), item("h", "H", "", { group: true })];
     expect(list.map((s) => isUsable(s, list))).toEqual([true, false, false, true, false]);
+  });
+});
+
+describe("resumo dos itens do grupo", () => {
+  const list = [item("a", "Chrome", "x"), item("b", "Claude", "y"), item("c", "Spotify", "z"), item("g", "Trabalho", "", { group: true, members: ["a", "b", "c"] }), item("v", "Vazio", "", { group: true })];
+
+  it("mostra os dois primeiros e quantos mais há", () => {
+    expect(memberSummary(list[3], list)).toBe("Chrome, Claude +1");
+    expect(memberSummary({ ...list[3], members: ["a", "b"] }, list)).toBe("Chrome, Claude");
+    expect(memberSummary(list[4], list)).toBe("Sem itens");
   });
 });

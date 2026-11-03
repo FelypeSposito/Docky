@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Shortcut } from "../config/types";
-import { type AppEntry, MIN_GROUP, TEMPLATES, addApp, buildGroup, completeGroup, resolveTemplate, suggestedApps, whySuggested } from "./suggestions";
+import { type AppEntry, MIN_GROUP, TEMPLATES, addApp, addAppToGroup, buildGroup, completeGroup, resolveTemplate, suggestedApps, whySuggested } from "./suggestions";
 
 const app = (name: string, extra: Partial<AppEntry> = {}): AppEntry => ({ name, target: `C:\\Menu\\${name}.lnk`, uses: 0, pinned: false, running: false, ...extra });
 const shortcut = (id: string, name: string, target = "", extra: Partial<Shortcut> = {}): Shortcut => ({ id, name, target, icon: "", group: false, members: [], ...extra });
@@ -99,5 +99,24 @@ describe("completar um grupo que já existe", () => {
     expect(resolveTemplate(code, base, []).missing).toBe(0);
     expect(completeGroup(code, base, [], ids())).toBe(base);
     expect(completeGroup(code, [], [app("Claude")], ids())).toEqual([]);
+  });
+});
+
+describe("app instalado direto num grupo", () => {
+  const list = [shortcut("a", "Chrome", "C:\\Menu\\Chrome.lnk"), shortcut("g", "Trabalho", "", { group: true, members: ["a"] })];
+
+  it("cria o atalho e o põe no grupo", () => {
+    const next = addAppToGroup(list, "g", app("Claude"), ids());
+    expect(next.map((s) => s.name)).toEqual(["Chrome", "Trabalho", "Claude"]);
+    expect(next[1].members).toEqual(["a", "id1"]);
+  });
+
+  it("usa o atalho que já existe e não repete um item", () => {
+    const have = [...list, shortcut("k", "Claude", "C:\\Menu\\Claude.lnk")];
+    const next = addAppToGroup(have, "g", app("Claude"), ids());
+    expect(next).toHaveLength(have.length);
+    expect(next[1].members).toEqual(["a", "k"]);
+    expect(addAppToGroup(next, "g", app("Claude"), ids())).toBe(next);
+    expect(addAppToGroup(list, "zzz", app("Claude"), ids())).toBe(list);
   });
 });
