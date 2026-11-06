@@ -62,6 +62,10 @@ export interface Config {
   screens: string[];
   /** Pede confirmação antes de abrir apps, jogos e grupos pelos atalhos. */
   confirmApps: boolean;
+  /** Pasta dos ícones (imagens) dos atalhos; os ícones automáticos ficam nela. Vazio = Documentos\Docky\icons. */
+  iconsFolder: string;
+  /** Busca na internet, uma vez, o ícone de cada atalho novo que ficou sem ícone. */
+  autoIcons: boolean;
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -100,4 +104,6 @@ export const DEFAULT_CONFIG: Config = {
   timerCustomMinutes: 10,
   screens: [],
   confirmApps: true,
+  iconsFolder: "",
+  autoIcons: true,
 };

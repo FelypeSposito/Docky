@@ -32,7 +32,15 @@ src/settings   janela de configurações
 src-tauri/src  config, island (uma janela por tela), pointer (cursor/hover), power, fullscreen, tray, settings_window,
                file_drop (arrastar arquivos do Explorer), picker (seletor de arquivo), lyrics (LRCLIB e NetEase)
 prototype/     protótipos visuais descartáveis (Fase 0); a v2 é a referência de visual e movimento
+docs/          MOTION-BRIEF.md: base do projeto, design e movimento (para animação e divulgação)
 ```
+
+## Ícones automáticos
+
+Um atalho novo sem ícone ganha o do app (`src-tauri/src/icons.rs`): o Docky procura a imagem uma vez (biblioteca
+dashboard-icons via jsDelivr; favicon para sites) e, se não achar, extrai o ícone que o Windows já mostra para o app
+(`shell_icon.rs`). Fica na pasta de ícones (padrão `Documentos\Docky\icons`, trocável em Configurações → Atalhos) e o
+atalho guarda `asset:nome.png`, então mudar a pasta de lugar não quebra nada. Dá para desligar nas configurações.
 
 ## Google Agenda
 

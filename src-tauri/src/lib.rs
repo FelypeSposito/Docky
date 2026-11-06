@@ -5,6 +5,7 @@ mod config;
 mod fullscreen;
 mod google;
 mod hotkeys;
+mod icons;
 #[cfg(windows)]
 mod file_drop;
 mod island;
@@ -17,6 +18,7 @@ mod notes;
 mod pointer;
 mod power;
 mod settings_window;
+mod shell_icon;
 mod shelf;
 mod system;
 mod tray;
@@ -64,6 +66,10 @@ pub fn run() {
             notes::notes_open,
             notes::notes_delete,
             launcher::icon_image,
+            icons::icons_folder,
+            icons::set_icons_folder,
+            icons::open_icons_folder,
+            icons::fetch_missing_icons,
             apps::list_apps,
             picker::pick_path,
             shelf::shelf_send,
@@ -88,6 +94,8 @@ pub fn run() {
                 let _ = app.autolaunch().enable();
             }
             app.manage(claude::ClaudeState::load(&handle));
+            // Os atalhos que ficaram sem ícone ganham o do app, em segundo plano.
+            icons::schedule(&handle);
 
             island::reconcile(&handle)?;
             island::watch(handle.clone());

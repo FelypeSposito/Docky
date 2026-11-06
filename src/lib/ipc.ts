@@ -384,6 +384,25 @@ export const ipc = {
     return isTauri ? invoke<string | null>("icon_image", { path }) : null;
   },
 
+  /** A pasta de ícones em uso (criada se não existir). */
+  async iconsFolder(): Promise<string> {
+    return isTauri ? invoke<string>("icons_folder") : "C:\\Users\\você\\Documents\\Docky\\icons";
+  },
+
+  /** Passa a usar outra pasta de ícones, levando para ela as imagens da pasta atual. Devolve quantas copiou. */
+  async setIconsFolder(path: string): Promise<number> {
+    return isTauri ? invoke<number>("set_icons_folder", { path }) : 0;
+  },
+
+  openIconsFolder(): Promise<void> {
+    return isTauri ? invoke<void>("open_icons_folder") : Promise.resolve();
+  },
+
+  /** Procura agora o ícone de todos os atalhos que estão sem. Devolve quantos ganharam. */
+  async fetchMissingIcons(): Promise<number> {
+    return isTauri ? invoke<number>("fetch_missing_icons") : 0;
+  },
+
   /** Os apps instalados (Menu Iniciar e Área de Trabalho), os mais usados primeiro. */
   async listApps(): Promise<AppEntry[]> {
     if (isTauri) return invoke<AppEntry[]>("list_apps");

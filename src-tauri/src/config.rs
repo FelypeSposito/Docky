@@ -35,6 +35,20 @@ pub struct Shortcut {
     pub hidden: bool,
 }
 
+/// Um caminho como o Windows o abre: sem espaços nas pontas e sem as aspas que o "Copiar como caminho" do Explorer traz.
+pub fn clean_path(path: &str) -> String {
+    path.trim().trim_matches(|c| c == '"' || c == '\'').trim().to_string()
+}
+
+/// Limpa os caminhos de pasta da configuração (Shelf, notas e ícones). Uma pasta salva com aspas nunca existiria.
+pub fn normalize_paths(config: &mut Config) {
+    config.notes_folder = clean_path(&config.notes_folder);
+    config.icons_folder = clean_path(&config.icons_folder);
+    for folder in &mut config.shelf_folders {
+        folder.path = clean_path(&folder.path);
+    }
+}
+
 /// Dá um id a cada atalho que não tem (ou que repete o de outro) e tira dos grupos os membros que não existem mais
 /// ou que são outros grupos.
 pub fn normalize_shortcuts(shortcuts: &mut [Shortcut]) {
@@ -128,6 +142,10 @@ pub struct Config {
     pub screens: Vec<String>,
     /// Pede confirmação antes de abrir apps, jogos e grupos pelos atalhos.
     pub confirm_apps: bool,
+    /// Pasta dos ícones (imagens) dos atalhos; os ícones automáticos são guardados nela. Vazio = Documentos\Docky\icons.
+    pub icons_folder: String,
+    /// Busca na internet, uma vez, o ícone de cada atalho novo que ficou sem ícone.
+    pub auto_icons: bool,
 }
 
 /// Se existir um cofre do Obsidian chamado "brain" em Documentos, as notas vão para a Inbox dele.
@@ -178,6 +196,8 @@ impl Default for Config {
             timer_custom_minutes: 10,
             screens: Vec::new(),
             confirm_apps: true,
+            icons_folder: String::new(),
+            auto_icons: true,
         }
     }
 }
@@ -200,6 +220,7 @@ impl ConfigState {
             .and_then(|text| serde_json::from_str(&text).ok())
             .unwrap_or_default();
         normalize_shortcuts(&mut current.shortcuts);
+        normalize_paths(&mut current);
         Self { path, current: Mutex::new(current) }
     }
 
@@ -210,6 +231,21 @@ impl ConfigState {
     fn save(&self, config: &Config) -> std::io::Result<()> {
         let text = serde_json::to_string_pretty(config).expect("Config é serializável");
         fs::write(&self.path, text)
+    }
+
+    /// Muda a configuração por dentro (fora de uma tela): relê o estado atual, aplica `change`, grava e avisa as janelas.
+    /// Quem muda em segundo plano (os ícones automáticos) usa isto para não sobrescrever o que a pessoa acabou de editar.
+    pub fn modify(&self, app: &AppHandle, change: impl FnOnce(&mut Config)) -> Result<Config, String> {
+        let snapshot = {
+            let mut current = self.current.lock().unwrap();
+            change(&mut current);
+            normalize_shortcuts(&mut current.shortcuts);
+            normalize_paths(&mut current);
+            current.clone()
+        };
+        self.save(&snapshot).map_err(|e| e.to_string())?;
+        app.emit("config-changed", &snapshot).map_err(|e| e.to_string())?;
+        Ok(snapshot)
     }
 }
 
@@ -226,6 +262,7 @@ pub fn set_config(
 ) -> Result<Config, String> {
     let previous = state.get();
     normalize_shortcuts(&mut config.shortcuts);
+    normalize_paths(&mut config);
 
     if previous.start_with_windows != config.start_with_windows {
         let autolaunch = app.autolaunch();
@@ -240,6 +277,8 @@ pub fn set_config(
     state.save(&config).map_err(|e| e.to_string())?;
     *state.current.lock().unwrap() = config.clone();
     app.emit("config-changed", &config).map_err(|e| e.to_string())?;
+    // Atalho novo sem ícone: busca o ícone dele em segundo plano.
+    crate::icons::schedule(&app);
     if previous.screens != config.screens {
         // Criar e fechar janelas fora deste comando: no Windows, fazer isso aqui pode travar.
         let handle = app.clone();
@@ -252,7 +291,20 @@ pub fn set_config(
 
 #[cfg(test)]
 mod tests {
-    use super::{Shortcut, normalize_shortcuts};
+    use super::{Config, ShelfFolder, Shortcut, clean_path, normalize_paths, normalize_shortcuts};
+
+    #[test]
+    fn tira_as_aspas_do_copiar_como_caminho() {
+        assert_eq!(clean_path("\"C:\\Users\\a\\Área de Trabalho\\Clipes\""), "C:\\Users\\a\\Área de Trabalho\\Clipes");
+        assert_eq!(clean_path("  C:\\x  "), "C:\\x");
+        assert_eq!(clean_path(""), "");
+        let mut config = Config::default();
+        config.shelf_folders.push(ShelfFolder { name: "Clipes".into(), path: "\"C:\\Clipes\"".into(), icon: String::new() });
+        config.notes_folder = "\"D:\\Notas\"".into();
+        normalize_paths(&mut config);
+        assert_eq!(config.shelf_folders[0].path, "C:\\Clipes");
+        assert_eq!(config.notes_folder, "D:\\Notas");
+    }
 
     fn shortcut(id: &str, group: bool, members: &[&str]) -> Shortcut {
         Shortcut {

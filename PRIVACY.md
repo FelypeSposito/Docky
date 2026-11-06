@@ -31,6 +31,12 @@ Docky can show your upcoming events if you connect your Google account in Settin
 
 - **Lyrics:** the title, artist and duration of the track playing are sent to [LRCLIB](https://lrclib.net) to find synced lyrics.
 - **Weather:** the city you type in Settings is sent to [Open-Meteo](https://open-meteo.com) to get its coordinates and forecast.
+- **Automatic shortcut icons (can be turned off in Settings → Atalhos):** when a shortcut has no icon, Docky asks
+  [jsDelivr](https://www.jsdelivr.com) (the open [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) library)
+  for an image named after the app, and, for websites, Google's favicon service for the site's address. Only that
+  name or web address is sent, once per shortcut; the image is saved in your icons folder (by default
+  `Documents\Docky\icons`) and never requested again. If nothing is found, Docky uses the icon Windows already shows
+  for the installed app, with no request at all.
 
 No other request is made. Notes, Shelf files, Focus timers and settings stay on your computer; the Claude Code
 integration only talks to a local server on `127.0.0.1`.
@@ -52,5 +58,8 @@ análise de uso nem telemetria, e não envia seus dados ao desenvolvedor nem a t
   Credenciais do Windows. Para apagar, use Desconectar nas configurações ou revogue o acesso em
   <https://myaccount.google.com/permissions>.
 - **Letras:** título, artista e duração da faixa vão para o LRCLIB. **Clima:** a cidade que você digitou vai para o Open-Meteo.
+- **Ícones automáticos (dá para desligar em Configurações → Atalhos):** para um atalho sem ícone, o Docky pede ao jsDelivr
+  (biblioteca aberta dashboard-icons) uma imagem com o nome do app e, para sites, ao serviço de favicons do Google o
+  endereço do site. Só esse nome ou endereço é enviado, uma vez por atalho; a imagem fica na sua pasta de ícones.
 - Notas, arquivos do Shelf, timers e configurações ficam no seu computador.
 - Contato: pelo perfil do desenvolvedor no GitHub, <https://github.com/FelypeSposito>.

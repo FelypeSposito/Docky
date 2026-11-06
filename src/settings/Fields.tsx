@@ -55,7 +55,7 @@ export function NotesFolderRow() {
         width={300}
         value={config.notesFolder}
         placeholder="C:\Users\você\Documentos\brain\Inbox"
-        onCommit={(v) => update({ notesFolder: v })}
+        onCommit={(v) => update({ notesFolder: cleanTarget(v) })}
       />
       <IconButton label="Escolher a pasta" onClick={() => void ipc.pickPath("folder").then((path) => path && update({ notesFolder: path }))}>
         <FolderIcon />
@@ -122,7 +122,7 @@ export function ShelfFolders() {
               <ItemIcon icon={folder.icon ?? ""} image={images[i]} color={SHORTCUT_COLORS[i % SHORTCUT_COLORS.length]} className="li" empty={<FolderIcon size={14} />} />
             </button>
             <TextField label="Nome da pasta" width={110} value={folder.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
-            <TextField label="Caminho da pasta" width={230} value={folder.path} placeholder="C:\Users\você\Google Drive\Faculdade" onCommit={(v) => change(i, { path: v })} />
+            <TextField label="Caminho da pasta" width={230} value={folder.path} placeholder="C:\Users\você\Google Drive\Faculdade" onCommit={(v) => change(i, { path: cleanTarget(v) })} />
             <IconButton
               label="Escolher a pasta"
               onClick={() => void ipc.pickPath("folder").then((path) => path && change(i, { path, name: folder.name || path.split(/[\\/]/).filter(Boolean).pop() || "" }))}
@@ -154,6 +154,59 @@ const HOTKEYS: [string, string[]][] = [
   ["Página anterior", ["Ctrl", "Alt", "←"]],
   ["Nota rápida", ["Ctrl", "Alt", "N"]],
 ];
+
+const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** Os ícones automáticos: o Docky acha o ícone do app uma vez, guarda numa pasta e mostra onde ela está. */
+function AutoIconsGroup() {
+  const { config, update } = useConfigStore();
+  const [folder, setFolder] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    void ipc.iconsFolder().then(setFolder).catch(() => {});
+  }, [config.iconsFolder]);
+  const missing = config.shortcuts.filter((s) => !s.group && !(s.icon ?? "").trim() && s.target.trim()).length;
+
+  const choose = (path: string) =>
+    ipc
+      .setIconsFolder(cleanTarget(path))
+      .then((copied) => setNote(copied > 0 ? `${plural(copied, "imagem levada", "imagens levadas")} para a pasta nova` : null))
+      .catch((e) => setNote(errorText(e)));
+  const fetchNow = () => {
+    setBusy(true);
+    setNote(null);
+    ipc
+      .fetchMissingIcons()
+      .then((found) => setNote(found > 0 ? plural(found, "ícone encontrado", "ícones encontrados") : "Nenhum ícone novo encontrado"))
+      .catch((e) => setNote(errorText(e)))
+      .finally(() => setBusy(false));
+  };
+
+  return (
+    <Group>
+      <Row label="Ícones automáticos" hint="Um atalho novo sem ícone ganha o do app: o Docky procura a imagem na internet uma vez e guarda na pasta abaixo. Só o nome do app ou o endereço do site é enviado.">
+        <Toggle label="Ícones automáticos" value={config.autoIcons} onChange={(v) => update({ autoIcons: v })} />
+      </Row>
+      <Row label="Pasta dos ícones" hint="Pode mudar de lugar: as imagens vão junto e os atalhos continuam achando.">
+        <TextField label="Pasta dos ícones" width={250} value={folder} placeholder="C:\Users\você\Documents\Docky\icons" onCommit={choose} />
+        <IconButton label="Escolher a pasta" onClick={() => void ipc.pickPath("folder").then((path) => (path ? choose(path) : undefined))}>
+          <FolderIcon />
+        </IconButton>
+        <button className="btn" onClick={() => void ipc.openIconsFolder().catch((e) => setNote(errorText(e)))}>
+          Abrir
+        </button>
+      </Row>
+      <Row label="Ícones que faltam" hint={missing === 0 ? "Todos os atalhos têm ícone" : `${plural(missing, "atalho sem ícone", "atalhos sem ícone")}`}>
+        {note && <span className="hint">{note}</span>}
+        <button className="btn primary" disabled={busy || missing === 0} onClick={fetchNow}>
+          {busy ? "Procurando…" : "Buscar agora"}
+        </button>
+      </Row>
+    </Group>
+  );
+}
 
 export function ShortcutsEditor() {
   const { config, update } = useConfigStore();
@@ -290,6 +343,8 @@ export function ShortcutsEditor() {
           <Toggle label="Confirmar antes de abrir" value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
         </Row>
       </Group>
+
+      <AutoIconsGroup />
 
       <Group>
         {HOTKEYS.map(([label, keys]) => (

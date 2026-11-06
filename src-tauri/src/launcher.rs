@@ -1,7 +1,10 @@
 //! Atalhos: abre um app, pasta, arquivo ou site da lista que o usuário cadastrou nas configurações.
 //! O comando recebe só a posição na lista, nunca um caminho qualquer, então não serve para abrir algo arbitrário.
 
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 use tauri::{State, WebviewWindow};
@@ -33,17 +36,23 @@ fn image_mime(path: &str) -> Option<&'static str> {
 }
 
 /// A imagem de um ícone, pronta para a tela (`data:`), ou `None` se o ícone for um emoji, da biblioteca ou vazio.
+/// O ícone é um caminho de imagem ou `asset:nome.png` (um arquivo da pasta de ícones `icons_dir`).
 /// Só lê arquivos de imagem de até 1,5 MB.
-pub fn read_icon_image(icon: &str) -> Result<Option<String>, String> {
+pub fn read_icon_image(icon: &str, icons_dir: &Path) -> Result<Option<String>, String> {
     let icon = icon.trim();
     let Some(mime) = image_mime(icon) else {
         return Ok(None);
     };
-    let metadata = fs::metadata(icon).map_err(|_| "não achei a imagem do ícone".to_string())?;
+    let file = if icon.starts_with(crate::icons::ASSET_PREFIX) {
+        crate::icons::resolve_asset(icons_dir, icon).ok_or("nome de imagem inválido")?
+    } else {
+        PathBuf::from(icon)
+    };
+    let metadata = fs::metadata(&file).map_err(|_| "não achei a imagem do ícone".to_string())?;
     if !metadata.is_file() || metadata.len() > MAX_ICON_BYTES {
         return Err("a imagem do ícone precisa ser um arquivo de até 1,5 MB".into());
     }
-    let bytes = fs::read(icon).map_err(|e| e.to_string())?;
+    let bytes = fs::read(&file).map_err(|e| e.to_string())?;
     Ok(Some(format!("data:{mime};base64,{}", STANDARD.encode(bytes))))
 }
 
@@ -57,10 +66,11 @@ fn is_configured_icon(config: &crate::config::Config, path: &str) -> bool {
 /// pelo caminho, e não pela posição na lista, a imagem não troca de lugar quando a lista é reordenada.
 #[tauri::command]
 pub fn icon_image(state: State<ConfigState>, path: String) -> Result<Option<String>, String> {
-    if !is_configured_icon(&state.get(), &path) {
+    let config = state.get();
+    if !is_configured_icon(&config, &path) {
         return Err("esse arquivo não é o ícone de nenhum atalho".into());
     }
-    read_icon_image(&path)
+    read_icon_image(&path, &crate::icons::icons_dir(&config))
 }
 
 /// Tem cara de endereço com protocolo: `https://…`, mas também `steam://…` ou `spotify://…`, que abrem apps e jogos.

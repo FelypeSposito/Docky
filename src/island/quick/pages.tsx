@@ -3,6 +3,7 @@ import { useConfigStore } from "../../config/useConfig";
 import type { ShelfFolder } from "../../config/types";
 import { IconPicker } from "../../launcher/IconPicker";
 import { useShelfImages } from "../../launcher/icons";
+import { cleanTarget } from "../../launcher/model";
 import { ItemIcon, SHORTCUT_COLORS } from "../../launcher/ShortcutIcon";
 import { ipc } from "../../lib/ipc";
 import { FolderIcon, TrashIcon } from "../icons";
@@ -65,7 +66,7 @@ export function NotesQuick() {
   return (
     <QPanel>
       <QRow label="Pasta das notas" hint="Cada nota é um arquivo .md nesta pasta (por exemplo, a Inbox do Obsidian)">
-        <QPath label="Pasta das notas" kind="folder" value={config.notesFolder} width={230} placeholder="C:\Users\você\Obsidian\Inbox" onCommit={(v) => update({ notesFolder: v })} />
+        <QPath label="Pasta das notas" kind="folder" value={config.notesFolder} width={230} placeholder="C:\Users\você\Obsidian\Inbox" onCommit={(v) => update({ notesFolder: cleanTarget(v) })} />
       </QRow>
       <QRow label="Notas fixadas" hint={config.pinnedNotes.length === 0 ? "Fixe uma nota pelo pino que aparece ao passar o mouse" : `${config.pinnedNotes.length} no topo da lista`}>
         {config.pinnedNotes.length > 0 && <QButton onClick={() => update({ pinnedNotes: [] })}>Desafixar todas</QButton>}
@@ -117,7 +118,7 @@ export function ShelfQuick() {
             <ItemIcon icon={folder.icon ?? ""} image={images[i]} color={SHORTCUT_COLORS[i % SHORTCUT_COLORS.length]} className="li" empty={<FolderIcon size={14} />} />
           </button>
           <QText label="Nome da pasta" width={110} value={folder.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
-          <QPath label="Caminho da pasta" kind="folder" width={210} value={folder.path} placeholder="Escolha a pasta" onCommit={(v) => change(i, { path: v, name: folder.name || v.split(/[\\/]/).filter(Boolean).pop() || "" })} />
+          <QPath label="Caminho da pasta" kind="folder" width={210} value={folder.path} placeholder="Escolha a pasta" onCommit={(v) => change(i, { path: cleanTarget(v), name: folder.name || cleanTarget(v).split(/[\\/]/).filter(Boolean).pop() || "" })} />
           <QIconButton label="Remover a pasta" tone="danger" onClick={() => set(folders.filter((_, k) => k !== i))}>
             <TrashIcon />
           </QIconButton>
