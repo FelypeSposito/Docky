@@ -330,7 +330,9 @@ fn fill_missing(app: &AppHandle, force: bool) -> usize {
         };
         attempted().lock().unwrap().insert(attempt_key(&shortcut));
         let dir = icons_dir(&config);
-        let Some(icon) = resolve_icon(&dir, &shortcut.name, &shortcut.target, &download, &|target| crate::shell_icon::icon_png(target, 256)) else {
+        // O destino pode vir com aspas (do "Copiar como caminho") ou com variáveis de ambiente.
+        let target = crate::launcher::clean_target(&shortcut.target);
+        let Some(icon) = resolve_icon(&dir, &shortcut.name, &target, &download, &|target| crate::shell_icon::icon_png(target, 256)) else {
             continue;
         };
         // Relê a configuração na hora de gravar: só preenche se o atalho continua igual e sem ícone.

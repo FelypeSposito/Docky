@@ -81,7 +81,7 @@ fn is_url(target: &str) -> bool {
 }
 
 /// Troca `%NOME%` pelo valor da variável de ambiente (`%USERPROFILE%`); o que não existir fica como está.
-fn expand_env(text: &str) -> String {
+pub fn expand_env(text: &str) -> String {
     let mut out = String::new();
     let mut rest = text;
     while let Some(start) = rest.find('%') {
