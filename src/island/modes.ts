@@ -17,7 +17,7 @@ export const SIZES: Record<Mode, Size> = {
   volume: { w: 270, h: 36 },
   done: { w: 262, h: 36 },
   timer: { w: 262, h: 36 },
-  work: { w: 340, h: 36 },
+  work: { w: 380, h: 36 },
   ask: { w: 456, h: 142 },
   expanded: { w: 500, h: 244 },
 };

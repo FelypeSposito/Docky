@@ -150,6 +150,16 @@
 }
 .strip .c.pad {
   padding-left: 34px;
+  /* Os ícones à direita (o giro do Claude, o check) ficam fora do texto: um nome de projeto longo encurta com "…" */
+  padding-right: 40px;
+}
+.strip .c.pad > .txt:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.strip .c.pad > .txt.sub {
+  flex: none;
 }
 .strip .r {
   position: absolute;
