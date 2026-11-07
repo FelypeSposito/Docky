@@ -3,6 +3,16 @@
 Uma ilha dinâmica para o Windows 11: uma pílula no topo da tela com hora, mídia com letras sincronizadas,
 atividade do Claude Code, timers, notas e mais. Uso pessoal por enquanto, com arquitetura pensada para virar produto.
 
+## Instalar
+
+Baixe o `Docky_x.y.z_x64-setup.exe` mais recente em **Releases** e execute. A instalação é só para o seu usuário (não
+pede administrador) e o Docky abre sozinho no fim. Requer Windows 11 (ou o 10 com o WebView2, que já vem instalado).
+
+O instalador ainda não é assinado digitalmente, então o Windows SmartScreen pode avisar "O Windows protegeu o seu PC":
+clique em **Mais informações → Executar assim mesmo**. Para o Docky abrir junto com o Windows, ligue a opção em
+Configurações → Geral. Para desinstalar, use Configurações do Windows → Aplicativos. As suas configurações ficam em
+`%APPDATA%\com.docky.desktop` (o desinstalador pergunta se deve apagá-las).
+
 ## Stack
 
 - **Tauri 2** (Rust) + **React + TypeScript** (Vite). Animação de geometria com molas próprias (`src/lib/spring.ts`).
