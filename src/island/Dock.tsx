@@ -183,7 +183,7 @@ export function Dock({ page, onPage }: DockProps) {
         </button>
       ))}
       <i className="dsep" style={{ order: PAGES.length }} />
-      <button className="dk" style={{ order: PAGES.length + 1 }} aria-label="Configurações" onClick={() => ipc.openSettings()}>
+      <button className="dk" style={{ order: PAGES.length + 1 }} aria-label="Configurações" onClick={() => ipc.openSettings(PAGES.find((p) => p.id === page)?.area)} title="Configurações desta página">
         <GearIcon />
       </button>
     </div>

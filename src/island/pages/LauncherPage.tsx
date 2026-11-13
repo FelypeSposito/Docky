@@ -701,6 +701,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
             </button>
           )}
 
+          {groups.length > 0 && (
           <div className="lcx-sec">
             <h3>
               <button className="lcx-disc" aria-expanded={groupsOpen} onClick={() => setGroupsOpen((v) => !v)}>
@@ -714,7 +715,8 @@ export function LauncherLarge({ active }: { active: boolean }) {
               </QButton>
             )}
           </div>
-          {groupsOpen && (
+          )}
+          {groupsOpen && groups.length > 0 && (
             <div className="sc sortable">
               {groups.length === 0 && <p className="qs-note">Nenhum grupo ainda. Um grupo abre vários atalhos de uma vez.</p>}
               {groups.map((entry) => row(entry, sortGroups))}

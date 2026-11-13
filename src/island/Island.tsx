@@ -17,7 +17,7 @@ import { PeekGlance, PeekPlayer } from "./Peek";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
 import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
-import { BatteryIcon, BellIcon, BoltIcon, CheckIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, SlidersIcon, VolumeIcon } from "./icons";
+import { BatteryIcon, BellIcon, BoltIcon, CheckIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, VolumeIcon } from "./icons";
 import { bodyHeight, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, IDLE_TIMER, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
@@ -104,7 +104,6 @@ export function Island() {
   const overlay = useIslandStore((s) => s.overlay);
   const page = useIslandStore((s) => s.page);
   const large = useIslandStore((s) => s.large);
-  const quick = useIslandStore((s) => s.quick);
   const peek = useIslandStore((s) => s.peek);
   const media = useMediaStore((s) => s.media);
   const lyrics = useMediaStore((s) => s.lyrics);
@@ -144,9 +143,8 @@ export function Island() {
   const shownPages = visiblePages(PAGES, config.pageOrder, config.hiddenPages);
   const ActivePage = shownPages.find((p) => p.id === page) ?? shownPages[0];
   // Páginas com tela maior (Large) ou só com ajustes (Settings) ganham o botão de expandir.
-  const canExpand = !!ActivePage.Large || !!ActivePage.Settings;
+  const canExpand = !!ActivePage.Large;
   const largeOn = large && canExpand;
-  const quickOn = largeOn && !!ActivePage.Settings && (quick || !ActivePage.Large);
   const idleSize = timerRunning ? IDLE_TIMER : SIZES.idle;
   const size = mode === "expanded" && largeOn ? EXPANDED_LARGE : mode === "idle" ? idleSize : SIZES[mode];
 
@@ -392,7 +390,7 @@ export function Island() {
                   </span>
                 ) : (
                   // O campo do cabeçalho precisa do espaço: a bateria só aparece quando está acabando (ou nos ajustes).
-                  showBattery && (quickOn || (power?.percent ?? 100) <= 20) && (
+                  showBattery && (power?.percent ?? 100) <= 20 && (
                     <span className={`bat${(power?.percent ?? 100) <= 20 ? " low" : ""}`}>
                       <BatteryIcon />
                       {power?.percent}%
@@ -404,17 +402,6 @@ export function Island() {
               </div>
             )}
             <div className="hdr-act">
-              {largeOn && ActivePage.Large && ActivePage.Settings && (
-                <button
-                  className={`xbtn gear${quickOn ? " on" : ""}`}
-                  aria-label={quickOn ? "Voltar ao conteúdo" : "Ajustes desta página"}
-                  aria-pressed={quickOn}
-                  title={quickOn ? "Voltar ao conteúdo" : "Ajustes"}
-                  onClick={() => useIslandStore.getState().toggleQuick()}
-                >
-                  <SlidersIcon />
-                </button>
-              )}
               {canExpand && (
                 <button
                   className="xbtn"
@@ -430,16 +417,14 @@ export function Island() {
           </div>
 
           <div className="body">
-            {quickOn && ActivePage.Settings ? (
-              <ActivePage.Settings />
-            ) : largeOn && ActivePage.Large ? (
+            {largeOn && ActivePage.Large ? (
               <ActivePage.Large active={mode === "expanded"} />
             ) : (
               <ActivePage.Component active={mode === "expanded"} />
             )}
           </div>
 
-          {!FIELD_PAGES.has(ActivePage.id) && !quickOn && <GlobalSearch key={ActivePage.id} active={mode === "expanded"} />}
+          {!FIELD_PAGES.has(ActivePage.id) && <GlobalSearch key={ActivePage.id} active={mode === "expanded"} />}
           <Dock page={ActivePage.id} onPage={(id) => useIslandStore.getState().setPage(id)} />
         </div>
       </div>

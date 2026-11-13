@@ -58,87 +58,6 @@
   align-items: center;
   gap: 8px;
 }
-.qs-tg {
-  position: relative;
-  flex: none;
-  width: 38px;
-  height: 22px;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.18);
-  transition: background 0.25s;
-}
-.qs-tg i {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  transition: transform 0.25s var(--ease);
-}
-.qs-tg.on {
-  background: var(--accent, #ff5c7a);
-}
-.qs-tg.on i {
-  transform: translateX(16px);
-}
-.qs-step {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.3);
-}
-.qs-step button {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  background: var(--fill);
-  color: var(--ink);
-  font-size: 15px;
-  line-height: 1;
-}
-.qs-step button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-}
-.qs-step button:disabled {
-  opacity: 0.35;
-}
-.qs-step span {
-  min-width: 56px;
-  font-size: 12.5px;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-.qs-step small {
-  color: var(--ink3);
-  font-size: 10.5px;
-  font-weight: 500;
-}
-.qs-seg {
-  display: flex;
-  padding: 2px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.3);
-}
-.qs-seg button {
-  padding: 5px 11px;
-  border-radius: 8px;
-  color: var(--ink2);
-  font-size: 11.5px;
-  font-weight: 600;
-  transition: background 0.2s, color 0.2s;
-}
-.qs-seg button.on {
-  background: rgba(255, 255, 255, 0.17);
-  color: #fff;
-}
 .qs-inp {
   min-width: 0;
   padding: 6px 10px;
@@ -465,12 +384,6 @@
   font-size: 8.5px;
   font-style: normal;
   white-space: nowrap;
-}
-
-/* Botão de ajustes ao lado do de expandir */
-.xbtn.gear.on {
-  color: var(--accent, #ff5c7a);
-  background: rgba(255, 255, 255, 0.12);
 }
 
 /* Sugestões de grupos e de apps */
