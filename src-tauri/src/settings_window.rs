@@ -34,8 +34,11 @@ pub fn open(app: &AppHandle, section: Option<&str>, screen: Option<Screen>) -> t
         .decorations(false)
         .transparent(true)
         .shadow(false)
-        .resizable(false)
-        .inner_size(860.0, 620.0)
+        // Dá para redimensionar pelas bordas mesmo sem moldura (o Tauri deixa uma borda de redimensionar invisível).
+        // O mínimo ainda cabe o trilho de 240px à esquerda e uma coluna de conteúdo usável.
+        .resizable(true)
+        .inner_size(960.0, 680.0)
+        .min_inner_size(720.0, 520.0)
         .theme(Some(Theme::Dark))
         .center()
         .visible(screen.is_none())

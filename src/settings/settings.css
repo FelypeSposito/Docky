@@ -1,4 +1,5 @@
-/* A janela de configurações: o mesmo visual da ilha (preto, vidro, brilho, dock). Tudo escopado em .sa. */
+/* A janela de configurações: barra lateral que acha tudo, uma prévia viva da ilha e as opções numa coluna limpa.
+   O mesmo mundo da ilha (preto, Inter, o rosa da marca), com a calma de uma tela de trabalho. Tudo escopado em .sa. */
 
 body[data-window="settings"] {
   background: transparent;
@@ -7,14 +8,26 @@ body[data-window="settings"] {
 .sa {
   position: fixed;
   inset: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
   overflow: hidden;
-  border-radius: 20px;
-  background: #000;
+  border-radius: 14px;
+  background: #050506;
   --accent: #ff5c7a;
   --glow: #ff5c7a;
   --glow2: #7a3cff;
+  /* Mais legível que o da ilha: aqui se lê bastante texto pequeno. */
+  --ink3: rgba(255, 255, 255, 0.5);
+  --line: rgba(255, 255, 255, 0.07);
+  caret-color: var(--accent);
+}
+.sa ::selection {
+  background: rgba(255, 92, 122, 0.35);
+  color: #fff;
+}
+.sa :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 /* Borda de vidro: a luz cresce de cima para baixo, como na ilha. */
 .sa::after {
@@ -25,169 +38,276 @@ body[data-window="settings"] {
   padding: 1px;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0, rgba(255, 255, 255, 0.1) 40%, rgba(255, 255, 255, 0.2) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0, rgba(255, 255, 255, 0.09) 40%, rgba(255, 255, 255, 0.16) 100%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
 }
-.sa-glow {
-  position: absolute;
-  inset: auto -15% -40% -15%;
-  height: 70%;
-  pointer-events: none;
-  opacity: 0.4;
-  filter: blur(40px);
-  background:
-    radial-gradient(closest-side at 22% 70%, var(--glow), transparent 100%),
-    radial-gradient(closest-side at 80% 85%, var(--glow2), transparent 100%);
-  animation: drift 13s ease-in-out infinite alternate;
-}
 
-/* Barra de cima: olhinhos, dock de seções e controles da janela */
-.sa-bar {
-  position: relative;
-  z-index: 2;
+/* Barra lateral */
+.sa-rail {
   display: flex;
-  flex: none;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 18px 12px 14px;
+  background: #0b0b0d;
+  box-shadow: inset -1px 0 0 var(--line);
+}
+.sa-brand {
+  position: relative;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  height: 64px;
+  height: 30px;
+  padding-left: 56px;
+}
+.sa-brand b {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 .sa .sa-eyes .eyes {
-  top: 23px;
-  left: 26px;
+  top: 6px;
+  left: 12px;
 }
-.sdock {
+.sa-search {
+  position: relative;
+}
+.sa-field {
   display: flex;
   align-items: center;
-  gap: 2px;
-  height: 38px;
-  padding: 4px;
-  border-radius: 19px;
-  background: rgba(255, 255, 255, 0.075);
-  backdrop-filter: blur(16px) saturate(170%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 22px rgba(0, 0, 0, 0.4);
+  gap: 8px;
+  height: 34px;
+  padding: 0 11px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink3);
+  transition: background 0.2s, box-shadow 0.2s;
 }
-.sdk {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 30px;
-  min-width: 32px;
-  padding: 0 8px;
-  border-radius: 15px;
+.sa-field:focus-within {
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
   color: var(--ink2);
-  transition: background 0.3s, color 0.3s, transform 0.15s var(--ease);
 }
-.sdk:hover {
+.sa-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
   color: #fff;
-  background: rgba(255, 255, 255, 0.1);
+  font: 500 13px Inter, system-ui, sans-serif;
+  user-select: text;
 }
-.sdk:active {
-  transform: scale(0.93);
+.sa-field input:focus-visible {
+  outline: 0;
 }
-.sdk .lb {
-  max-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
+.sa-field input::placeholder {
+  color: var(--ink3);
+}
+.sa-hits {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  list-style: none;
+  border-radius: 12px;
+  background: #141417;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.sa-hits button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  text-align: left;
+}
+.sa-hits button.on {
+  background: rgba(255, 92, 122, 0.14);
+}
+.sa-hits b {
   font-size: 12.5px;
   font-weight: 600;
-  opacity: 0;
-  transition: max-width 0.55s var(--ease), opacity 0.25s, margin 0.55s var(--ease);
 }
-.sdk.on {
-  color: var(--accent);
-  background: rgba(255, 255, 255, 0.15);
+.sa-hits span {
+  color: var(--ink3);
+  font-size: 11.5px;
 }
-.sdk.on .lb {
-  max-width: 96px;
-  margin-left: 6px;
+.sa-hits .none {
+  padding: 8px 10px;
+  color: var(--ink3);
+  font-size: 12px;
+}
+.sa-nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.sa-navg {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sa-navg h2 {
+  margin: 0 0 4px;
+  padding: 0 10px;
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 600;
+}
+.sa-nav button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 550;
+  text-align: left;
+  transition: background 0.18s, color 0.18s;
+}
+.sa-nav button:hover {
+  background: rgba(255, 255, 255, 0.05);
   color: #fff;
-  opacity: 1;
+}
+.sa-nav button.on {
+  background: rgba(255, 92, 122, 0.13);
+  color: #fff;
+}
+.sa-nav button.on svg {
+  color: var(--accent);
+}
+
+/* Coluna da direita: faixa de arrastar com os botões da janela, e o conteúdo */
+.sa-pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.sa-strip {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  height: 44px;
+  padding: 10px 12px 0;
 }
 .sa-wc {
-  position: absolute;
-  top: 18px;
-  right: 20px;
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 .sa-wc button {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 30px;
+  height: 26px;
+  border-radius: 8px;
   color: var(--ink2);
-  background: rgba(255, 255, 255, 0.08);
-  transition: background 0.2s, color 0.2s, transform 0.1s;
+  transition: background 0.2s, color 0.2s;
 }
 .sa-wc button:hover {
   color: #fff;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.1);
 }
 .sa-wc button.close:hover {
   background: #e5484d;
 }
-.sa-wc button:active {
-  transform: scale(0.9);
-}
 
-/* Conteúdo */
+/* Conteúdo: uma coluna com largura de leitura, centrada no espaço que sobrar */
 .sa-main {
-  position: relative;
-  z-index: 2;
   flex: 1;
-  padding: 4px 34px 30px;
+  min-height: 0;
+  padding: 0 36px 40px;
   overflow: auto;
   user-select: text;
 }
+.sa-main > * {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
 .sa-main::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 .sa-main::-webkit-scrollbar-thumb {
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.14);
+  border: 3px solid transparent;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.14) padding-box;
 }
-.sa-main h1 {
-  margin: 4px 0 16px;
-  font-size: 26px;
+.sa-head {
+  margin-bottom: 18px;
+}
+.sa-head h1 {
+  font-size: 24px;
   font-weight: 650;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.03em;
+}
+.sa-head p {
+  margin-top: 4px;
+  color: var(--ink2);
+  font-size: 13px;
 }
 .sa-body {
-  animation: pop 0.5s var(--ease) both;
+  animation: arrive 0.32s var(--ease) both;
 }
-@keyframes pop {
+@keyframes arrive {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.99);
-    filter: blur(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-    filter: none;
+    transform: translateY(6px);
   }
 }
 
-/* Blocos de vidro: o mesmo "tile" da ilha */
+/* Blocos de opções: sem caixa; título pequeno, linhas separadas por um fio */
 .sa .grp {
-  margin-bottom: 14px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.045));
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  margin-bottom: 26px;
+}
+.sa .grp-h {
+  margin: 0 0 4px;
+  color: var(--ink3);
+  font-size: 12px;
+  font-weight: 600;
+}
+.sa .grp-note {
+  margin: 0 0 6px;
+  color: var(--ink3);
+  font-size: 12px;
 }
 .sa .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 52px;
-  padding: 9px 18px;
+  min-height: 56px;
+  padding: 10px 2px;
+  box-shadow: inset 0 -1px 0 var(--line);
 }
-.sa .row + .row {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+.sa .row.found {
+  animation: found 1.6s var(--ease);
+}
+@keyframes found {
+  0%,
+  30% {
+    background: rgba(255, 92, 122, 0.16);
+  }
+  100% {
+    background: transparent;
+  }
+}
+.sa .rl {
+  min-width: 0;
 }
 .sa .rl b {
   display: block;
@@ -199,17 +319,91 @@ body[data-window="settings"] {
   display: block;
   margin-top: 2px;
   color: var(--ink3);
-  font-size: 11.5px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.45;
 }
 .sa .rc {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
 }
 .sa .folder-row {
   justify-content: flex-start;
+}
+
+/* Partes de uma área (Atalhos: a lista, as seções, os grupos e os ícones) */
+.sa .subtabs {
+  display: flex;
+  gap: 2px;
+  width: fit-content;
+  margin-bottom: 22px;
+  padding: 3px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.sa .subtabs button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 8px;
+  color: var(--ink2);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+.sa .subtabs button:hover {
+  color: #fff;
+}
+.sa .subtabs button.on {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.sa .subtabs i {
+  color: var(--ink3);
+  font-size: 11.5px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+.sa .subtabs button.on i {
+  color: var(--accent);
+}
+
+/* Janela baixa: a prévia encolhe para sobrar espaço para as opções */
+@media (max-height: 620px) {
+  .sa .pv {
+    height: 120px;
+  }
+}
+
+/* Janela estreita: a barra lateral vira só ícones */
+@media (max-width: 860px) {
+  .sa {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .sa-brand b,
+  .sa-search,
+  .sa-navg h2,
+  .sa-nav button span {
+    display: none;
+  }
+  .sa-brand {
+    padding-left: 0;
+  }
+  .sa .sa-eyes .eyes {
+    left: 8px;
+  }
+  .sa-nav button {
+    justify-content: center;
+    padding: 0;
+  }
+  .sa-main {
+    padding: 0 22px 32px;
+  }
 }
 
 /* Controles */
@@ -257,9 +451,9 @@ body[data-window="settings"] {
   cursor: pointer;
 }
 .sa .btn {
-  height: 30px;
-  padding: 0 15px;
-  border-radius: 15px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 9px;
   background: rgba(255, 255, 255, 0.12);
   font-size: 12px;
   font-weight: 600;
@@ -287,12 +481,12 @@ body[data-window="settings"] {
   color: #ff7b72;
 }
 .sa .inp {
-  height: 30px;
-  padding: 0 12px;
+  height: 32px;
+  padding: 0 11px;
   color: #fff;
   font: 500 12.5px Inter, system-ui, sans-serif;
   border: 0;
-  border-radius: 15px;
+  border-radius: 9px;
   outline: 0;
   background: rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -504,8 +698,8 @@ body[data-window="settings"] {
 .sa .seg2 {
   display: flex;
   padding: 3px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.4);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .sa .seg2 button {

@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest";
 import type { Shortcut, ShortcutSection } from "../config/types";
-import { addSection, assignSection, autoOrganize, layoutSections, pruneSections, removeSection, renameSection, sectionOf, toggleCollapsed } from "./sections";
+import {
+  FILTER_ALL,
+  FILTER_GROUPS,
+  FILTER_REST,
+  activeFilter,
+  addSection,
+  assignSection,
+  autoOrganize,
+  blockKey,
+  filterChips,
+  layoutSections,
+  pruneSections,
+  removeSection,
+  renameSection,
+  restTitle,
+  sectionOf,
+  toggleCollapsed,
+} from "./sections";
 
 const shortcut = (id: string, name: string, target = "", extra: Partial<Shortcut> = {}): Shortcut => ({ id, name, target, icon: "", group: false, members: [], ...extra });
 const section = (id: string, name: string, members: string[] = [], collapsed = false): ShortcutSection => ({ id, name, collapsed, members });
@@ -52,6 +69,45 @@ describe("seções dos atalhos", () => {
   it("limpa ids de atalhos que sumiram ou viraram grupo", () => {
     const sections = [section("s1", "X", ["a", "zz", "g"])];
     expect(pruneSections(sections, [...list, shortcut("g", "Grupo", "", { group: true })])[0].members).toEqual(["a"]);
+  });
+});
+
+describe("filtros da tela grande", () => {
+  const list = [shortcut("a", "Steam", "C:/Steam.lnk"), shortcut("b", "WhatsApp"), shortcut("c", "Calculadora"), shortcut("d", "Discord")];
+
+  it("um filtro por parte, na ordem da lista, com a contagem; Tudo primeiro e Grupos no fim", () => {
+    const sections = [section("s1", "Comunicação", ["d", "b"]), section("vazia", "Vazia"), section("s2", "Jogos", ["a"])];
+    const chips = filterChips(layoutSections(indexed(list), sections), 2, sections);
+    expect(chips).toEqual([
+      { key: FILTER_ALL, label: "Tudo", count: 6 },
+      { key: "s:s1", label: "Comunicação", count: 2 },
+      { key: "s:s2", label: "Jogos", count: 1 },
+      { key: FILTER_REST, label: "Outros", count: 1 },
+      { key: FILTER_GROUPS, label: "Grupos", count: 2 },
+    ]);
+  });
+
+  it("sem seções, os soltos se chamam Atalhos; uma parte só não tem filtro", () => {
+    expect(filterChips(layoutSections(indexed(list), []), 0, [])).toEqual([]);
+    expect(filterChips(layoutSections(indexed(list), []), 1, []).map((c) => c.label)).toEqual(["Tudo", "Atalhos", "Grupos"]);
+    const all = [section("s1", "Tudo junto", ["a", "b", "c", "d"])];
+    expect(filterChips(layoutSections(indexed(list), all), 0, all)).toEqual([]);
+  });
+
+  it("uma seção chamada rest ou groups não se confunde com as partes fixas", () => {
+    const sections = [section("rest", "R", ["a"]), section("groups", "G", ["b"])];
+    expect(filterChips(layoutSections(indexed(list), sections), 1, sections).map((c) => c.key)).toEqual([FILTER_ALL, "s:rest", "s:groups", FILTER_REST, FILTER_GROUPS]);
+  });
+
+  it("volta para Tudo quando o filtro escolhido some", () => {
+    const sections = [section("s1", "Jogos", ["a"])];
+    const chips = filterChips(layoutSections(indexed(list), sections), 0, sections);
+    expect(activeFilter(chips, "s:s1")).toBe("s:s1");
+    expect(activeFilter(chips, "s:apagada")).toBe(FILTER_ALL);
+    expect(activeFilter(chips, FILTER_GROUPS)).toBe(FILTER_ALL);
+    expect(activeFilter([], "s:s1")).toBe(FILTER_ALL);
+    expect(blockKey({ section: null, entries: [] })).toBe(FILTER_REST);
+    expect(restTitle(sections)).toBe("Outros");
   });
 });
 

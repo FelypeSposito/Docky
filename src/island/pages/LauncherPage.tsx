@@ -6,7 +6,22 @@ import { GroupEditor } from "../../launcher/GroupEditor";
 import { IconPicker } from "../../launcher/IconPicker";
 import { useShortcutImages } from "../../launcher/icons";
 import { confirmationText, hideGrouped, hideableCount, memberSummary, membersOf, needsConfirmation, newId, removeShortcut, reorderSection, reorderVisible, setHidden, splitShortcuts } from "../../launcher/model";
-import { type IndexedShortcut, assignSection, autoOrganize, layoutSections, sectionOf, toggleCollapsed } from "../../launcher/sections";
+import {
+  type FilterChip,
+  type IndexedShortcut,
+  type SectionBlock,
+  FILTER_ALL,
+  FILTER_GROUPS,
+  activeFilter,
+  assignSection,
+  autoOrganize,
+  blockKey,
+  filterChips,
+  layoutSections,
+  restTitle,
+  sectionOf,
+  toggleCollapsed,
+} from "../../launcher/sections";
 import { SHORTCUT_COLORS, ShortcutIcon } from "../../launcher/ShortcutIcon";
 import { ipc } from "../../lib/ipc";
 import { useSortable } from "../../settings/useSortable";
@@ -266,6 +281,7 @@ function SectionView({
   onReorder,
   canDrag,
   renderTile,
+  fixed = false,
 }: {
   id: string;
   title: string;
@@ -275,6 +291,8 @@ function SectionView({
   onReorder: (order: string[]) => void;
   canDrag: boolean;
   renderTile: RenderTile;
+  /** Aberta pelo filtro: o título vira só um rótulo (quem manda é o filtro) e o recolher guardado fica intacto. */
+  fixed?: boolean;
 }) {
   const sorter = useGridSort(
     entries.map((e) => e.item.id),
@@ -283,17 +301,64 @@ function SectionView({
   );
   return (
     <section className={`lsec${collapsed ? " closed" : ""}`} aria-labelledby={`lsec-${id}`}>
-      <button id={`lsec-${id}`} className="lsec-head" aria-expanded={!collapsed} onClick={onToggle}>
-        <ArrowDownIcon size={12} />
-        <span>{title}</span>
-        <i>{entries.length}</i>
-      </button>
+      {fixed ? (
+        <h3 id={`lsec-${id}`} className="lsec-head fixed">
+          <span>{title}</span>
+          <i>{entries.length}</i>
+        </h3>
+      ) : (
+        <button id={`lsec-${id}`} className="lsec-head" aria-expanded={!collapsed} onClick={onToggle}>
+          <ArrowDownIcon size={12} />
+          <span>{title}</span>
+          <i>{entries.length}</i>
+        </button>
+      )}
       <div className="lsec-body" inert={collapsed}>
         <div className="lsec-clip">
           <div className="lsec-grid">{entries.map((entry) => renderTile(entry, sorter))}</div>
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * A fileira de filtros acima da lista: "Tudo" e um botão por parte, para chegar a uma seção sem rolar. Não quebra
+ * linha: rola de lado (sem barra), e o filtro escolhido é trazido para a vista. As setas andam entre os botões
+ * (só o escolhido entra no Tab) e já escolhem.
+ */
+function FilterRow({ chips, active, onSelect }: { chips: FilterChip[]; active: string; onSelect: (key: string) => void }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const activeIndex = Math.max(0, chips.findIndex((c) => c.key === active));
+  useEffect(() => {
+    const row = rowRef.current;
+    const el = row?.children[activeIndex] as HTMLElement | undefined;
+    if (!row || !el) return;
+    // Só a fileira rola (`scrollIntoView` mexeria também na lista e na janela da ilha).
+    const box = el.getBoundingClientRect();
+    const view = row.getBoundingClientRect();
+    if (box.left < view.left + 4 || box.right > view.right - 4) {
+      const left = box.left - view.left + row.scrollLeft - (row.clientWidth - box.width) / 2;
+      row.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+    }
+  }, [activeIndex, chips.length]);
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const last = chips.length - 1;
+    const next = e.key === "ArrowRight" ? Math.min(last, activeIndex + 1) : e.key === "ArrowLeft" ? Math.max(0, activeIndex - 1) : e.key === "Home" ? 0 : e.key === "End" ? last : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    onSelect(chips[next].key);
+    (rowRef.current?.children[next] as HTMLElement | undefined)?.focus({ preventScroll: true });
+  };
+  return (
+    <div className="lcx-chips" role="toolbar" aria-label="Ir para a seção" ref={rowRef} onKeyDown={onKeyDown}>
+      {chips.map((chip, i) => (
+        <button key={chip.key} className="lcx-chip" aria-pressed={i === activeIndex} tabIndex={i === activeIndex ? 0 : -1} onClick={() => onSelect(chip.key)}>
+          <span>{chip.label}</span>
+          <i>{chip.count}</i>
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -372,6 +437,17 @@ export function LauncherLarge() {
   const [restClosed, toggleRest] = useLocalFlag("docky-launcher-rest-closed", false);
   const [groupsClosed, toggleGroups] = useLocalFlag("docky-launcher-groups-closed", true);
   const searching = query.trim() !== "";
+  // Filtros (Tudo, cada seção, Outros, Grupos): mostram só uma parte, aberta, sem mexer no recolher guardado. O
+  // escolhido fica só aqui (volta a "Tudo" quando a página remonta) e cai para "Tudo" se a parte sumir.
+  const [filter, setFilter] = useState<string>(FILTER_ALL);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const blocks = layoutSections(shownItems, sections);
+  const chips = filterChips(blocks, shownGroups.length, sections);
+  const current = activeFilter(chips, filter);
+  const selectFilter = (key: string) => {
+    setFilter(key);
+    scrollRef.current?.scrollTo({ top: 0 }); // a parte escolhida começa do topo
+  };
 
   const pickingIndex = picking === null ? -1 : shortcuts.findIndex((s) => s.id === picking);
   if (pickingIndex >= 0) {
@@ -442,8 +518,39 @@ export function LauncherLarge() {
       <b>{item.name}</b>
     </button>
   );
-  const blocks = layoutSections(shownItems, sections);
   const reorderItems = (order: string[]) => set(reorderVisible(shortcuts, false, order));
+  /** Com um filtro, só a parte dele aparece, aberta (`fixed`); em "Tudo", todas, cada uma como foi deixada. */
+  const filtered = !searching && current !== FILTER_ALL;
+  const shownBlocks = filtered ? blocks.filter((b) => blockKey(b) === current) : blocks;
+  const showGroups = shownGroups.length > 0 && (!filtered || current === FILTER_GROUPS);
+  const blockView = ({ section, entries }: SectionBlock) =>
+    section ? (
+      <SectionView
+        key={section.id}
+        id={section.id}
+        title={section.name}
+        collapsed={!filtered && section.collapsed}
+        fixed={filtered}
+        onToggle={() => setSections(toggleCollapsed(sections, section.id))}
+        entries={entries}
+        onReorder={reorderItems}
+        canDrag
+        renderTile={tile}
+      />
+    ) : (
+      <SectionView
+        key="rest"
+        id="rest"
+        title={restTitle(sections)}
+        collapsed={!filtered && restClosed}
+        fixed={filtered}
+        onToggle={toggleRest}
+        entries={entries}
+        onReorder={reorderItems}
+        canDrag
+        renderTile={tile}
+      />
+    );
   /** Põe os atalhos sem seção nas seções prontas que fazem sentido (Jogos, Comunicação, Utilitários…). */
   const organize = () => setSections(autoOrganize(shortcuts, sections, newId));
   const unsorted = shortcuts.filter((s) => !s.group && !s.hidden && !sectionOf(s.id, sections)).length;
@@ -524,57 +631,36 @@ export function LauncherLarge() {
       ) : pending !== null && shortcuts[pending] ? (
         <Confirm text={confirmationText(shortcuts[pending], shortcuts)} onCancel={() => setPending(null)} onOk={() => open(pending)} />
       ) : (
-        <div className="lcx-scroll">
-          {error && <div className="tile lc-empty lcx-err">{error}</div>}
-          {matches.length === 0 && !error && (
-            <div className="tile lc-empty">{shortcuts.length === 0 ? "Nenhum atalho ainda. Toque em Editar para criar." : "Nenhum atalho com esse nome."}</div>
-          )}
-          {searching ? (
-            <SearchResults entries={[...shownItems, ...shownGroups]} renderTile={tile} />
-          ) : (
-            <>
-              {blocks.map(({ section, entries }) =>
-                section ? (
+        <>
+          {!searching && chips.length > 0 && <FilterRow chips={chips} active={current} onSelect={selectFilter} />}
+          <div className="lcx-scroll" ref={scrollRef}>
+            {error && <div className="tile lc-empty lcx-err">{error}</div>}
+            {matches.length === 0 && !error && (
+              <div className="tile lc-empty">{shortcuts.length === 0 ? "Nenhum atalho ainda. Toque em Editar para criar." : "Nenhum atalho com esse nome."}</div>
+            )}
+            {searching ? (
+              <SearchResults entries={[...shownItems, ...shownGroups]} renderTile={tile} />
+            ) : (
+              <>
+                {shownBlocks.map(blockView)}
+                {showGroups && (
                   <SectionView
-                    key={section.id}
-                    id={section.id}
-                    title={section.name}
-                    collapsed={section.collapsed}
-                    onToggle={() => setSections(toggleCollapsed(sections, section.id))}
-                    entries={entries}
-                    onReorder={reorderItems}
+                    key="groups"
+                    id="groups"
+                    title="Grupos"
+                    collapsed={!filtered && groupsClosed}
+                    fixed={filtered}
+                    onToggle={toggleGroups}
+                    entries={shownGroups}
+                    onReorder={(order) => set(reorderVisible(shortcuts, true, order))}
                     canDrag
                     renderTile={tile}
                   />
-                ) : (
-                  <SectionView
-                    key="rest"
-                    id="rest"
-                    title={sections.length > 0 ? "Outros" : "Atalhos"}
-                    collapsed={restClosed}
-                    onToggle={toggleRest}
-                    entries={entries}
-                    onReorder={reorderItems}
-                    canDrag
-                    renderTile={tile}
-                  />
-                ),
-              )}
-              {shownGroups.length > 0 && (
-                <SectionView
-                  id="groups"
-                  title="Grupos"
-                  collapsed={groupsClosed}
-                  onToggle={toggleGroups}
-                  entries={shownGroups}
-                  onReorder={(order) => set(reorderVisible(shortcuts, true, order))}
-                  canDrag
-                  renderTile={tile}
-                />
-              )}
-            </>
-          )}
-        </div>
+                )}
+              </>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

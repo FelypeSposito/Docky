@@ -785,8 +785,73 @@
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }
+/* Aberta pelo filtro: o título é só um rótulo (sem setinha, sem clique) */
+.lsec-head.fixed {
+  margin: 0;
+  cursor: default;
+}
+.lsec-head.fixed:hover {
+  color: var(--ink3);
+  background: none;
+}
 .reduce-motion .lsec-body,
 .reduce-motion .lsec-head svg {
+  transition: none;
+}
+/* Filtros acima da lista: uma linha só, que rola de lado sem barra. O respiro (padding com margem negativa)
+   deixa o anel de foco aparecer sem ser cortado pela rolagem. */
+.lcx-chips {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  margin: -4px;
+  padding: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.lcx-chips::-webkit-scrollbar {
+  display: none;
+}
+.lcx-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink2);
+  font: 600 11.5px Inter, system-ui, sans-serif;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, transform 0.1s;
+}
+.lcx-chip:hover {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+.lcx-chip:active {
+  transform: scale(0.96);
+}
+.lcx-chip:focus-visible {
+  outline: 2px solid var(--accent, #ff5c7a);
+  outline-offset: 2px;
+}
+.lcx-chip i {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+.lcx-chip[aria-pressed="true"] {
+  background: var(--accent, #ff5c7a);
+  color: #07101f;
+}
+.lcx-chip[aria-pressed="true"] i {
+  opacity: 0.7;
+}
+.reduce-motion .lcx-chip {
   transition: none;
 }
 /* A seção de cada atalho no modo Editar */

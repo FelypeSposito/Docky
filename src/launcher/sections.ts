@@ -32,6 +32,39 @@ export function layoutSections(entries: IndexedShortcut[], sections: ShortcutSec
   return [...blocks.filter((b) => keepEmpty || b.entries.length > 0), ...(rest.length > 0 ? [{ section: null, entries: rest }] : [])];
 }
 
+/** O título da parte dos atalhos sem seção: "Outros" quando a pessoa tem seções, "Atalhos" quando não tem. */
+export const restTitle = (sections: ShortcutSection[]): string => (sections.length > 0 ? "Outros" : "Atalhos");
+
+/** As chaves dos filtros da tela grande: "tudo", uma seção da pessoa, os sem seção e os grupos. */
+export const FILTER_ALL = "all";
+export const FILTER_REST = "rest";
+export const FILTER_GROUPS = "groups";
+/** A chave do filtro de uma parte. O prefixo das seções evita colisão com "rest" e "groups" (o id é da pessoa). */
+export const blockKey = (block: SectionBlock): string => (block.section ? `s:${block.section.id}` : FILTER_REST);
+
+/** Um botão da fileira de filtros: leva só à parte `key`, que tem `count` itens. */
+export interface FilterChip {
+  key: string;
+  label: string;
+  count: number;
+}
+
+/**
+ * Os filtros da tela grande, na ordem da lista: "Tudo", as partes que têm atalhos e "Grupos" (quando há grupos).
+ * Com uma parte só não há o que filtrar: volta vazio, e a fileira some.
+ */
+export function filterChips(blocks: SectionBlock[], groupCount: number, sections: ShortcutSection[]): FilterChip[] {
+  const parts: FilterChip[] = blocks
+    .filter((b) => b.entries.length > 0)
+    .map((b) => ({ key: blockKey(b), label: b.section ? b.section.name : restTitle(sections), count: b.entries.length }));
+  if (groupCount > 0) parts.push({ key: FILTER_GROUPS, label: "Grupos", count: groupCount });
+  if (parts.length < 2) return [];
+  return [{ key: FILTER_ALL, label: "Tudo", count: parts.reduce((n, p) => n + p.count, 0) }, ...parts];
+}
+
+/** O filtro em vigor: o escolhido, se ele ainda existe na fileira; senão (a seção sumiu, ficou vazia), "Tudo". */
+export const activeFilter = (chips: FilterChip[], selected: string): string => (chips.some((c) => c.key === selected) ? selected : FILTER_ALL);
+
 /** Põe o atalho numa seção (ou em nenhuma, com `sectionId` = null), tirando-o de onde estava. */
 export function assignSection(sections: ShortcutSection[], shortcutId: string, sectionId: string | null): ShortcutSection[] {
   return sections.map((s) => {

@@ -1,12 +1,19 @@
 import type { ReactNode } from "react";
 
-export function Group({ children }: { children: ReactNode }) {
-  return <div className="grp">{children}</div>;
+/** Um bloco de opções. Com `title`, ganha um título pequeno em cima (ajuda a varrer a página com os olhos). */
+export function Group({ title, children }: { title?: string; children: ReactNode }) {
+  return (
+    <section className="grp">
+      {title && <h2 className="grp-h">{title}</h2>}
+      {children}
+    </section>
+  );
 }
 
+/** Uma opção: nome, explicação curta e o controle. `data-label` é por onde a busca acha a linha. */
 export function Row({ label, hint, children }: { label: string; hint?: string; children?: ReactNode }) {
   return (
-    <div className="row">
+    <div className="row" data-label={label}>
       <div className="rl">
         <b>{label}</b>
         {hint && <span>{hint}</span>}

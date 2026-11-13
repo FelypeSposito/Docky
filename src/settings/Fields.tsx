@@ -168,18 +168,40 @@ const HOTKEYS: [string, string[]][] = [
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** Se a parte dos grupos fica aberta: lembrada neste computador (o armazenamento pode faltar, e aí começa fechada). */
-const GROUPS_OPEN_KEY = "docky-settings-groups-open";
-const readGroupsOpen = () => {
+/** As teclas globais do Docky (ficam em Geral). */
+export function HotkeysGroup() {
+  return (
+    <>
+      <Group title="Teclas">
+        {HOTKEYS.map(([label, keys]) => (
+          <Row key={label} label={label}>
+            <div className="kc">
+              {keys.map((k) => (
+                <kbd key={k}>{k}</kbd>
+              ))}
+            </div>
+          </Row>
+        ))}
+      </Group>
+      <p className="hint">Se outro programa já usa uma dessas teclas, ela fica de fora e as outras continuam funcionando.</p>
+    </>
+  );
+}
+
+/** As partes da área de Atalhos. A escolhida é lembrada neste computador (o armazenamento pode faltar). */
+type ShortcutsTab = "lista" | "secoes" | "grupos" | "icones";
+const TAB_KEY = "docky-settings-shortcuts-tab";
+const readTab = (): ShortcutsTab => {
   try {
-    return localStorage.getItem(GROUPS_OPEN_KEY) === "1";
+    const saved = localStorage.getItem(TAB_KEY);
+    return saved === "secoes" || saved === "grupos" || saved === "icones" ? saved : "lista";
   } catch {
-    return false;
+    return "lista";
   }
 };
-const saveGroupsOpen = (open: boolean) => {
+const saveTab = (tab: ShortcutsTab) => {
   try {
-    localStorage.setItem(GROUPS_OPEN_KEY, open ? "1" : "0");
+    localStorage.setItem(TAB_KEY, tab);
   } catch {
     // sem armazenamento: só não lembra da escolha
   }
@@ -273,11 +295,11 @@ export function ShortcutsEditor() {
   const [suggesting, setSuggesting] = useState(false);
   const groupToEdit = editingGroup === null ? undefined : items.find((s) => s.id === editingGroup && s.group);
   const pickApp = (id: string) => void ipc.pickPath("app").then((path) => path && change(id, { target: path }));
-  /** Os grupos ficam numa parte que abre e fecha, fechada de início: o foco da tela são os atalhos. */
-  const [groupsOpen, setGroupsOpen] = useState(readGroupsOpen);
-  const toggleGroups = (open: boolean) => {
-    setGroupsOpen(open);
-    saveGroupsOpen(open);
+  /** A área se divide em partes (a lista, as seções, os grupos e os ícones) para não virar uma página sem fim. */
+  const [tab, setTab] = useState<ShortcutsTab>(readTab);
+  const openTab = (next: ShortcutsTab) => {
+    setTab(next);
+    saveTab(next);
   };
   /** O atalho recém-criado: entra no fim da lista (a ordem dos outros não muda), a tela rola até ele e o nome ganha o foco. */
   const [fresh, setFresh] = useState<string | null>(null);
@@ -299,7 +321,7 @@ export function ShortcutsEditor() {
     const group: Shortcut = { name: "", target: "", icon: "lib:briefcase", id: newId(), group: true, members: [] };
     set([group, ...items]);
     setEditingGroup(group.id);
-    toggleGroups(true);
+    openTab("grupos");
   };
   const hideable = hideableCount(items);
 
@@ -384,6 +406,24 @@ export function ShortcutsEditor() {
         )}
       </div>
 
+      <div className="subtabs" role="tablist" aria-label="Partes dos atalhos">
+        {(
+          [
+            ["lista", "Atalhos", plain.length],
+            ["secoes", "Seções", config.shortcutSections.length],
+            ["grupos", "Grupos", groups.length],
+            ["icones", "Ícones", null],
+          ] as [ShortcutsTab, string, number | null][]
+        ).map(([id, label, count]) => (
+          <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "on" : ""} onClick={() => openTab(id)}>
+            {label}
+            {count !== null && <i>{count}</i>}
+          </button>
+        ))}
+      </div>
+
+      {tab === "lista" && (
+        <>
       <AppSuggestions />
 
       <Group>
@@ -412,48 +452,27 @@ export function ShortcutsEditor() {
           <Toggle label="Confirmar antes de abrir" value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
         </Row>
       </Group>
+        </>
+      )}
 
-      <SectionsGroup />
+      {tab === "secoes" && <SectionsGroup />}
 
-      <Group>
-        <Row label="Grupos" hint={groups.length > 0 ? `${plural(groups.length, "grupo", "grupos")}. Abrem vários atalhos de uma vez` : "Abrem vários atalhos de uma vez"}>
-          {groupsOpen && (
-            <>
-              <button className="btn" onClick={() => setSuggesting((v) => !v)} aria-pressed={suggesting}>
-                Sugestões
-              </button>
-              <button className="btn primary" disabled={items.length >= 60} onClick={addGroup}>
-                + Grupo
-              </button>
-            </>
-          )}
-          <button className="btn disc" aria-expanded={groupsOpen} onClick={() => toggleGroups(!groupsOpen)}>
-            {groupsOpen ? "Ocultar" : "Mostrar"}
-            <ArrowDownIcon size={12} />
-          </button>
-        </Row>
-        {groupsOpen && (
-          <>
-            {groups.length === 0 && <Row label="Nenhum grupo ainda" hint="Crie um, ou veja as sugestões (Trabalho, Jogos, Estudos…)" />}
-            <div className="sortable">{groups.map((entry) => row(entry, sortGroups))}</div>
-          </>
-        )}
-      </Group>
-
-      <AutoIconsGroup />
-
-      <Group>
-        {HOTKEYS.map(([label, keys]) => (
-          <Row key={label} label={label}>
-            <div className="kc">
-              {keys.map((k) => (
-                <kbd key={k}>{k}</kbd>
-              ))}
-            </div>
+      {tab === "grupos" && (
+        <Group>
+          <Row label="Grupos" hint={groups.length > 0 ? `${plural(groups.length, "grupo", "grupos")}. Cada um abre vários atalhos de uma vez` : "Um grupo abre vários atalhos de uma vez"}>
+            <button className="btn" onClick={() => setSuggesting((v) => !v)} aria-pressed={suggesting}>
+              Sugestões
+            </button>
+            <button className="btn primary" disabled={items.length >= 60} onClick={addGroup}>
+              + Grupo
+            </button>
           </Row>
-        ))}
-      </Group>
-      <p className="hint">Se outro programa já usa uma dessas teclas, ela fica de fora e as outras continuam funcionando.</p>
+          {groups.length === 0 && <Row label="Nenhum grupo ainda" hint="Crie um, ou veja as sugestões (Trabalho, Jogos, Estudos…)" />}
+          <div className="sortable">{groups.map((entry) => row(entry, sortGroups))}</div>
+        </Group>
+      )}
+
+      {tab === "icones" && <AutoIconsGroup />}
     </>
   );
 }

@@ -4,9 +4,35 @@
 }
 .sec-row .summary {
   flex: 1;
-  color: var(--ink3, rgba(255, 255, 255, 0.36));
+  color: var(--ink3, rgba(255, 255, 255, 0.5));
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+}
+/* O número de prioridade: a primeira seção é a 1 */
+.sec-rank {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sec-row[style*="order: 0;"] .sec-rank {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+}
+.sec-open {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink3, rgba(255, 255, 255, 0.5));
+  font-size: 12px;
 }
 .secsel {
   flex: none;
