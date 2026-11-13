@@ -115,6 +115,8 @@ pub struct Config {
     pub start_with_windows: bool,
     pub hover_open: bool,
     pub hide_in_fullscreen: bool,
+    /// Reserva uma faixa no topo das telas da ilha: as janelas maximizadas começam abaixo da pílula.
+    pub reserve_space: bool,
     pub eyes: bool,
     pub follow_cursor: bool,
     pub glow: u8,
@@ -200,6 +202,7 @@ impl Default for Config {
             start_with_windows: false,
             hover_open: true,
             hide_in_fullscreen: true,
+            reserve_space: true,
             eyes: true,
             follow_cursor: true,
             glow: 70,
@@ -316,6 +319,9 @@ pub fn set_config(
     app.emit("config-changed", &config).map_err(|e| e.to_string())?;
     // Atalho novo sem ícone: busca o ícone dele em segundo plano.
     crate::icons::schedule(&app);
+    if previous.reserve_space != config.reserve_space {
+        crate::reserve::sync(&app);
+    }
     if previous.screens != config.screens {
         // Criar e fechar janelas fora deste comando: no Windows, fazer isso aqui pode travar.
         let handle = app.clone();

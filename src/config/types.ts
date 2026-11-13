@@ -24,6 +24,8 @@ export interface Config {
   startWithWindows: boolean;
   hoverOpen: boolean;
   hideInFullscreen: boolean;
+  /** Reserva uma faixa no topo das telas da ilha: as janelas maximizadas começam abaixo da pílula. */
+  reserveSpace: boolean;
   eyes: boolean;
   followCursor: boolean;
   glow: number;
@@ -88,6 +90,7 @@ export const DEFAULT_CONFIG: Config = {
   startWithWindows: false,
   hoverOpen: true,
   hideInFullscreen: true,
+  reserveSpace: true,
   eyes: true,
   followCursor: true,
   glow: 70,

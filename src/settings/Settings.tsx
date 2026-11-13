@@ -49,6 +49,9 @@ function AreaContent({ id }: { id: AreaId }) {
             <Row label="Esconder em tela cheia" hint="Jogos, vídeos e apresentações">
               <Toggle label="Esconder em tela cheia" value={config.hideInFullscreen} onChange={(v) => update({ hideInFullscreen: v })} />
             </Row>
+            <Row label="Deixar espaço para a ilha" hint="Janelas maximizadas, como a do navegador, começam abaixo da pílula">
+              <Toggle label="Deixar espaço para a ilha" value={config.reserveSpace} onChange={(v) => update({ reserveSpace: v })} />
+            </Row>
           </Group>
           <Group title="Avisos curtos">
             <Row label="Aviso do carregador" hint="Quando você liga o carregador">

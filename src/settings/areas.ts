@@ -28,7 +28,7 @@ export const AREAS: Area[] = [
   { id: "claude", label: "Claude Code", lead: "Veja o que o Claude está fazendo e aprove pedidos pela ilha.", group: "Conexões", options: ["Hooks do Claude Code", "Aprovar pela ilha", "Faixa “Claude trabalhando”", "Aviso “Claude terminou”", "Servidor local", "permissões"] },
   { id: "integracoes", label: "Agenda e clima", lead: "Google Agenda e a cidade do clima.", group: "Conexões", options: ["Cidade do clima", "Unidade", "Google Agenda", "ID do cliente", "Chave secreta", "Como criar o ID do cliente", "temperatura"] },
   { id: "shelf", label: "Shelf", lead: "Para onde vão os arquivos que você solta na ilha.", group: "Conexões", options: ["Ao enviar", "Adicionar pasta", "arquivos", "arrastar"] },
-  { id: "geral", label: "Geral", lead: "Abrir com o Windows, telas, avisos e teclas.", group: "Sistema", options: ["Iniciar com o Windows", "Telas", "Abrir ao passar o mouse", "Esconder em tela cheia", "Aviso do carregador", "Aviso de volume", "Aviso do Foco", "Teclas", "Abrir e fechar a ilha", "monitor", "atalho de teclado"] },
+  { id: "geral", label: "Geral", lead: "Abrir com o Windows, telas, avisos e teclas.", group: "Sistema", options: ["Iniciar com o Windows", "Telas", "Abrir ao passar o mouse", "Esconder em tela cheia", "Deixar espaço para a ilha", "Aviso do carregador", "Aviso de volume", "Aviso do Foco", "Teclas", "Abrir e fechar a ilha", "monitor", "atalho de teclado", "maximizar", "janela maximizada"] },
   { id: "sistema", label: "Monitor do sistema", lead: "A página com o uso de processador, memória e placa de vídeo.", group: "Sistema", options: ["Atualizar a cada", "cpu", "memória", "gpu"] },
 ];
 
