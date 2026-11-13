@@ -2402,3 +2402,172 @@
 .gs-row {
   --ink3: rgba(255, 255, 255, 0.5);
 }
+
+/* Espiar: o mouse sobre a pílula mostra o player ou um resumo, sem abrir a ilha */
+.pk {
+  position: relative;
+  height: 100%;
+  padding: 0 16px;
+}
+.pk-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding-left: 42px;
+}
+.notch.no-eyes .pk-top {
+  padding-left: 4px;
+}
+.pk-top.center {
+  justify-content: center;
+  padding-left: 0;
+  font-size: 13.5px;
+}
+.pk-date {
+  color: var(--ink2);
+  font-weight: 500;
+}
+.pk-song {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pk-song b {
+  font-weight: 600;
+}
+.pk-song em {
+  color: var(--ink2);
+  font-style: normal;
+  font-weight: 500;
+}
+.pk-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+}
+.pk-cover {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+.pk-time {
+  flex: none;
+  width: 34px;
+  color: var(--ink2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.pk-bar {
+  flex: 1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.pk-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent, #ff5c7a);
+  transition: width 0.4s linear;
+}
+.pk-ctl {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+.pk-ctl button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: var(--ink2);
+  transition: background 0.18s, color 0.18s, transform 0.12s;
+}
+.pk-ctl button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+.pk-ctl button:active {
+  transform: scale(0.9);
+}
+.pk-ctl button.main {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+.pk-chips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 44px;
+}
+.pk-chip {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.18s, color 0.18s;
+}
+.pk-chip:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+.pk-chip span {
+  color: #fff;
+}
+.pk-chip.wide {
+  flex: 0 1 auto;
+  max-width: 220px;
+}
+.pk-chip.wide span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pk-chip em {
+  flex: none;
+  color: var(--ink3);
+  font-style: normal;
+  font-weight: 500;
+}
+.pk-chip.on {
+  --tc: #ff5c7a;
+  background: color-mix(in srgb, var(--tc) 16%, transparent);
+  color: var(--tc);
+}
+.pk-chip.on.short,
+.pk-chip.on.long {
+  --tc: #3dd68c;
+}
+.pk-chip.on.custom {
+  --tc: #a98bff;
+}
+.pk-chip.on span {
+  color: var(--tc);
+  font-variant-numeric: tabular-nums;
+}
+.pk-cover.empty {
+  display: grid;
+  place-items: center;
+  color: var(--ink3);
+}

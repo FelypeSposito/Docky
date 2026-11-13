@@ -43,7 +43,7 @@ function AreaContent({ id }: { id: AreaId }) {
             <ScreensRow />
           </Group>
           <Group title="Comportamento">
-            <Row label="Abrir ao passar o mouse" hint="Senão, só abre com clique ou com Ctrl+Alt+D">
+            <Row label="Abrir ao passar o mouse" hint="Desligado, passar o mouse mostra o player (com música) ou um resumo, e a ilha abre com clique ou Ctrl+Alt+D">
               <Toggle label="Abrir ao passar o mouse" value={config.hoverOpen} onChange={(v) => update({ hoverOpen: v })} />
             </Row>
             <Row label="Esconder em tela cheia" hint="Jogos, vídeos e apresentações">

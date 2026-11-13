@@ -1,6 +1,6 @@
 /** Estados visuais da ilha e seus tamanhos (pixels lógicos). Cresce a cada fase. */
 export type Overlay = "charge" | "volume" | "done" | "timer";
-export type Mode = "idle" | "lyric" | "charge" | "volume" | "done" | "timer" | "work" | "ask" | "expanded";
+export type Mode = "idle" | "lyric" | "charge" | "volume" | "done" | "timer" | "work" | "ask" | "peek" | "expanded";
 
 /** O que o Claude Code está pedindo da ilha agora. */
 export type ClaudeActivity = "ask" | "work" | null;
@@ -19,6 +19,8 @@ export const SIZES: Record<Mode, Size> = {
   timer: { w: 296, h: 36 },
   work: { w: 380, h: 36 },
   ask: { w: 456, h: 142 },
+  /** O mouse sobre a pílula: o player de música ou o resumo, numa ilha um pouco maior. */
+  peek: { w: 430, h: 88 },
   expanded: { w: 532, h: 252 },
 };
 
@@ -46,10 +48,12 @@ export function resolveMode(state: {
   overlay: Overlay | null;
   lyricActive: boolean;
   claude: ClaudeActivity;
+  peek?: boolean;
 }): Mode {
   if (state.claude === "ask") return "ask";
   if (state.expanded) return "expanded";
   if (state.overlay) return state.overlay;
+  if (state.peek) return "peek";
   if (state.claude === "work" && !state.lyricActive) return "work";
   return state.lyricActive ? "lyric" : "idle";
 }

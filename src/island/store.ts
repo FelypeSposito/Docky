@@ -12,6 +12,9 @@ interface IslandStore {
   /** Na tela expandida, mostra os ajustes da página no lugar do conteúdo. */
   quick: boolean;
   overlay: Overlay | null;
+  /** O mouse está sobre a pílula recolhida (com "abrir ao passar o mouse" desligado): mostra o player ou o resumo. */
+  peek: boolean;
+  setPeek: (peek: boolean) => void;
   page: string;
   /** O lugar no cabeçalho da ilha aberta onde a página põe o campo dela (a busca, a nota rápida). */
   headerSlot: HTMLElement | null;
@@ -33,15 +36,17 @@ export const useIslandStore = create<IslandStore>((set) => ({
   large: false,
   quick: false,
   overlay: null,
+  peek: false,
+  setPeek: (peek) => set((s) => (s.peek === peek ? s : { peek })),
   page: "music",
   headerSlot: null,
   setHeaderSlot: (headerSlot) => set((s) => (s.headerSlot === headerSlot ? s : { headerSlot })),
 
-  expand: () => set({ expanded: true }),
-  collapse: () => set({ expanded: false, pinned: false, large: false, quick: false }),
+  expand: () => set({ expanded: true, peek: false }),
+  collapse: () => set({ expanded: false, pinned: false, large: false, quick: false, peek: false }),
   toggleLarge: () => set((s) => ({ large: !s.large, quick: false, pinned: s.large ? s.pinned : true })), // ao ampliar, fica aberta
   toggleQuick: () => set((s) => ({ quick: !s.quick })),
-  togglePin: () => set((s) => ({ pinned: !s.pinned, expanded: !s.pinned ? true : s.expanded })),
+  togglePin: () => set((s) => ({ pinned: !s.pinned, expanded: !s.pinned ? true : s.expanded, peek: false })),
   setPage: (page) => set({ page }),
 
   showOverlay: (overlay, durationMs) => {

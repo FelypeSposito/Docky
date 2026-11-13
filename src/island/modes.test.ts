@@ -36,3 +36,15 @@ describe("resolveMode", () => {
     expect(resolveMode({ expanded: true, overlay: "charge", lyricActive: true, claude: "ask" })).toBe("ask");
   });
 });
+
+describe("espiar", () => {
+  const base = { expanded: false, overlay: null, lyricActive: true, claude: null } as const;
+  it("o mouse sobre a pílula mostra o espiar, acima da letra", () => {
+    expect(resolveMode({ ...base, peek: true })).toBe("peek");
+  });
+  it("aberta, um aviso ou um pedido do Claude ganham do espiar", () => {
+    expect(resolveMode({ ...base, peek: true, expanded: true })).toBe("expanded");
+    expect(resolveMode({ ...base, peek: true, overlay: "timer" })).toBe("timer");
+    expect(resolveMode({ ...base, peek: true, claude: "ask" })).toBe("ask");
+  });
+});

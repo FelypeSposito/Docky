@@ -13,6 +13,7 @@ import { lineIndexAt } from "../media/lrc";
 import { useMediaStore, useMediaSync, usePositionMs } from "../media/store";
 import { Dock } from "./Dock";
 import { GlobalSearch } from "./GlobalSearch";
+import { PeekGlance, PeekPlayer } from "./Peek";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
 import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
@@ -104,6 +105,7 @@ export function Island() {
   const page = useIslandStore((s) => s.page);
   const large = useIslandStore((s) => s.large);
   const quick = useIslandStore((s) => s.quick);
+  const peek = useIslandStore((s) => s.peek);
   const media = useMediaStore((s) => s.media);
   const lyrics = useMediaStore((s) => s.lyrics);
   const accent = useMediaStore((s) => s.accent) ?? DEFAULT_ACCENT;
@@ -132,7 +134,13 @@ export function Island() {
   const lyricActive = config.lyricPill && !!media?.playing && !!lines;
   // Sem letra para mostrar, a pílula mostra o nome da música enquanto ela toca.
   const songActive = !lyricActive && !!media?.playing && !!media?.title;
-  const mode: Mode = resolveMode({ expanded, overlay, lyricActive: lyricActive || songActive, claude });
+  const mode: Mode = resolveMode({ expanded, overlay, lyricActive: lyricActive || songActive, claude, peek });
+  // O player aparece com música tocando, ou pausada há pouco (para dar play de novo sem abrir a ilha).
+  const [lastPlayed, setLastPlayed] = useState(0);
+  useEffect(() => {
+    if (media?.playing) setLastPlayed(Date.now());
+  }, [media?.playing, media?.title]);
+  const peekMusic = !!media && (media.playing || Date.now() - lastPlayed < 5 * 60_000);
   const shownPages = visiblePages(PAGES, config.pageOrder, config.hiddenPages);
   const ActivePage = shownPages.find((p) => p.id === page) ?? shownPages[0];
   // Páginas com tela maior (Large) ou só com ajustes (Settings) ganham o botão de expandir.
@@ -167,10 +175,24 @@ export function Island() {
       expand: () => useIslandStore.getState().expand(),
       collapse: () => useIslandStore.getState().collapse(),
     });
-    const off = ipc.onHover((inside) => controller.setHover(inside));
+    // Com "abrir ao passar o mouse" desligado, o mouse sobre a pílula só espia: o player ou o resumo.
+    const peeker = createHoverController({
+      expandDelay: 220,
+      collapseDelay: 260,
+      canExpand: () =>
+        !hoverOpen.current && !useIslandStore.getState().expanded && useClaudeStore.getState().permissions.length === 0,
+      canCollapse: () => useIslandStore.getState().peek,
+      expand: () => useIslandStore.getState().setPeek(true),
+      collapse: () => useIslandStore.getState().setPeek(false),
+    });
+    const off = ipc.onHover((inside) => {
+      controller.setHover(inside);
+      peeker.setHover(inside);
+    });
     return () => {
       off();
       controller.dispose();
+      peeker.dispose();
     };
   }, []);
 
@@ -323,6 +345,10 @@ export function Island() {
               </span>
             </div>
           </div>
+        </div>
+
+        <div className={`layer${mode === "peek" ? " on" : ""}`} style={{ width: SIZES.peek.w }}>
+          {peekMusic ? <PeekPlayer active={mode === "peek"} /> : <PeekGlance active={mode === "peek"} clock={clock} date={date} />}
         </div>
 
         <div className={`layer ask${mode === "ask" ? " on" : ""}`} style={{ width: SIZES.ask.w }}>
