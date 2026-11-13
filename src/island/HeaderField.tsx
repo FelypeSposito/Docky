@@ -15,6 +15,8 @@ interface HeaderFieldProps {
   label: string;
   onChange: (value: string) => void;
   onEnter: () => void;
+  /** Outras teclas no campo (as setas, para andar numa lista de resultados). */
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   /** Com a página aberta, qualquer tecla de letra já começa a digitar aqui. */
   typeToFocus?: boolean;
 }
@@ -23,7 +25,7 @@ interface HeaderFieldProps {
  * O campo do cabeçalho (a busca dos Atalhos, a nota rápida): o mesmo desenho em todas as páginas.
  * Enter confirma; Esc com algo digitado só limpa, e vazio deixa a ilha recolher como sempre.
  */
-export function HeaderField({ icon, value, placeholder, label, onChange, onEnter, typeToFocus = false }: HeaderFieldProps) {
+export function HeaderField({ icon, value, placeholder, label, onChange, onEnter, onKeyDown, typeToFocus = false }: HeaderFieldProps) {
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export function HeaderField({ icon, value, placeholder, label, onChange, onEnter
           spellCheck={false}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
+            onKeyDown?.(e);
             if (e.key === "Enter") onEnter();
             if (e.key === "Escape" && value) {
               e.stopPropagation();

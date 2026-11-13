@@ -36,7 +36,7 @@
 }
 .secsel {
   flex: none;
-  max-width: 150px;
+  max-width: 118px;
   height: 30px;
   padding: 0 8px;
   border: 0;
@@ -58,4 +58,34 @@
 .secsel option {
   background: #161616;
   color: #fff;
+}
+
+/* "N atalhos" abre a escolha dos atalhos da seção */
+.sec-pick {
+  flex: none;
+  min-width: 92px;
+  font-variant-numeric: tabular-nums;
+}
+.sec-pick.on {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: #fff;
+}
+.sec-chips {
+  margin: 10px 0 12px;
+}
+.sec-chips button i.from {
+  margin-left: 6px;
+  color: var(--ink3);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 500;
+}
+.sec-done {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* As linhas da lista de atalhos têm muitos controles: o espaço entre eles é menor que o das outras linhas */
+.sa .row.srow {
+  gap: 8px;
 }

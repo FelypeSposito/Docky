@@ -5,6 +5,7 @@ import { filterShortcuts } from "../../launcher/filter";
 import { GroupEditor } from "../../launcher/GroupEditor";
 import { IconPicker } from "../../launcher/IconPicker";
 import { useShortcutImages } from "../../launcher/icons";
+import { ISLAND_SLOTS, groupsFirst, islandIds, toggleIsland } from "../../launcher/island";
 import { confirmationText, hideGrouped, hideableCount, memberSummary, membersOf, needsConfirmation, newId, removeShortcut, reorderSection, reorderVisible, setHidden, splitShortcuts } from "../../launcher/model";
 import {
   type FilterChip,
@@ -28,12 +29,12 @@ import { useSortable } from "../../settings/useSortable";
 import { useGridSort } from "../useGridSort";
 import { EmptyState } from "../EmptyState";
 import { HeaderField } from "../HeaderField";
-import { ArrowDownIcon, EyeIcon, EyeOffIcon, GripIcon, ListIcon, PencilIcon, SearchIcon, TrashIcon } from "../icons";
+import { ArrowDownIcon, EyeIcon, EyeOffIcon, GripIcon, ListIcon, PencilIcon, PinIcon, SearchIcon, TrashIcon } from "../icons";
 import { QButton, QIconButton, QPath, QText } from "../quick/controls";
 import { Suggestions } from "../quick/Suggestions";
 import { useIslandStore } from "../store";
 
-const MAX_TILES = 8;
+const MAX_TILES = ISLAND_SLOTS;
 
 /** O que a página faz com um clique: confirma (apps, jogos e grupos), abre e conta o que deu errado. */
 function useLauncher() {
@@ -86,8 +87,6 @@ function Confirm({ text, onCancel, onOk }: { text: string; onCancel: () => void;
   );
 }
 
-/** Os grupos antes dos atalhos comuns, cada parte na ordem em que está. */
-const groupsFirst = <T extends { item: Shortcut }>(list: T[]): T[] => [...list.filter((e) => e.item.group), ...list.filter((e) => !e.item.group)];
 
 export function LauncherPage({ active }: { active: boolean }) {
   const { shortcuts, images, pending, setPending, error, open, ask } = useLauncher();
@@ -194,6 +193,8 @@ function EditRow({
   pickIcon,
   editItems,
   toggleHidden,
+  inIsland,
+  toggleIsland: onToggleIsland,
   autoFocus,
   sections,
   sectionId,
@@ -214,6 +215,9 @@ function EditRow({
   pickIcon: () => void;
   editItems: () => void;
   toggleHidden: () => void;
+  /** Aparece na ilha antes de expandir (um dos 8 primeiros). */
+  inIsland?: boolean;
+  toggleIsland?: () => void;
 }) {
   const [sure, setSure] = useState(false);
   const id = shortcut.id;
@@ -232,7 +236,7 @@ function EditRow({
       </button>
       <QText
         label="Nome do atalho"
-        width={shortcut.group ? 150 : 124}
+        width={shortcut.group ? 150 : 116}
         value={shortcut.name}
         placeholder={shortcut.group ? "Nome do grupo" : "Nome"}
         autoFocus={autoFocus}
@@ -243,7 +247,7 @@ function EditRow({
           {memberSummary(shortcut, shortcuts)}
         </span>
       ) : (
-        <QPath label="Destino do atalho" kind="app" width={sections && sections.length > 0 ? 150 : 210} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: v })} />
+        <QPath label="Destino do atalho" kind="app" width={sections && sections.length > 0 ? 92 : 190} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: v })} />
       )}
       {sections && sections.length > 0 && onSection && (
         <select className="le-secsel" aria-label={`Seção de ${shortcut.name || "atalho"}`} value={sectionId ?? ""} onChange={(e) => onSection(e.target.value || null)}>
@@ -258,6 +262,11 @@ function EditRow({
       {shortcut.group && (
         <QIconButton label="Itens do grupo" onClick={editItems}>
           <ListIcon />
+        </QIconButton>
+      )}
+      {onToggleIsland && (
+        <QIconButton label={inIsland ? "Aparece na ilha: clique para tirar" : "Mostrar na ilha (entre os 8 primeiros)"} active={!!inIsland} onClick={onToggleIsland}>
+          <PinIcon />
         </QIconButton>
       )}
       <QIconButton label={shortcut.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!shortcut.hidden} onClick={toggleHidden}>
@@ -317,7 +326,10 @@ function SectionView({
   canDrag,
   renderTile,
   fixed = false,
+  onAdd,
 }: {
+  /** Cria um atalho novo já dentro desta seção. */
+  onAdd?: () => void;
   id: string;
   title: string;
   collapsed: boolean;
@@ -336,18 +348,25 @@ function SectionView({
   );
   return (
     <section className={`lsec${collapsed ? " closed" : ""}`} aria-labelledby={`lsec-${id}`}>
-      {fixed ? (
-        <h3 id={`lsec-${id}`} className="lsec-head fixed">
-          <span>{title}</span>
-          <i>{entries.length}</i>
-        </h3>
-      ) : (
-        <button id={`lsec-${id}`} className="lsec-head" aria-expanded={!collapsed} onClick={onToggle}>
-          <ArrowDownIcon size={12} />
-          <span>{title}</span>
-          <i>{entries.length}</i>
-        </button>
-      )}
+      <div className="lsec-top">
+        {fixed ? (
+          <h3 id={`lsec-${id}`} className="lsec-head fixed">
+            <span>{title}</span>
+            <i>{entries.length}</i>
+          </h3>
+        ) : (
+          <button id={`lsec-${id}`} className="lsec-head" aria-expanded={!collapsed} onClick={onToggle}>
+            <ArrowDownIcon size={12} />
+            <span>{title}</span>
+            <i>{entries.length}</i>
+          </button>
+        )}
+        {onAdd && (
+          <button className="lsec-add" onClick={onAdd} aria-label={`Novo atalho em ${title}`} title={`Novo atalho em ${title}`}>
+            + Atalho
+          </button>
+        )}
+      </div>
       <div className="lsec-body" inert={collapsed}>
         <div className="lsec-clip">
           <div className="lsec-grid">{entries.map((entry) => renderTile(entry, sorter))}</div>
@@ -427,6 +446,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
   const { groups, items: plain } = splitShortcuts(shortcuts);
 
   const set = (next: Shortcut[]) => update({ shortcuts: next });
+  const onIsland = useMemo(() => islandIds(shortcuts), [shortcuts]);
   const sortGroups = useSortable(
     groups.map((e) => e.item.id),
     (order) => set(reorderSection(shortcuts, true, order)),
@@ -535,6 +555,8 @@ export function LauncherLarge({ active }: { active: boolean }) {
       pickIcon={() => setPicking(entry.item.id)}
       editItems={() => setEditingGroup(entry.item.id)}
       toggleHidden={() => set(setHidden(shortcuts, entry.item.id, !entry.item.hidden))}
+      inIsland={onIsland.has(entry.item.id)}
+      toggleIsland={entry.item.group ? undefined : () => set(toggleIsland(shortcuts, entry.item.id))}
       sections={entry.item.group ? undefined : sections}
       sectionId={sectionOf(entry.item.id, sections)?.id ?? null}
       onSection={(sectionId) => setSections(assignSection(sections, entry.item.id, sectionId))}
@@ -574,6 +596,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
         onReorder={reorderItems}
         canDrag
         renderTile={tile}
+        onAdd={() => addInto(section.id)}
       />
     ) : (
       <SectionView
@@ -589,6 +612,16 @@ export function LauncherLarge({ active }: { active: boolean }) {
         renderTile={tile}
       />
     );
+  /** O "+ Atalho" de uma seção: cria o atalho já nela e abre a edição com o nome em foco. */
+  const addInto = (sectionId: string) => {
+    const id = newId();
+    update({
+      shortcuts: [...shortcuts, { id, name: "", target: "", icon: "", group: false, members: [] }],
+      shortcutSections: assignSection(sections, id, sectionId),
+    });
+    setEditing(true);
+    setFresh(id);
+  };
   /** Põe os atalhos sem seção nas seções prontas que fazem sentido (Jogos, Comunicação, Utilitários…). */
   const organize = () => setSections(autoOrganize(shortcuts, sections, newId));
   const unsorted = shortcuts.filter((s) => !s.group && !s.hidden && !sectionOf(s.id, sections)).length;
@@ -612,7 +645,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
             <QButton onClick={() => setSuggesting(true)} title="Grupos prontos e apps que você mais usa">
               ✦ Sugestões
             </QButton>
-            <span className="qs-note">Arraste pela alça para ordenar. O olho oculta o atalho da lista, e ele continua nos grupos.</span>
+            <span className="qs-note">Os com o pino rosa aparecem na ilha. Arraste pela alça para ordenar; o olho oculta da lista.</span>
           </>
         ) : !searching && chips.length > 0 ? (
           <FilterRow chips={chips} active={current} onSelect={selectFilter} />

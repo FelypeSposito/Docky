@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import type { ShelfFolder, Shortcut } from "../config/types";
 import type { MonitorInfo } from "../lib/ipc";
-import { ArrowDownIcon, ArrowUpIcon, EyeIcon, EyeOffIcon, FolderIcon, GripIcon, ListIcon, TrashIcon } from "../island/icons";
+import { ArrowDownIcon, ArrowUpIcon, EyeIcon, EyeOffIcon, FolderIcon, GripIcon, ListIcon, PinIcon, TrashIcon } from "../island/icons";
+import { islandIds, toggleIsland } from "../launcher/island";
 import { moveItem, orderPages } from "../island/pageOrder";
 import { PAGES } from "../island/pages/registry";
 import { useShelfImages, useShortcutImages } from "../launcher/icons";
@@ -324,6 +325,7 @@ export function ShortcutsEditor() {
     openTab("grupos");
   };
   const hideable = hideableCount(items);
+  const onIsland = islandIds(items);
 
   const row = ({ item, index }: { item: Shortcut; index: number }, sortable: ReturnType<typeof useSortable>) => (
     <div
@@ -341,7 +343,7 @@ export function ShortcutsEditor() {
       </button>
       <TextField
         label="Nome do atalho"
-        width={item.group ? 170 : 140}
+        width={item.group ? 170 : 128}
         value={item.name}
         placeholder={item.group ? "Nome do grupo" : "Nome"}
         autoFocus={item.id === fresh}
@@ -360,7 +362,7 @@ export function ShortcutsEditor() {
         <>
           <TextField
             label="Destino do atalho"
-            width={config.shortcutSections.length > 0 ? 150 : 190}
+            width={config.shortcutSections.length > 0 ? 128 : 180}
             value={item.target}
             placeholder="C:\Apps\app.exe, uma pasta ou https://…"
             onCommit={(v) => change(item.id, { target: cleanTarget(v) })}
@@ -370,6 +372,11 @@ export function ShortcutsEditor() {
           </IconButton>
           <SectionSelect shortcutId={item.id} name={item.name} />
         </>
+      )}
+      {!item.group && (
+        <IconButton label={onIsland.has(item.id) ? "Aparece na ilha: clique para tirar" : "Mostrar na ilha (entre os 8 primeiros)"} active={onIsland.has(item.id)} onClick={() => set(toggleIsland(items, item.id))}>
+          <PinIcon />
+        </IconButton>
       )}
       <IconButton label={item.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!item.hidden} onClick={() => set(setHidden(items, item.id, !item.hidden))}>
         {item.hidden ? <EyeOffIcon /> : <EyeIcon />}
@@ -427,7 +434,7 @@ export function ShortcutsEditor() {
       <AppSuggestions />
 
       <Group>
-        <Row label="Atalhos" hint="Apps, jogos, pastas, arquivos e sites. O olho oculta da lista, e o atalho continua valendo nos grupos">
+        <Row label="Atalhos" hint="Os 8 primeiros aparecem na ilha (o pino rosa marca quais); os outros ficam na tela expandida. Clique no pino ou arraste para mudar">
           {hideable > 0 && (
             <button className="btn" onClick={() => set(hideGrouped(items))} title="Esconde da lista os atalhos que já estão em algum grupo">
               Ocultar os de grupos ({hideable})

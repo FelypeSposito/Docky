@@ -12,6 +12,7 @@ import { DEFAULT_ACCENT } from "../media/accent";
 import { lineIndexAt } from "../media/lrc";
 import { useMediaStore, useMediaSync, usePositionMs } from "../media/store";
 import { Dock } from "./Dock";
+import { GlobalSearch } from "./GlobalSearch";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
 import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
@@ -25,7 +26,7 @@ import "./island.css";
 import "./quick/quick.css";
 
 const CHARGE_NOTICE_MS = 3400;
-/** Páginas que põem um campo no cabeçalho (a busca dos Atalhos, a nota rápida). */
+/** Páginas com campo próprio no cabeçalho (a busca dos Atalhos, a nota rápida); as outras ganham a busca geral. */
 const FIELD_PAGES = new Set(["launch", "note"]);
 const setHeaderSlot = (el: HTMLDivElement | null) => useIslandStore.getState().setHeaderSlot(el);
 
@@ -364,8 +365,8 @@ export function Island() {
                     <BoltIcon />
                   </span>
                 ) : (
-                  // Nas páginas com campo no cabeçalho, ele precisa do espaço: lá a bateria só aparece quando está acabando.
-                  showBattery && (!FIELD_PAGES.has(ActivePage.id) || quickOn || (power?.percent ?? 100) <= 20) && (
+                  // O campo do cabeçalho precisa do espaço: a bateria só aparece quando está acabando (ou nos ajustes).
+                  showBattery && (quickOn || (power?.percent ?? 100) <= 20) && (
                     <span className={`bat${(power?.percent ?? 100) <= 20 ? " low" : ""}`}>
                       <BatteryIcon />
                       {power?.percent}%
@@ -412,6 +413,7 @@ export function Island() {
             )}
           </div>
 
+          {!FIELD_PAGES.has(ActivePage.id) && !quickOn && <GlobalSearch key={ActivePage.id} active={mode === "expanded"} />}
           <Dock page={ActivePage.id} onPage={(id) => useIslandStore.getState().setPage(id)} />
         </div>
       </div>
