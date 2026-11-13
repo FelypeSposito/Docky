@@ -137,6 +137,9 @@ function AreaContent({ id }: { id: AreaId }) {
             <Row label="Aviso ao terminar" hint="Um aviso curto na ilha quando o tempo acaba">
               <Toggle label="Aviso ao terminar" value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
             </Row>
+            <Row label="Som ao terminar" hint="Um toque suave quando o foco, a pausa ou o contador acaba">
+              <Toggle label="Som ao terminar" value={config.timerSound} onChange={(v) => update({ timerSound: v })} />
+            </Row>
           </Group>
           <Group title="Notas">
             <NotesFolderRow />

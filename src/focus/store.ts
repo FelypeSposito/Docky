@@ -3,9 +3,10 @@ import { useConfigStore } from "../config/useConfig";
 import type { Config } from "../config/types";
 import { useIslandStore } from "../island/store";
 import { ipc } from "../lib/ipc";
+import { playChime } from "./chime";
 import { applySettings, initialTimer, reset, setMode, tick, type TimerMode, type TimerSettings, type TimerState, toggle } from "./timer";
 
-const FINISHED_NOTICE_MS = 4200;
+const FINISHED_NOTICE_MS = 7000;
 
 /** Converte as configurações (em minutos) para o que o timer usa (em segundos). */
 export function settingsFromConfig(config: Pick<Config, "focusMinutes" | "shortBreakMinutes" | "longBreakMinutes" | "focusPerSet" | "timerCustomMinutes">): TimerSettings {
@@ -50,7 +51,11 @@ export const useFocusStore = create<FocusStore>((set, get) => {
         const settings = currentSettings();
         const { state, finished } = tick(get(), settings);
         set({ ...state, perSet: settings.perSet, finished: finished ?? get().finished });
-        if (finished) useIslandStore.getState().showOverlay("timer", FINISHED_NOTICE_MS);
+        if (finished) {
+          useIslandStore.getState().showOverlay("timer", FINISHED_NOTICE_MS);
+          // Com a ilha em várias telas, só a principal toca, para o som não sair repetido.
+          if (useConfigStore.getState().config.timerSound && windowLabel() === "island") playChime();
+        }
       }, 1000);
     } else if (!running && interval) {
       clearInterval(interval);

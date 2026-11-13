@@ -116,6 +116,12 @@ export const CheckIcon = (p: IconProps) => (
   </Stroke>
 );
 
+export const BellIcon = (p: IconProps) => (
+  <Stroke size={12} stroke={2.4} {...p}>
+    <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15L6 16.5zM10 20.5a2.2 2.2 0 0 0 4 0" />
+  </Stroke>
+);
+
 export const SparkIcon = (p: IconProps) => (
   <Stroke {...p}>
     <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" />

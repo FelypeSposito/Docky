@@ -43,6 +43,8 @@ export interface Config {
   noticeVolume: boolean;
   noticeClaudeDone: boolean;
   noticeTimer: boolean;
+  /** Um som suave quando o Foco ou o contador termina. */
+  timerSound: boolean;
   claudeWorkStrip: boolean;
   hiddenPages: string[];
   systemRefreshMs: number;
@@ -103,6 +105,7 @@ export const DEFAULT_CONFIG: Config = {
   noticeVolume: true,
   noticeClaudeDone: true,
   noticeTimer: true,
+  timerSound: true,
   claudeWorkStrip: true,
   hiddenPages: [],
   systemRefreshMs: 1500,

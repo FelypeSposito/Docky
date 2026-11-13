@@ -3,7 +3,7 @@ import { runningSessions } from "../claude/sessions";
 import { startClaudeSync, useClaudeStore } from "../claude/store";
 import { useConfigStore } from "../config/useConfig";
 import { useFocusStore } from "../focus/store";
-import { clock as timerClock, LABELS } from "../focus/timer";
+import { clock as timerClock, LABELS, type TimerMode } from "../focus/timer";
 import { startShelfSync } from "../shelf/store";
 import { startCursorTracking } from "../lib/cursor";
 import { formatClock, formatDate } from "../lib/format";
@@ -15,8 +15,8 @@ import { Dock } from "./Dock";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
 import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
-import { BatteryIcon, BoltIcon, CheckIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, SlidersIcon, VolumeIcon } from "./icons";
-import { bodyHeight, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, type Mode, resolveMode, SIZES } from "./modes";
+import { BatteryIcon, BellIcon, BoltIcon, CheckIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, SlidersIcon, VolumeIcon } from "./icons";
+import { bodyHeight, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, IDLE_TIMER, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { visiblePages } from "./pageOrder";
@@ -65,6 +65,34 @@ function PillLyric({ text }: { text: string }) {
   );
 }
 
+/** Sem letra, a pílula mostra a música: o nome forte e o artista mais apagado. Troca com a mesma animação da letra. */
+function PillSong({ title, artist }: { title: string; artist: string }) {
+  return (
+    <div className="pl song">
+      <span key={`${title}|${artist}`}>
+        <b>{title}</b>
+        {artist && <em> · {artist}</em>}
+      </span>
+    </div>
+  );
+}
+
+/** O Foco rodando na pílula: um anel que esvazia e o tempo restante, na cor do modo (foco, pausa ou livre). */
+function TimerChip({ mode, left, total }: { mode: TimerMode; left: number; total: number }) {
+  const r = 6;
+  const length = 2 * Math.PI * r;
+  const rest = total > 0 ? Math.min(1, Math.max(0, left / total)) : 0;
+  return (
+    <span className={`tchip ${mode}`} title={`${LABELS[mode]}: faltam ${timerClock(left)}`}>
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+        <circle className="bg" cx="8" cy="8" r={r} />
+        <circle className="fg" cx="8" cy="8" r={r} strokeDasharray={length} strokeDashoffset={length * (1 - rest)} />
+      </svg>
+      <b>{timerClock(left)}</b>
+    </span>
+  );
+}
+
 export function Island() {
   const config = useConfigStore((s) => s.config);
   const expanded = useIslandStore((s) => s.expanded);
@@ -86,6 +114,8 @@ export function Island() {
   const timerRunning = useFocusStore((s) => s.running);
   const timerLeft = useFocusStore((s) => s.left);
   const timerFinished = useFocusStore((s) => s.finished);
+  const timerMode = useFocusStore((s) => s.mode);
+  const timerTotal = useFocusStore((s) => s.total);
 
   const sessions = useClaudeStore((s) => s.sessions);
   const permissions = useClaudeStore((s) => s.permissions);
@@ -96,21 +126,24 @@ export function Island() {
 
   const lines = lyrics?.synced ?? null;
   const lyricActive = config.lyricPill && !!media?.playing && !!lines;
-  const mode: Mode = resolveMode({ expanded, overlay, lyricActive, claude });
+  // Sem letra para mostrar, a pílula mostra o nome da música enquanto ela toca.
+  const songActive = !lyricActive && !!media?.playing && !!media?.title;
+  const mode: Mode = resolveMode({ expanded, overlay, lyricActive: lyricActive || songActive, claude });
   const shownPages = visiblePages(PAGES, config.pageOrder, config.hiddenPages);
   const ActivePage = shownPages.find((p) => p.id === page) ?? shownPages[0];
   // Páginas com tela maior (Large) ou só com ajustes (Settings) ganham o botão de expandir.
   const canExpand = !!ActivePage.Large || !!ActivePage.Settings;
   const largeOn = large && canExpand;
   const quickOn = largeOn && !!ActivePage.Settings && (quick || !ActivePage.Large);
-  const size = mode === "expanded" && largeOn ? EXPANDED_LARGE : SIZES[mode];
+  const idleSize = timerRunning ? IDLE_TIMER : SIZES.idle;
+  const size = mode === "expanded" && largeOn ? EXPANDED_LARGE : mode === "idle" ? idleSize : SIZES[mode];
 
   const notchRef = useRef<HTMLDivElement>(null);
   const islandRef = useRef<HTMLDivElement>(null);
   useIslandSpring(notchRef, islandRef, size, config.reduceMotion, EXPANDED_LARGE.h);
 
   // Linha atual da letra para a pílula (a posição só é atualizada enquanto ela está visível).
-  const position = usePositionMs(mode === "lyric");
+  const position = usePositionMs(mode === "lyric" && lyricActive);
   const lineIndex = lines ? lineIndexAt(lines, position, config.lyricDelayMs) : -1;
   const lineText = lineIndex >= 0 ? lines![lineIndex].text || "♪  ♪  ♪" : "♪  ♪  ♪";
 
@@ -174,6 +207,7 @@ export function Island() {
   const showBattery = power?.hasBattery ?? false;
   const charging = !!power && power.hasBattery && (power.charging || power.plugged);
   const playing = !!media?.playing;
+  const timerChip = timerRunning ? <TimerChip mode={timerMode} left={timerLeft} total={timerTotal} /> : null;
   const volumeLevel = volume?.muted ? 0 : (volume?.level ?? 0);
   const eyesMood: EyesMood = mode === "ask" ? "ask" : mode === "work" ? "work" : mode === "charge" || mode === "done" || mode === "timer" ? "wide" : "normal";
   const workSeconds = useSeconds(mode === "work" ? running[0]?.since : undefined);
@@ -194,26 +228,25 @@ export function Island() {
         <div className="grain" />
         {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
 
-        <div className={`layer${mode === "idle" ? " on" : ""}`} style={{ width: SIZES.idle.w }}>
+        <div className={`layer${mode === "idle" ? " on" : ""}`} style={{ width: idleSize.w }}>
           <div className="strip">
             <div className="c clock">
               <span className="time">{clock}</span>
-              {timerRunning && <span className="txt sub">· {timerClock(timerLeft)}</span>}
             </div>
-            <div className="r">{playing && <Equalizer playing />}</div>
+            <div className="r">{timerChip ?? (playing && <Equalizer playing />)}</div>
           </div>
         </div>
 
         <div className={`layer${mode === "lyric" ? " on" : ""}${claudeBadge(mode, claude) ? " claude" : ""}`} style={{ width: SIZES.lyric.w }}>
           <div className="strip">
-            {mode === "lyric" && <PillLyric text={lineText} />}
+            {mode === "lyric" && (lyricActive ? <PillLyric text={lineText} /> : <PillSong title={media?.title ?? ""} artist={media?.artist ?? ""} />)}
             <div className="r">
               {claudeBadge(mode, claude) && (
                 <span className="cw-badge" title={`Claude trabalhando em ${running[0]?.project ?? "um projeto"}`}>
                   <ClaudeSpinner />
                 </span>
               )}
-              <Equalizer playing={playing} />
+              {timerChip ?? <Equalizer playing={playing} />}
             </div>
           </div>
         </div>
@@ -261,15 +294,15 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "timer" ? " on" : ""}`} style={{ width: SIZES.timer.w }}>
+        <div className={`layer alarm${mode === "timer" ? " on" : ""}`} style={{ width: SIZES.timer.w }}>
           <div className="strip">
             <div className="c pad">
               <span className="txt">{timerFinished === "focus" ? "Foco concluído" : timerFinished === "custom" ? "Contador acabou" : "Pausa acabou"}</span>
-              <span className="txt sub">{timerFinished === "custom" ? "Tempo esgotado" : timerFinished ? LABELS[timerFinished] : ""}</span>
+              <span className="txt sub">{timerFinished === "custom" ? "Tempo esgotado" : timerFinished === "focus" ? "Hora da pausa" : "Hora de focar"}</span>
             </div>
             <div className="r">
-              <span className="okc">
-                <CheckIcon />
+              <span className="alarm-ic">
+                <BellIcon />
               </span>
             </div>
           </div>
