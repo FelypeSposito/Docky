@@ -6,7 +6,7 @@ import { GroupEditor } from "../../launcher/GroupEditor";
 import { IconPicker } from "../../launcher/IconPicker";
 import { useShortcutImages } from "../../launcher/icons";
 import { ISLAND_SLOTS, groupsFirst, islandIds, toggleIsland } from "../../launcher/island";
-import { confirmationText, hideGrouped, hideableCount, memberSummary, membersOf, needsConfirmation, newId, removeShortcut, reorderSection, reorderVisible, setHidden, splitShortcuts } from "../../launcher/model";
+import { cleanTarget, confirmationText, hideGrouped, hideableCount, memberSummary, membersOf, needsConfirmation, newId, removeShortcut, reorderSection, reorderVisible, setHidden, splitShortcuts } from "../../launcher/model";
 import {
   type FilterChip,
   type IndexedShortcut,
@@ -247,7 +247,7 @@ function EditRow({
           {memberSummary(shortcut, shortcuts)}
         </span>
       ) : (
-        <QPath label="Destino do atalho" kind="app" width={sections && sections.length > 0 ? 92 : 190} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: v })} />
+        <QPath label="Destino do atalho" kind="app" width={sections && sections.length > 0 ? 92 : 190} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: cleanTarget(v) })} />
       )}
       {sections && sections.length > 0 && onSection && (
         <select className="le-secsel" aria-label={`Seção de ${shortcut.name || "atalho"}`} value={sectionId ?? ""} onChange={(e) => onSection(e.target.value || null)}>
@@ -264,14 +264,16 @@ function EditRow({
           <ListIcon />
         </QIconButton>
       )}
-      {onToggleIsland && (
+      {onToggleIsland && !sure && (
         <QIconButton label={inIsland ? "Aparece na ilha: clique para tirar" : "Mostrar na ilha (entre os 8 primeiros)"} active={!!inIsland} onClick={onToggleIsland}>
           <PinIcon />
         </QIconButton>
       )}
-      <QIconButton label={shortcut.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!shortcut.hidden} onClick={toggleHidden}>
-        {shortcut.hidden ? <EyeOffIcon /> : <EyeIcon />}
-      </QIconButton>
+      {!sure && (
+        <QIconButton label={shortcut.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!shortcut.hidden} onClick={toggleHidden}>
+          {shortcut.hidden ? <EyeOffIcon /> : <EyeIcon />}
+        </QIconButton>
+      )}
       {sure ? (
         <span className="le-sure">
           <QButton onClick={() => setSure(false)}>Não</QButton>
@@ -612,6 +614,14 @@ export function LauncherLarge({ active }: { active: boolean }) {
         renderTile={tile}
       />
     );
+  /** Sair da edição ("Pronto") apaga as linhas que ficaram sem nome e sem destino. */
+  const toggleEditing = () => {
+    if (editing) {
+      const blank = (s: Shortcut) => !s.group && s.name.trim() === "" && s.target.trim() === "";
+      if (shortcuts.some(blank)) set(shortcuts.filter((s) => !blank(s)));
+    }
+    setEditing((v) => !v);
+  };
   /** O "+ Atalho" de uma seção: cria o atalho já nela e abre a edição com o nome em foco. */
   const addInto = (sectionId: string) => {
     const id = newId();
@@ -652,7 +662,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
         ) : (
           <span className="lcx-fill">{searching ? `${matches.length} ${matches.length === 1 ? "resultado" : "resultados"}` : ""}</span>
         )}
-        <button className={`lcx-edit${editing ? " on" : ""}`} onClick={() => setEditing((v) => !v)} aria-pressed={editing}>
+        <button className={`lcx-edit${editing ? " on" : ""}`} onClick={toggleEditing} aria-pressed={editing}>
           <PencilIcon size={13} />
           {editing ? "Pronto" : "Editar"}
         </button>
