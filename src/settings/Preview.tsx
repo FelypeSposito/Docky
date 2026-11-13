@@ -46,11 +46,14 @@ function Pill({ width, children, right }: { width: number; children: React.React
 }
 
 /** A ilha aberta, com o conteúdo de uma página. */
-function Open({ width, height, children }: { width: number; height: number; children: React.ReactNode }) {
+function Open({ width, height, children, eyes = false }: { width: number; height: number; children: React.ReactNode; eyes?: boolean }) {
+  const showEyes = useConfigStore((s) => s.config.eyes) && eyes;
+  const follow = useConfigStore((s) => s.config.followCursor);
   return (
     <div className="pv-island open" style={{ width, height }}>
       <span className="pv-ear l" />
       <span className="pv-ear r" />
+      {showEyes && <Eyes mood="normal" follow={follow} shake={0} />}
       {children}
     </div>
   );
@@ -62,19 +65,18 @@ function ShortcutsPreview() {
   const items = filterShortcuts(shortcuts, "").filter((e) => !e.item.group);
   const blocks = layoutSections(items, shortcutSections);
   const tiles = blocks.flatMap((b) => b.entries).slice(0, 8);
-  const chips = blocks.slice(0, 4).map((b) => b.section?.name ?? (shortcutSections.length > 0 ? "Outros" : "Atalhos"));
   const rows = Math.max(1, Math.ceil(tiles.length / 4));
+  const clock = useClock();
+  // A mesma ilha aberta de verdade: a busca no cabeçalho, a hora à direita e os atalhos grandes embaixo.
   return (
-    <Open width={430} height={66 + rows * 40}>
-      <div className="pv-chips">
-        <span className="on">Tudo</span>
-        {chips.map((name) => (
-          <span key={name}>{name}</span>
-        ))}
+    <Open width={430} height={44 + rows * 48} eyes>
+      <div className="pv-hdr">
+        <span className="pv-search">{items.length > 8 ? `Buscar entre ${items.length} atalhos` : "Buscar atalho"}</span>
+        <b>{clock}</b>
       </div>
       <div className="pv-tiles">
-        {tiles.map(({ item, index }) => (
-          <span key={item.id} className="pv-tile">
+        {tiles.map(({ item, index }, i) => (
+          <span key={item.id} className={`pv-tile${i === 0 ? " first" : ""}`}>
             <ShortcutIcon shortcut={item} image={images[index]} color={SHORTCUT_COLORS[index % SHORTCUT_COLORS.length]} className="li" />
             <b>{item.name || "Sem nome"}</b>
           </span>

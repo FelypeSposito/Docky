@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T03:47:48Z",
+  "title": "Design System: Docky",
+  "extensions": {
+    "colorMeta": {
+      "glow-pink": { "role": "primary", "displayName": "Glow Pink", "canonical": "#ff5c7a", "note": "Default of --accent; in the island it is replaced by the album colour (hsl, lightness 52-66%).", "tonalRamp": ["#3a0a14", "#5c1222", "#861c33", "#b02746", "#d93459", "#ff5c7a", "#ff8fa3", "#ffd1da"] },
+      "glow-purple": { "role": "secondary", "displayName": "Glow Purple", "canonical": "#7a3cff", "note": "Second glow stop only (--glow2); follows album hue + 48deg.", "tonalRamp": ["#1a0b38", "#2a1259", "#3b1a7d", "#4e23a3", "#6430d6", "#7a3cff", "#a787ff", "#ddd0ff"] },
+      "break-green": { "role": "tertiary", "displayName": "Break Green", "canonical": "#3dd68c", "tonalRamp": ["#04230f", "#0b3d22", "#125c34", "#1a7d47", "#24a35c", "#3dd68c", "#86e8b8", "#d2f7e5"] },
+      "custom-violet": { "role": "tertiary", "displayName": "Custom Violet", "canonical": "#a98bff", "tonalRamp": ["#1e1438", "#30215c", "#463186", "#5f45b3", "#8065e0", "#a98bff", "#c9b8ff", "#ece5ff"] },
+      "alarm-red": { "role": "tertiary", "displayName": "Alarm Red", "canonical": "#ff3b4e", "tonalRamp": ["#3a070d", "#5e0d17", "#8a1422", "#b81d2f", "#e62a3e", "#ff3b4e", "#ff8591", "#ffd3d7"] },
+      "claude-clay": { "role": "tertiary", "displayName": "Claude Clay", "canonical": "#e8825a", "tonalRamp": ["#3a1a0e", "#5c2a17", "#863e22", "#b0532e", "#d96b40", "#e8825a", "#f2ae93", "#fbe1d6"] },
+      "island-black": { "role": "neutral", "displayName": "Island Black", "canonical": "#000000", "tonalRamp": ["#000000", "#050506", "#09090b", "#0b0b0d", "#141417", "#1c1c20", "#28282e", "#3a3a40"] },
+      "window-ground": { "role": "neutral", "displayName": "Window Ground", "canonical": "#050506" },
+      "rail-lift": { "role": "neutral", "displayName": "Rail Lift", "canonical": "#0b0b0d" },
+      "stage-black": { "role": "neutral", "displayName": "Stage Black", "canonical": "#09090b" },
+      "popover": { "role": "neutral", "displayName": "Popover", "canonical": "#141417" },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#ffffff", "tonalRamp": ["rgba(255,255,255,0.05)", "rgba(255,255,255,0.065)", "rgba(255,255,255,0.085)", "rgba(255,255,255,0.12)", "rgba(255,255,255,0.18)", "rgba(255,255,255,0.5)", "rgba(255,255,255,0.62)", "#ffffff"] },
+      "ink2": { "role": "neutral", "displayName": "Ink 2", "canonical": "rgba(255, 255, 255, 0.62)" },
+      "ink3": { "role": "neutral", "displayName": "Ink 3", "canonical": "rgba(255, 255, 255, 0.5)" },
+      "block": { "role": "neutral", "displayName": "Block", "canonical": "rgba(255, 255, 255, 0.065)" },
+      "field": { "role": "neutral", "displayName": "Field", "canonical": "rgba(255, 255, 255, 0.07)" },
+      "fill": { "role": "neutral", "displayName": "Fill", "canonical": "rgba(255, 255, 255, 0.085)" },
+      "control": { "role": "neutral", "displayName": "Control", "canonical": "rgba(255, 255, 255, 0.12)" },
+      "track": { "role": "neutral", "displayName": "Track", "canonical": "rgba(255, 255, 255, 0.18)" },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "rgba(255, 255, 255, 0.07)" },
+      "on-accent": { "role": "neutral", "displayName": "On Accent", "canonical": "#1a0207" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Settings area title, one per view." },
+      "numeral": { "displayName": "Numeral", "purpose": "Timer ring, big stats, agenda day; always tabular." },
+      "title": { "displayName": "Title", "purpose": "Row labels; 12.5px in quick settings, 12px for launcher tile names." },
+      "body": { "displayName": "Body", "purpose": "Base text, pill text and header text." },
+      "hint": { "displayName": "Hint", "purpose": "Row descriptions and group titles (600) in Ink 3." },
+      "label": { "displayName": "Label", "purpose": "Chips, small links, the +N atalhos line, dock labels." }
+    },
+    "shadows": [
+      { "name": "lit-edge", "value": "1px masked border: linear-gradient(180deg, rgba(255,255,255,0) 0, rgba(255,255,255,0.07) 45%, rgba(255,255,255,0.2) 100%)", "purpose": "The island's edge; light grows downward. Settings window uses 0.05 / 0.09 / 0.16." },
+      { "name": "inner-edge", "value": "inset 0 0 0 1px rgba(255,255,255,0.055)", "purpose": "Every flat block, the dock, the preview stage." },
+      { "name": "hairline", "value": "inset 0 -1px 0 rgba(255,255,255,0.07)", "purpose": "Row separators." },
+      { "name": "focus-ring-field", "value": "inset 0 0 0 1.5px var(--accent)", "purpose": "Focused fields and inputs." },
+      { "name": "popover", "value": "0 18px 40px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.08)", "purpose": "Search results and floating lists." },
+      { "name": "drag-lift", "value": "0 10px 28px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.14)", "purpose": "A row or dock item being reordered." },
+      { "name": "island-cast", "value": "0 22px 50px rgba(0,0,0,var(--shadow))", "purpose": "The island over the desktop." },
+      { "name": "alarm-bloom", "value": "inset 0 -14px 22px -8px rgba(255,59,78,0.75), 0 8px 28px rgba(255,59,78,0.55)", "purpose": "Peak of the timer-end pulse only." },
+      { "name": "ambient-glow", "value": "radial-gradient(closest-side at 24% 72%, var(--glow), transparent), radial-gradient(closest-side at 80% 86%, var(--glow2), transparent); filter: blur(26px); mask from 40% down; opacity calc(var(--glow-strength) * 0.62)", "purpose": "The low glow under the island's bottom edge; the preview stage uses blur 34px." }
+    ],
+    "motion": [
+      { "name": "ease", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Main ease for movement: layers, toggles, dock label, area arrival." },
+      { "name": "layer-in", "value": "opacity/filter 0.3s ease 0.07s, transform 0.5s var(--ease) 0.05s; from blur(9px) scale(0.965)", "purpose": "Island states enter with blur and scale." },
+      { "name": "accent-shift", "value": "--glow, --glow2 0.9s ease", "purpose": "Album colour changes." },
+      { "name": "glow-drift", "value": "drift 13s ease-in-out infinite alternate", "purpose": "Slow movement of the ambient glow." },
+      { "name": "control", "value": "0.18s to 0.25s background/color", "purpose": "Hover and state changes on controls." },
+      { "name": "press", "value": "transform 0.1s to scale(0.92-0.95)", "purpose": "Press feedback on buttons, tiles and dock items." },
+      { "name": "arrive", "value": "0.32s var(--ease), from opacity 0 translateY(6px)", "purpose": "A Settings area opening." },
+      { "name": "found-flash", "value": "1.6s var(--ease), 16% accent wash fading out", "purpose": "A row reached from search." },
+      { "name": "alarm", "value": "1.2s ease-in-out x4", "purpose": "Timer end; reduced motion keeps a static bloom." }
+    ],
+    "breakpoints": [
+      { "name": "settings-narrow", "value": "max-width: 860px", "note": "Rail collapses to 64px icons." },
+      { "name": "settings-short", "value": "max-height: 620px", "note": "Preview stage shrinks to 120px." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Header Field",
+      "kind": "input",
+      "refersTo": "header-field",
+      "description": "The opened island's header input: search in Atalhos, quick note in Notas. Any letter focuses it.",
+      "html": "<label class=\"ds-hfield\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/></svg><input placeholder=\"Buscar entre 12 atalhos\" value=\"\"><kbd>Enter</kbd></label>",
+      "css": ".ds-hfield { display: flex; align-items: center; gap: 8px; width: 300px; height: 30px; padding: 0 6px 0 10px; border-radius: 10px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); font-family: Inter, system-ui, sans-serif; transition: background 0.2s, box-shadow 0.2s; } .ds-hfield svg { width: 14px; height: 14px; flex: none; } .ds-hfield:focus-within { background: rgba(255,255,255,0.1); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent, #ff5c7a) 75%, transparent); color: rgba(255,255,255,0.62); } .ds-hfield input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font: 500 13px Inter, system-ui, sans-serif; caret-color: var(--accent, #ff5c7a); } .ds-hfield input::placeholder { color: rgba(255,255,255,0.5); } .ds-hfield kbd { flex: none; padding: 2px 6px; border-radius: 5px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); font: 600 10.5px Inter, sans-serif; }"
+    },
+    {
+      "name": "Launcher Tile",
+      "kind": "card",
+      "refersTo": "launcher-tile",
+      "description": "Atalhos grid cell: 34px icon over a 12px name; first tile lifted, first search match tinted with the accent.",
+      "html": "<div class=\"ds-tiles\"><button class=\"ds-tile first\"><span class=\"ds-li\" style=\"background:#3b82f6\">S</span><b>Spotify</b></button><button class=\"ds-tile\"><span class=\"ds-li\" style=\"background:#8b5cf6\">G</span><b>Google Chrome</b></button><button class=\"ds-tile match\"><span class=\"ds-li\" style=\"background:#f59e0b\">C</span><b>Claude</b></button></div>",
+      "css": ".ds-tiles { display: grid; grid-template-columns: repeat(3, 110px); gap: 6px; padding: 12px; background: #000; } .ds-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; height: 62px; padding: 0 8px; border: 0; border-radius: 14px; background: none; color: #fff; cursor: pointer; transition: background 0.2s, transform 0.15s cubic-bezier(0.22,1,0.36,1); } .ds-tile:hover { background: rgba(255,255,255,0.07); } .ds-tile:active { transform: scale(0.95); } .ds-tile:focus-visible { outline: 2px solid var(--accent, #ff5c7a); outline-offset: -2px; } .ds-tile.first { background: rgba(255,255,255,0.075); } .ds-tile.match { background: color-mix(in srgb, var(--accent, #ff5c7a) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 45%, transparent); } .ds-li { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; font: 700 15px Inter, sans-serif; } .ds-tile b { max-width: 100%; overflow: hidden; font: 600 12px Inter, sans-serif; letter-spacing: -0.01em; text-overflow: ellipsis; white-space: nowrap; }"
+    },
+    {
+      "name": "Dock",
+      "kind": "nav",
+      "refersTo": "dock",
+      "description": "Page switcher floating at the island's bottom; the active page is tinted with the accent and shows its name.",
+      "html": "<nav class=\"ds-dock\"><button class=\"ds-dk\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M9 18V5l12-2v13\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/><circle cx=\"18\" cy=\"16\" r=\"3\"/></svg></button><button class=\"ds-dk on\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/></svg><span>Atalhos</span></button><i class=\"ds-dsep\"></i><button class=\"ds-dk\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3\"/></svg></button></nav>",
+      "css": ".ds-dock { display: inline-flex; align-items: center; gap: 2px; height: 36px; padding: 3px; border-radius: 12px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); } .ds-dk { display: flex; align-items: center; justify-content: center; height: 30px; min-width: 32px; padding: 0 8px; border: 0; border-radius: 9px; background: none; color: rgba(255,255,255,0.62); cursor: pointer; transition: background 0.3s, color 0.3s, transform 0.15s cubic-bezier(0.22,1,0.36,1); } .ds-dk:hover { color: #fff; background: rgba(255,255,255,0.1); } .ds-dk:active { transform: scale(0.92); } .ds-dk:focus-visible { outline: 2px solid var(--accent, #ff5c7a); outline-offset: 2px; } .ds-dk.on { background: color-mix(in srgb, var(--accent, #ff5c7a) 17%, transparent); color: var(--accent, #ff5c7a); } .ds-dk span { margin-left: 6px; color: #fff; font: 600 12px Inter, sans-serif; } .ds-dsep { width: 1px; height: 14px; margin: 0 3px; background: rgba(255,255,255,0.14); }"
+    },
+    {
+      "name": "Setting Row with Toggle",
+      "kind": "custom",
+      "refersTo": "row",
+      "description": "An option on a hairline: label and hint at left, control at right. No box.",
+      "html": "<div class=\"ds-row\"><div><b>Brilho da capa</b><span>A cor do brilho segue a capa do álbum.</span></div><button class=\"ds-tg on\" role=\"switch\" aria-checked=\"true\"><i></i></button></div>",
+      "css": ".ds-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 460px; min-height: 56px; padding: 10px 2px; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.07); color: #fff; font-family: Inter, system-ui, sans-serif; } .ds-row b { display: block; font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; } .ds-row span { display: block; margin-top: 2px; color: rgba(255,255,255,0.5); font-size: 12px; line-height: 1.45; } .ds-tg { position: relative; flex: none; width: 42px; height: 26px; border: 0; border-radius: 13px; background: rgba(255,255,255,0.18); cursor: pointer; transition: background 0.3s; } .ds-tg i { position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transition: transform 0.4s cubic-bezier(0.22,1,0.36,1); } .ds-tg.on { background: var(--accent, #ff5c7a); } .ds-tg.on i { transform: translateX(16px); } .ds-tg:focus-visible { outline: 2px solid var(--accent, #ff5c7a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default action: a quiet white-over-black capsule-ish rectangle.",
+      "html": "<button class=\"ds-btn\">Ocultar</button>",
+      "css": ".ds-btn { height: 32px; padding: 0 14px; border: 0; border-radius: 9px; background: rgba(255,255,255,0.12); color: #fff; font: 600 12px Inter, system-ui, sans-serif; cursor: pointer; transition: background 0.2s, transform 0.1s; } .ds-btn:hover { background: rgba(255,255,255,0.2); } .ds-btn:active { transform: scale(0.94); } .ds-btn:focus-visible { outline: 2px solid var(--accent, #ff5c7a); outline-offset: 2px; } .ds-btn:disabled { opacity: 0.4; cursor: default; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action in a group; accent fill with dark text.",
+      "html": "<button class=\"ds-btn-primary\">+ Atalho</button>",
+      "css": ".ds-btn-primary { height: 32px; padding: 0 14px; border: 0; border-radius: 9px; background: var(--accent, #ff5c7a); color: #1a0207; font: 600 12px Inter, system-ui, sans-serif; cursor: pointer; transition: filter 0.2s, transform 0.1s; } .ds-btn-primary:hover { filter: brightness(1.1); } .ds-btn-primary:active { transform: scale(0.94); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent, #ff5c7a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Section filters above the shortcut list; selected is a solid accent capsule.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">Tudo <i>12</i></button><button class=\"ds-chip\" aria-pressed=\"false\">Jogos <i>3</i></button><button class=\"ds-chip\" aria-pressed=\"false\">Comunicação <i>4</i></button></div>",
+      "css": ".ds-chips { display: flex; gap: 6px; } .ds-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border: 0; border-radius: 13px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.62); font: 600 11.5px Inter, system-ui, sans-serif; white-space: nowrap; cursor: pointer; transition: background 0.2s, color 0.2s, transform 0.1s; } .ds-chip:hover { background: rgba(255,255,255,0.13); color: #fff; } .ds-chip:active { transform: scale(0.96); } .ds-chip:focus-visible { outline: 2px solid var(--accent, #ff5c7a); outline-offset: 2px; } .ds-chip i { font-style: normal; font-variant-numeric: tabular-nums; opacity: 0.6; } .ds-chip[aria-pressed=\"true\"] { background: var(--accent, #ff5c7a); color: #1a0207; }"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Settings rail item; selected area is an accent wash with an accent icon.",
+      "html": "<nav class=\"ds-rail\"><h2>Conexões</h2><button class=\"ds-nav on\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"6\" width=\"18\" height=\"12\" rx=\"3\"/></svg><span>Atalhos</span></button><button class=\"ds-nav\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"8\"/></svg><span>Claude Code</span></button></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 1px; width: 216px; padding: 12px; background: #0b0b0d; font-family: Inter, system-ui, sans-serif; } .ds-rail h2 { margin: 0 0 4px; padding: 0 10px; color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 600; } .ds-nav { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border: 0; border-radius: 9px; background: none; color: rgba(255,255,255,0.62); font: 550 13px Inter, sans-serif; text-align: left; cursor: pointer; transition: background 0.18s, color 0.18s; } .ds-nav:hover { background: rgba(255,255,255,0.05); color: #fff; } .ds-nav:focus-visible { outline: 2px solid var(--accent, #ff5c7a); outline-offset: 2px; } .ds-nav.on { background: rgba(255,92,122,0.13); color: #fff; } .ds-nav.on svg { color: var(--accent, #ff5c7a); }"
+    },
+    {
+      "name": "Timer Chip",
+      "kind": "custom",
+      "refersTo": "timer-chip",
+      "description": "Running Foco timer at the pill's right, tinted with the mode colour.",
+      "html": "<div class=\"ds-pill\"><span class=\"ds-time\">00:31</span><span class=\"ds-tchip\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\"><circle cx=\"7\" cy=\"7\" r=\"5\" class=\"bg\"/><circle cx=\"7\" cy=\"7\" r=\"5\" class=\"fg\" stroke-dasharray=\"31.4\" stroke-dashoffset=\"12\"/></svg><b>18:42</b></span></div>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 12px; height: 36px; padding: 0 12px 0 22px; border-radius: 0 0 18px 18px; background: #000; color: #fff; font-family: Inter, sans-serif; } .ds-time { font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; } .ds-tchip { --tc: #ff5c7a; display: flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px 0 4px; border-radius: 11px; background: color-mix(in srgb, var(--tc) 16%, transparent); color: var(--tc); } .ds-tchip svg { transform: rotate(-90deg); } .ds-tchip circle { fill: none; stroke-width: 2.2; } .ds-tchip .bg { stroke: color-mix(in srgb, var(--tc) 28%, transparent); } .ds-tchip .fg { stroke: var(--tc); stroke-linecap: round; } .ds-tchip b { font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }"
+    },
+    {
+      "name": "Flat Block",
+      "kind": "card",
+      "refersTo": "block",
+      "description": "The island's bento block: one tone above black with a 1px inner edge, no gradient.",
+      "html": "<div class=\"ds-block\"><b>Nada por aqui</b><span>Arraste arquivos para a ilha para guardar.</span></div>",
+      "css": ".ds-block { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; width: 240px; height: 120px; padding: 10px 18px; border-radius: 16px; background: rgba(255,255,255,0.065); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.055); color: #fff; font-family: Inter, sans-serif; text-align: center; } .ds-block b { font-size: 13px; font-weight: 650; letter-spacing: -0.015em; } .ds-block span { color: rgba(255,255,255,0.62); font-size: 11.5px; line-height: 1.4; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Black Island",
+    "overview": "Docky is a piece of pure black hung from the top edge of the screen, with a face. Everything else is borrowed from that object: the Settings window is the island's own world held to a working pace, near-black instead of black, with a rail one shade lifted from the ground. The character lives in two places only, the eyes and the glow; the rest is calm, flat and quiet so the character can be seen.\n\nSurfaces are flat. Depth comes from tone (one step of white over black) and from a single lit edge whose light grows from top to bottom, as if the island caught the desk light under it. Options sit on hairlines, not in boxes. One accent colour marks whatever is active, and in the island that colour is not fixed: it is pulled from the album cover while music plays and falls back to the brand pink.\n\nDensity is compact and Windows-native in scale (13px body, 30 to 34px controls), with Inter throughout, tabular numerals for every clock, counter and timer, and sentence-case Portuguese labels.",
+    "keyCharacteristics": [
+      "Pure black island, near-black settings window; no light theme.",
+      "Flat blocks one tone above black with a 1px inner edge.",
+      "One accent (default #FF5C7A, album-driven in the island) reserved for the active, selected, focused or primary thing.",
+      "Pink-to-purple glow kept low: behind the island's bottom edge and behind the Settings preview stage, nowhere else.",
+      "Rows on hairlines instead of boxed cards.",
+      "Inter, tabular numerals, sentence case.",
+      "Motion with one long, soft-landing ease; everything has a reduced-motion fallback."
+    ],
+    "rules": [
+      { "name": "The One Pink Rule", "body": "The accent marks what is active, selected, focused or primary, and nothing else. If an element is pink and you cannot say which of those four it is, it is wrong.", "section": "colors" },
+      { "name": "The Album Owns The Accent Rule", "body": "Inside the island every accent use goes through `var(--accent, #ff5c7a)` so the cover colour can take over. Never hard-code the pink in island components.", "section": "colors" },
+      { "name": "The Glow Stays Low Rule", "body": "The pink-to-purple glow is a blurred, masked pair of radial gradients that rises from below: behind the island's bottom edge (opacity at most 0.62 × the user's glow strength) and behind the Settings preview stage. It never sits behind text blocks, rows or controls.", "section": "colors" },
+      { "name": "The Tabular Clock Rule", "body": "Every time, countdown, count and percentage uses tabular numerals so the island never jitters as numbers change.", "section": "typography" },
+      { "name": "The Sentence Case Rule", "body": "Labels, group titles and buttons are sentence case. Group titles are 12px 600 in Ink 3, not uppercase and not letter-spaced.", "section": "typography" },
+      { "name": "The Header Is The Field Rule", "body": "In the opened island the active page's input (search in Atalhos, quick note in Notas) lives in the header row, portalled into one slot; typing any letter focuses it. Pages do not add a second search or input row in the body.", "section": "layout" },
+      { "name": "The Light Grows Downward Rule", "body": "The island and the window share one edge: a 1px masked gradient, dim at the top, brightest at the bottom. This edge gradient is the world's own device and is allowed; gradient fills on blocks are not.", "section": "elevation" },
+      { "name": "The Flat Block Rule", "body": "A block is one flat tone of white over black plus a 1px inner edge. No vertical glass gradients, no backdrop blur, no hard offset shadows.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do route every island accent through `var(--accent, #ff5c7a)` so the album colour takes over.",
+      "Do keep blocks flat: a 0.06 to 0.07 white fill and a 1px inner edge.",
+      "Do separate options with a 1px hairline at 0.07, not with boxes.",
+      "Do use the main ease `cubic-bezier(0.22, 1, 0.36, 1)` for movement and give every animation a `.reduce-motion` fallback.",
+      "Do use tabular numerals for times, counts and percentages.",
+      "Do keep hints and placeholders at Ink 3 (0.5) or stronger.",
+      "Do put the active page's input in the island header row."
+    ],
+    "donts": [
+      "Don't use the accent for decoration; it marks active, selected, focused or primary only.",
+      "Don't put the glow anywhere except under the island's bottom edge and behind the Settings preview stage.",
+      "Don't fill blocks or tiles with vertical glass gradients or add backdrop blur.",
+      "Don't use uppercase, letter-spaced labels or kicker lines above titles; group titles are sentence case 12px Ink 3.",
+      "Don't add a light theme or grey boxed setting groups.",
+      "Don't use alarm red for anything except a timer ending."
+    ]
+  }
+}

@@ -1013,7 +1013,7 @@
 .btn {
   height: 28px;
   padding: 0 14px;
-  border-radius: 14px;
+  border-radius: 9px;
   background: rgba(255, 255, 255, 0.12);
   font-size: 12px;
   font-weight: 600;
@@ -1311,7 +1311,7 @@
   transition: transform 0.15s var(--ease), background 0.25s, opacity 0.3s;
 }
 .fd:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.11);
 }
 .fd:active {
   transform: scale(0.95);
@@ -1590,7 +1590,7 @@
   transition: transform 0.15s var(--ease), background 0.25s;
 }
 .lt:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.11);
 }
 .lt:active {
   transform: scale(0.95);
@@ -1731,7 +1731,7 @@
   transition: transform 0.15s var(--ease), background 0.25s;
 }
 .nlist .ncard:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.11);
 }
 .nlist .ncard:active {
   transform: scale(0.97);

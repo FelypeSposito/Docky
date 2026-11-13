@@ -145,46 +145,56 @@
   gap: 8px;
   padding: 12px 14px 12px;
 }
-.pv-chips {
+.pv-hdr {
   display: flex;
-  gap: 5px;
+  align-items: center;
+  gap: 10px;
+  padding-left: 34px;
+  font-size: 11px;
+}
+.pv-search {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 9px;
   overflow: hidden;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink3);
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.pv-chips span {
-  flex: none;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--ink2);
-  font-size: 10.5px;
-  font-weight: 600;
-}
-.pv-chips span.on {
-  background: var(--accent);
-  color: #1a0207;
+.pv-hdr b {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 .pv-tiles {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 5px;
+  grid-auto-rows: 44px;
+  gap: 4px;
 }
 .pv-tile {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 4px;
   min-width: 0;
-  height: 34px;
-  padding: 0 7px;
+  padding: 0 6px;
   border-radius: 10px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.045));
+}
+.pv-tile.first {
+  background: rgba(255, 255, 255, 0.075);
 }
 .pv-tile .li {
   display: grid;
   flex: none;
   place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
   color: #fff;
   font-size: 9.5px;
   font-weight: 700;
@@ -194,6 +204,7 @@
   object-fit: contain;
 }
 .pv-tile b {
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   font-size: 10.5px;
@@ -260,7 +271,7 @@
 .pv-folder {
   overflow: hidden;
   padding: 0 4px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.045));
+  background: rgba(255, 255, 255, 0.065);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -276,7 +287,7 @@
   justify-content: center;
   padding: 0 10px;
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.045));
+  background: rgba(255, 255, 255, 0.065);
 }
 .pv-agenda b.pv-num {
   font-size: 20px;
@@ -312,7 +323,7 @@
   justify-content: center;
   gap: 4px;
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.045));
+  background: rgba(255, 255, 255, 0.065);
 }
 .pv-meter i {
   width: 26px;

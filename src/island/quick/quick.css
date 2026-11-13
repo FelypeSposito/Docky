@@ -184,7 +184,7 @@
 }
 .qs-btn.primary {
   background: var(--accent, #ff5c7a);
-  color: #07101f;
+  color: #1a0207;
 }
 .qs-btn.danger {
   background: rgba(229, 72, 77, 0.2);
@@ -229,7 +229,7 @@
 }
 .nbtn.go {
   background: var(--accent, #ff5c7a);
-  color: #07101f;
+  color: #1a0207;
 }
 .nbtn.go:hover {
   filter: brightness(1.1);
@@ -300,7 +300,7 @@
 }
 .lcx-edit.on {
   background: var(--accent, #ff5c7a);
-  color: #07101f;
+  color: #1a0207;
 }
 .lcx-grid {
   display: grid;
@@ -429,7 +429,7 @@
 }
 .le-members button.on {
   background: var(--accent, #ff5c7a);
-  color: #07101f;
+  color: #1a0207;
 }
 .le-sure {
   display: inline-flex;
@@ -839,7 +839,7 @@
 }
 .lcx-chip[aria-pressed="true"] {
   background: var(--accent, #ff5c7a);
-  color: #07101f;
+  color: #1a0207;
 }
 .lcx-chip[aria-pressed="true"] i {
   opacity: 0.7;
