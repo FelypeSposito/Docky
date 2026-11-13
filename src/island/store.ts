@@ -13,6 +13,12 @@ interface IslandStore {
   quick: boolean;
   overlay: Overlay | null;
   page: string;
+  /** O que está digitado na busca do cabeçalho (página Atalhos). Limpa quando a ilha recolhe. */
+  launcherQuery: string;
+  /** Sobe a cada Enter na busca: a página Atalhos abre o primeiro resultado. */
+  launcherEnter: number;
+  setLauncherQuery: (query: string) => void;
+  submitLauncher: () => void;
   expand: () => void;
   collapse: () => void;
   toggleLarge: () => void;
@@ -31,13 +37,17 @@ export const useIslandStore = create<IslandStore>((set) => ({
   quick: false,
   overlay: null,
   page: "music",
+  launcherQuery: "",
+  launcherEnter: 0,
+  setLauncherQuery: (launcherQuery) => set({ launcherQuery }),
+  submitLauncher: () => set((s) => ({ launcherEnter: s.launcherEnter + 1 })),
 
   expand: () => set({ expanded: true }),
-  collapse: () => set({ expanded: false, pinned: false, large: false, quick: false }),
+  collapse: () => set({ expanded: false, pinned: false, large: false, quick: false, launcherQuery: "" }),
   toggleLarge: () => set((s) => ({ large: !s.large, quick: false, pinned: s.large ? s.pinned : true })), // ao ampliar, fica aberta
   toggleQuick: () => set((s) => ({ quick: !s.quick })),
   togglePin: () => set((s) => ({ pinned: !s.pinned, expanded: !s.pinned ? true : s.expanded })),
-  setPage: (page) => set({ page }),
+  setPage: (page) => set({ page, launcherQuery: "" }),
 
   showOverlay: (overlay, durationMs) => {
     if (!noticeEnabled(overlay, useConfigStore.getState().config)) return;

@@ -17,6 +17,7 @@ import { createHoverController } from "./hoverController";
 import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
 import { BatteryIcon, BellIcon, BoltIcon, CheckIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, SlidersIcon, VolumeIcon } from "./icons";
 import { bodyHeight, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, IDLE_TIMER, type Mode, resolveMode, SIZES } from "./modes";
+import { LauncherSearch } from "./pages/LauncherPage";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { visiblePages } from "./pageOrder";
@@ -197,7 +198,7 @@ export function Island() {
   }, [size.w, size.h]);
 
   const clock = useMemo(() => formatClock(now), [now]);
-  const date = useMemo(() => formatDate(now), [now]);
+  const date = useMemo(() => formatDate(now, false), [now]);
 
   const onIslandClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button, input, .track, [role=button]")) return;
@@ -353,43 +354,49 @@ export function Island() {
           style={{ width: largeOn ? EXPANDED_LARGE.w : SIZES.expanded.w, "--body-h": `${bodyHeight(largeOn)}px` } as React.CSSProperties}
         >
           <div className="hdr">
-            {charging ? (
-              <span className="bolt">
-                <BoltIcon />
-              </span>
-            ) : (
-              showBattery && (
-                <span className="bat">
-                  <BatteryIcon />
-                  {power?.percent}%
-                </span>
-              )
+            <div className="hdr-slot">{ActivePage.id === "launch" && !largeOn && !quickOn && <LauncherSearch />}</div>
+            {config.headerClock && (
+              <div className="hdr-clock">
+                {charging ? (
+                  <span className="bolt">
+                    <BoltIcon />
+                  </span>
+                ) : (
+                  // Em Atalhos a busca precisa do espaço: lá a bateria só aparece quando está acabando.
+                  showBattery && (ActivePage.id !== "launch" || largeOn || (power?.percent ?? 100) <= 20) && (
+                    <span className={`bat${(power?.percent ?? 100) <= 20 ? " low" : ""}`}>
+                      <BatteryIcon />
+                      {power?.percent}%
+                    </span>
+                  )
+                )}
+                <span className="date">{date}</span>
+                <span className="time">{clock}</span>
+              </div>
             )}
-            <span className="date">{date}</span>
-            <span className="time">{clock}</span>
-            {largeOn && ActivePage.Large && ActivePage.Settings && (
-              <button
-                className={`xbtn gear${quickOn ? " on" : ""}`}
-                aria-label={quickOn ? "Voltar ao conteúdo" : "Ajustes desta página"}
-                aria-pressed={quickOn}
-                title={quickOn ? "Voltar ao conteúdo" : "Ajustes"}
-                onClick={() => useIslandStore.getState().toggleQuick()}
-              >
-                <SlidersIcon />
-              </button>
-            )}
-            {canExpand && (
-              <button
-                className="xbtn"
-                aria-label={largeOn ? "Voltar ao tamanho normal" : "Expandir esta página"}
-                title={largeOn ? "Voltar ao tamanho normal" : "Expandir"}
-                onClick={() => useIslandStore.getState().toggleLarge()}
-              >
-                {largeOn ? <ShrinkIcon /> : <ExpandIcon />}
-              </button>
-            )}
-            <div className="hdr-eq">
-              <Equalizer playing={playing} />
+            <div className="hdr-act">
+              {largeOn && ActivePage.Large && ActivePage.Settings && (
+                <button
+                  className={`xbtn gear${quickOn ? " on" : ""}`}
+                  aria-label={quickOn ? "Voltar ao conteúdo" : "Ajustes desta página"}
+                  aria-pressed={quickOn}
+                  title={quickOn ? "Voltar ao conteúdo" : "Ajustes"}
+                  onClick={() => useIslandStore.getState().toggleQuick()}
+                >
+                  <SlidersIcon />
+                </button>
+              )}
+              {canExpand && (
+                <button
+                  className="xbtn"
+                  aria-label={largeOn ? "Voltar ao tamanho normal" : "Expandir esta página"}
+                  title={largeOn ? "Voltar ao tamanho normal" : "Expandir"}
+                  onClick={() => useIslandStore.getState().toggleLarge()}
+                >
+                  {largeOn ? <ShrinkIcon /> : <ExpandIcon />}
+                </button>
+              )}
+              {playing && <Equalizer playing />}
             </div>
           </div>
 

@@ -16,10 +16,10 @@ export const SIZES: Record<Mode, Size> = {
   charge: { w: 252, h: 36 },
   volume: { w: 270, h: 36 },
   done: { w: 262, h: 36 },
-  timer: { w: 262, h: 36 },
+  timer: { w: 296, h: 36 },
   work: { w: 380, h: 36 },
   ask: { w: 456, h: 142 },
-  expanded: { w: 500, h: 244 },
+  expanded: { w: 532, h: 252 },
 };
 
 /** A pílula recolhida com o Foco rodando: o relógio no meio e o tempo do Foco numa etiqueta à direita. */
@@ -28,7 +28,7 @@ export const IDLE_TIMER: Size = { w: 274, h: 36 };
 /** A ilha aberta na versão maior de uma página (botão de expandir no cabeçalho). Cabe na janela de `island.rs`. */
 export const EXPANDED_LARGE: Size = { w: 640, h: 400 };
 
-/** Altura do corpo da ilha aberta: as páginas têm 148 px, e a versão maior ganha o que a ilha cresceu. */
+/** Altura do corpo da ilha aberta: as páginas têm 148 px (o cabeçalho tem 48), e a versão maior ganha o que a ilha cresceu. */
 export const BODY_HEIGHT = 148;
 export const bodyHeight = (large: boolean) => (large ? EXPANDED_LARGE.h - (SIZES.expanded.h - BODY_HEIGHT) : BODY_HEIGHT);
 

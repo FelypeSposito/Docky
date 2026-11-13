@@ -80,6 +80,11 @@ function AreaContent({ id }: { id: AreaId }) {
               <Toggle label="Seguir o cursor" value={config.followCursor} onChange={(v) => update({ followCursor: v })} />
             </Row>
           </Group>
+          <Group title="Ilha aberta">
+            <Row label="Data e hora no topo" hint="Desligado, a busca dos atalhos ocupa o cabeçalho inteiro">
+              <Toggle label="Data e hora no topo" value={config.headerClock} onChange={(v) => update({ headerClock: v })} />
+            </Row>
+          </Group>
           <Group title="Movimento">
             <Row label="Reduzir movimento" hint="Troca molas e desfoque por fades curtos">
               <Toggle label="Reduzir movimento" value={config.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />

@@ -239,30 +239,61 @@
 }
 
 /* Expandida */
+/* Cabeçalho da ilha aberta: o espaço da página (a busca, em Atalhos), a data e a hora, e os botões pequenos.
+   Os olhinhos ficam no canto esquerdo, então o conteúdo começa depois deles. */
 .hdr {
   position: absolute;
   inset: 0 0 auto 0;
-  height: 36px;
+  height: 48px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 9px;
+  gap: 12px;
+  padding: 0 14px 0 62px;
   font-size: 13px;
+}
+.notch.no-eyes .hdr {
+  padding-left: 22px;
+}
+.hdr-slot {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.hdr-clock {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
 }
 .hdr .date {
   color: var(--ink2);
   font-weight: 500;
 }
+.hdr-act {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.hdr-act .eq {
+  margin-left: 6px;
+}
+.hdr-act:empty {
+  display: none;
+}
 .body {
   position: absolute;
-  inset: 40px 34px auto 34px;
+  inset: 48px 34px auto 34px;
   height: var(--body-h, 148px);
 }
+/* Blocos chapados, como as linhas das Configurações: um tom acima do preto e um fio de borda, sem vidro. */
 .tile {
   position: relative;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05));
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.065);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055);
 }
 .tile.soon {
   height: 100%;
@@ -291,23 +322,22 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  height: 34px;
+  height: 36px;
   padding: 3px;
-  border-radius: 17px;
+  border-radius: 12px;
   transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.075);
-  backdrop-filter: blur(16px) saturate(170%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 22px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .dk {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
-  min-width: 30px;
-  padding: 0 7px;
+  height: 30px;
+  min-width: 32px;
+  padding: 0 8px;
   touch-action: none;
-  border-radius: 14px;
+  border-radius: 9px;
   color: var(--ink2);
   transition: background 0.3s, color 0.3s, transform 0.15s var(--ease);
 }
@@ -433,25 +463,17 @@
   animation: none;
   height: 8px;
 }
-.hdr-eq {
-  position: absolute;
-  right: 20px;
-  top: 11px;
-}
 /* Sem os olhinhos, a letra da pílula começa logo no canto da ilha */
 .notch.no-eyes .pl {
   left: 20px;
 }
 /* Botão pequeno que abre a versão maior da página */
 .xbtn {
-  position: absolute;
-  right: 46px;
-  top: 7px;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
   color: var(--ink2);
   transition: color 0.2s, background 0.2s, transform 0.15s;
 }
@@ -763,7 +785,7 @@
   transition: max-width 0.55s var(--ease), opacity 0.25s, margin 0.55s var(--ease);
 }
 .dk.on {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 17%, transparent);
   color: var(--accent, #ff5c7a);
 }
 .dk.on .lb {
@@ -2065,4 +2087,187 @@
 }
 .reduce-motion .notch[data-mode="timer"] .island {
   box-shadow: inset 0 -14px 22px -8px rgba(255, 59, 78, 0.6);
+}
+
+
+/* Atalhos na ilha aberta: a busca mora no cabeçalho; aqui ficam 8 atalhos grandes, ícone em cima do nome. */
+.hsearch {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px 0 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink3);
+  cursor: text;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.hsearch:focus-within {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent, #ff5c7a) 75%, transparent);
+  color: var(--ink2);
+}
+.hsearch svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+.hsearch input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font: 500 13px Inter, system-ui, sans-serif;
+  caret-color: var(--accent, #ff5c7a);
+}
+.hsearch input::placeholder {
+  color: var(--ink3);
+}
+.hsearch input::selection {
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 40%, transparent);
+}
+.hsearch kbd {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink3);
+  font: 600 10.5px Inter, sans-serif;
+}
+.lc2 {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+}
+.lgrid4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 62px);
+  gap: 6px;
+}
+.lt2 {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 8px;
+  border-radius: 14px;
+  transition: background 0.2s, transform 0.15s var(--ease);
+}
+.lt2:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.lt2:active {
+  transform: scale(0.95);
+}
+.lt2.first {
+  background: rgba(255, 255, 255, 0.075);
+}
+.lt2.first:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+.lt2:focus-visible {
+  outline: 2px solid var(--accent, #ff5c7a);
+  outline-offset: -2px;
+}
+.lt2 .li,
+.lt2 .li-wrap {
+  flex: none;
+  width: 34px;
+  height: 34px;
+}
+.lt2 .li {
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+.lt2 .li.txt {
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 18px;
+}
+.lt2 .li.img {
+  padding: 2px;
+  object-fit: contain;
+}
+.lt2 b {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lc-more2 {
+  align-self: center;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 1px 8px;
+  border-radius: 6px;
+  color: var(--ink2);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.2s, background 0.2s;
+}
+.lc-more2 span {
+  color: var(--ink3);
+  font-weight: 500;
+}
+.lc-more2:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+.lc-none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 100%;
+  text-align: center;
+}
+.lc-none b {
+  font-size: 13px;
+  font-weight: 650;
+}
+.lc-none span {
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+/* Texto secundário com o contraste das Configurações onde se lê bastante coisa pequena */
+.hdr,
+.lc2,
+.lc-none {
+  --ink3: rgba(255, 255, 255, 0.5);
+}
+.lt2.match {
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 45%, transparent);
+}
+.lt2.match:hover {
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 20%, transparent);
+}
+.lc-none .lc-more2 {
+  margin-top: 4px;
+  align-self: center;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+.bat.low {
+  color: #ff6b6b;
 }

@@ -22,7 +22,7 @@ export const AREAS: Area[] = [
     options: ["Sugestões de atalhos", "Atalhos", "Confirmar antes de abrir", "Seções", "Organizar automaticamente", "Grupos", "Ícones automáticos", "Pasta dos ícones", "Ícones que faltam", "steam", "epic", "jogos"],
   },
   { id: "paginas", label: "Páginas e dock", lead: "O que aparece no dock da ilha, e em que ordem.", group: "", options: ["Páginas", "Ordem das páginas", "Voltar à ordem original", "dock"] },
-  { id: "aparencia", label: "Aparência", lead: "Como a ilha se mostra.", group: "", options: ["Brilho ambiente", "Olhinhos", "Seguir o cursor", "Reduzir movimento", "cor", "animação"] },
+  { id: "aparencia", label: "Aparência", lead: "Como a ilha se mostra.", group: "", options: ["Brilho ambiente", "Olhinhos", "Seguir o cursor", "Data e hora no topo", "Reduzir movimento", "cor", "animação"] },
   { id: "musica", label: "Música e letras", lead: "Letra sincronizada e o que está tocando.", group: "", options: ["Letra na pílula", "Atraso da letra", "Fonte das letras", "Players", "spotify", "lrclib"] },
   { id: "foco", label: "Foco e notas", lead: "O Pomodoro, o contador livre e onde as notas são salvas.", group: "", options: ["Foco", "Pausa curta", "Pausa longa", "Focos por ciclo", "Aviso ao terminar", "Som ao terminar", "Pasta das notas", "pomodoro", "timer", "obsidian"] },
   { id: "claude", label: "Claude Code", lead: "Veja o que o Claude está fazendo e aprove pedidos pela ilha.", group: "Conexões", options: ["Hooks do Claude Code", "Aprovar pela ilha", "Faixa “Claude trabalhando”", "Aviso “Claude terminou”", "Servidor local", "permissões"] },

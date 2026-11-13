@@ -143,6 +143,8 @@ pub struct Config {
     pub notice_timer: bool,
     /// Um som suave quando o Foco ou o contador termina.
     pub timer_sound: bool,
+    /// Data e hora no cabeçalho da ilha aberta.
+    pub header_clock: bool,
     /// Faixa "Claude trabalhando" na ilha recolhida.
     pub claude_work_strip: bool,
     /// Páginas escondidas do dock (ids).
@@ -218,6 +220,7 @@ impl Default for Config {
             notice_claude_done: true,
             notice_timer: true,
             timer_sound: true,
+            header_clock: true,
             claude_work_strip: true,
             hidden_pages: Vec::new(),
             system_refresh_ms: 1500,

@@ -32,7 +32,7 @@ import { QButton, QIconButton, QPath, QText } from "../quick/controls";
 import { Suggestions } from "../quick/Suggestions";
 import { useIslandStore } from "../store";
 
-const MAX_TILES = 6;
+const MAX_TILES = 8;
 
 /** O que a página faz com um clique: confirma (apps, jogos e grupos), abre e conta o que deu errado. */
 function useLauncher() {
@@ -88,11 +88,67 @@ function Confirm({ text, onCancel, onOk }: { text: string; onCancel: () => void;
 /** Os grupos antes dos atalhos comuns, cada parte na ordem em que está. */
 const groupsFirst = <T extends { item: Shortcut }>(list: T[]): T[] => [...list.filter((e) => e.item.group), ...list.filter((e) => !e.item.group)];
 
+/** A busca dos atalhos, no cabeçalho da ilha aberta: qualquer tecla já começa a digitar aqui, e Enter abre o primeiro. */
+export function LauncherSearch() {
+  const shortcuts = useConfigStore((s) => s.config.shortcuts);
+  const query = useIslandStore((s) => s.launcherQuery);
+  const input = useRef<HTMLInputElement>(null);
+  const total = useMemo(() => filterShortcuts(shortcuts, "").length, [shortcuts]);
+
+  // Comece a digitar com a ilha aberta e a letra cai na busca, sem precisar clicar nela.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === " " && e.target instanceof Element && e.target.closest("button, [role=button]")) return;
+      if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]")) return;
+      input.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <label className="hsearch">
+      <SearchIcon />
+      <input
+        ref={input}
+        value={query}
+        placeholder={total > MAX_TILES ? `Buscar entre ${total} atalhos` : "Buscar atalho"}
+        aria-label="Buscar atalho"
+        autoComplete="off"
+        spellCheck={false}
+        onChange={(e) => useIslandStore.getState().setLauncherQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") useIslandStore.getState().submitLauncher();
+          // Esc com algo digitado só limpa a busca; vazio, deixa a ilha recolher como sempre.
+          if (e.key === "Escape" && query) {
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+            useIslandStore.getState().setLauncherQuery("");
+          }
+        }}
+      />
+      {query && <kbd>Enter</kbd>}
+    </label>
+  );
+}
+
 export function LauncherPage() {
   const { shortcuts, images, pending, setPending, error, open, ask } = useLauncher();
-  const [query, setQuery] = useState("");
+  const sections = useConfigStore((s) => s.config.shortcutSections);
+  const query = useIslandStore((s) => s.launcherQuery);
+  const enter = useIslandStore((s) => s.launcherEnter);
   const all = useMemo(() => filterShortcuts(shortcuts, ""), [shortcuts]);
   const matches = useMemo(() => groupsFirst(filterShortcuts(shortcuts, query)), [shortcuts, query]);
+  const searching = query.trim() !== "";
+
+  // Enter na busca do cabeçalho abre o primeiro da lista (com a confirmação, quando ela vale).
+  const lastEnter = useRef(enter);
+  useEffect(() => {
+    if (enter === lastEnter.current) return;
+    lastEnter.current = enter;
+    if (matches[0]) ask(matches[0].index);
+  }, [enter, matches, ask]);
 
   if (all.length === 0) {
     return (
@@ -105,43 +161,44 @@ export function LauncherPage() {
   }
 
   const more = matches.length - MAX_TILES;
-  return (
-    <div className="bento lc">
-      <label className="tile nin">
-        <span className="nin-ic">
-          <SearchIcon />
-        </span>
-        <input
-          value={query}
-          placeholder={all.length > MAX_TILES ? `Buscar entre ${all.length} atalhos…` : "Buscar atalho…"}
-          autoComplete="off"
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && matches[0] && ask(matches[0].index)}
-        />
-        <kbd>Enter</kbd>
-      </label>
+  const sectionNames = sections.filter((section) => section.members.length > 0).map((section) => section.name).slice(0, 3);
 
-      {pending !== null && shortcuts[pending] ? (
-        <Confirm text={confirmationText(shortcuts[pending], shortcuts)} onCancel={() => setPending(null)} onOk={() => open(pending)} />
-      ) : error ? (
-        <div className="tile lc-empty">{error}</div>
-      ) : matches.length === 0 ? (
-        <div className="tile lc-empty">Nenhum atalho com esse nome.</div>
-      ) : (
-        <div className="lgrid">
-          {matches.slice(0, MAX_TILES).map(({ item, index }, i) => (
-            <button key={item.id || index} className="tile lt" title={item.group ? `Grupo: ${confirmationText(item, shortcuts)}` : item.target} onClick={() => ask(index)}>
-              <Tile shortcut={item} index={index} image={images[index]} shortcuts={shortcuts} />
-              <b>{item.name}</b>
-              {i === 0 && query && <kbd>↵</kbd>}
-            </button>
-          ))}
-          {more > 0 && (
-            <button className="lc-more" onClick={() => useIslandStore.getState().toggleLarge()} title="Ver todos os atalhos">
-              +{more} na tela expandida ↗
-            </button>
-          )}
-        </div>
+  if (pending !== null && shortcuts[pending]) {
+    return <Confirm text={confirmationText(shortcuts[pending], shortcuts)} onCancel={() => setPending(null)} onOk={() => open(pending)} />;
+  }
+  if (error) return <div className="tile lc-empty">{error}</div>;
+  if (matches.length === 0) {
+    return (
+      <div className="lc-none">
+        <b>Nenhum atalho com “{query.trim()}”</b>
+        <span>Confira o nome ou crie um novo.</span>
+        <button className="lc-more2" onClick={() => useIslandStore.getState().toggleLarge()}>
+          Criar na tela expandida
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="lc2">
+      <div className="lgrid4">
+        {matches.slice(0, MAX_TILES).map(({ item, index }, i) => (
+          <button
+            key={item.id || index}
+            className={`lt2${i === 0 ? (searching ? " first match" : " first") : ""}`}
+            title={item.group ? `Grupo: ${confirmationText(item, shortcuts)}` : item.target}
+            onClick={() => ask(index)}
+          >
+            <Tile shortcut={item} index={index} image={images[index]} shortcuts={shortcuts} />
+            <b>{item.name || "Sem nome"}</b>
+          </button>
+        ))}
+      </div>
+      {more > 0 && (
+        <button className="lc-more2" onClick={() => useIslandStore.getState().toggleLarge()} title="Ver todos os atalhos na tela expandida">
+          {searching ? `+${more} ${more === 1 ? "resultado" : "resultados"}` : `+${more} atalhos`}
+          {!searching && sectionNames.length > 0 && <span> · {sectionNames.join(", ")}</span>}
+        </button>
       )}
     </div>
   );

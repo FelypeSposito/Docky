@@ -521,9 +521,6 @@
 }
 
 /* Botão de ajustes ao lado do de expandir */
-.xbtn.gear {
-  right: 72px;
-}
 .xbtn.gear.on {
   color: var(--accent, #4c8dff);
   background: rgba(255, 255, 255, 0.12);

@@ -45,6 +45,8 @@ export interface Config {
   noticeTimer: boolean;
   /** Um som suave quando o Foco ou o contador termina. */
   timerSound: boolean;
+  /** Data e hora no cabeçalho da ilha aberta. */
+  headerClock: boolean;
   claudeWorkStrip: boolean;
   hiddenPages: string[];
   systemRefreshMs: number;
@@ -106,6 +108,7 @@ export const DEFAULT_CONFIG: Config = {
   noticeClaudeDone: true,
   noticeTimer: true,
   timerSound: true,
+  headerClock: true,
   claudeWorkStrip: true,
   hiddenPages: [],
   systemRefreshMs: 1500,

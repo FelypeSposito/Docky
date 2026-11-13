@@ -9,8 +9,9 @@ export function formatClock(date: Date): string {
 }
 
 /** "sex 30 out 2026" */
-export function formatDate(date: Date): string {
-  return `${WEEKDAYS[date.getDay()]} ${pad(date.getDate())} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+export function formatDate(date: Date, withYear = true): string {
+  const day = `${WEEKDAYS[date.getDay()]} ${pad(date.getDate())} ${MONTHS[date.getMonth()]}`;
+  return withYear ? `${day} ${date.getFullYear()}` : day;
 }
 
 /** "hoje · 16:30", "ontem · 09:05" ou "28 out · 18:10": quando uma nota foi alterada, em poucas palavras. */
