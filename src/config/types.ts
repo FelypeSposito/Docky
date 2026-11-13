@@ -66,6 +66,8 @@ export interface Config {
   screens: string[];
   /** Pede confirmação antes de abrir apps, jogos e grupos pelos atalhos. */
   confirmApps: boolean;
+  /** Um app que já está aberto vem para a frente, em vez de abrir outra janela dele. */
+  focusOpenApps: boolean;
   /** Pasta dos ícones (imagens) dos atalhos; os ícones automáticos ficam nela. Vazio = Documentos\Docky\icons. */
   iconsFolder: string;
   /** Busca na internet, uma vez, o ícone de cada atalho novo que ficou sem ícone. */
@@ -122,6 +124,7 @@ export const DEFAULT_CONFIG: Config = {
   timerCustomMinutes: 10,
   screens: [],
   confirmApps: true,
+  focusOpenApps: true,
   iconsFolder: "",
   autoIcons: true,
   scanApps: false,

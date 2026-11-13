@@ -153,7 +153,9 @@ const GROUP_GAP: std::time::Duration = std::time::Duration::from_millis(400);
 /// Abre o atalho da posição `index` (um destino, ou todos os de um grupo). A confirmação é feita na tela, antes.
 #[tauri::command]
 pub async fn launch(window: WebviewWindow, state: State<'_, ConfigState>, index: usize) -> Result<(), String> {
-    let targets = targets_of(&state.get().shortcuts, index)?;
+    let config = state.get();
+    let targets = targets_of(&config.shortcuts, index)?;
+    let focus_open = config.focus_open_apps;
     // As janelas que os apps abrirem vão para a tela da ilha que foi clicada, não para a principal.
     placement::follow(placement::Screen::of_window(&window), FOLLOW_SECONDS + targets.len() as u64 * 2);
     tauri::async_runtime::spawn_blocking(move || {
@@ -161,6 +163,10 @@ pub async fn launch(window: WebviewWindow, state: State<'_, ConfigState>, index:
         for (i, target) in targets.iter().enumerate() {
             if i > 0 {
                 std::thread::sleep(GROUP_GAP);
+            }
+            // Já aberto: a janela dele vem para a frente, como na barra de tarefas, em vez de abrir outra.
+            if focus_open && crate::focus::program_of(target).is_some_and(|program| crate::focus::focus_running(&program)) {
+                continue;
             }
             if let Err(e) = open_target(target) {
                 errors.push(e);

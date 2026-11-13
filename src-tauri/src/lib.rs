@@ -8,6 +8,7 @@ mod hotkeys;
 mod icons;
 #[cfg(windows)]
 mod file_drop;
+mod focus;
 mod island;
 mod picker;
 mod placement;

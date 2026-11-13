@@ -451,6 +451,9 @@ export function ShortcutsEditor() {
         <Row label="Confirmar antes de abrir" hint="Apps, jogos e grupos pedem confirmação antes de abrir">
           <Toggle label="Confirmar antes de abrir" value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
         </Row>
+        <Row label="Trazer para a frente se já estiver aberto" hint="Clicar num app aberto mostra a janela dele, em vez de abrir outra (como na barra de tarefas)">
+          <Toggle label="Trazer para a frente se já estiver aberto" value={config.focusOpenApps} onChange={(v) => update({ focusOpenApps: v })} />
+        </Row>
       </Group>
         </>
       )}

@@ -166,6 +166,9 @@ export function LauncherQuick() {
       <QRow label="Confirmar antes de abrir" hint="Apps, jogos e grupos pedem confirmação antes de abrir">
         <QToggle label="Confirmar antes de abrir" value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
       </QRow>
+      <QRow label="Trazer para a frente se já estiver aberto" hint="Em vez de abrir outra janela do app">
+        <QToggle label="Trazer para a frente se já estiver aberto" value={config.focusOpenApps} onChange={(v) => update({ focusOpenApps: v })} />
+      </QRow>
       <QRow label="Atalhos e grupos" hint="Para criar, reordenar e editar, use Editar na tela de atalhos" />
     </QPanel>
   );

@@ -19,7 +19,7 @@ export const AREAS: Area[] = [
     label: "Atalhos",
     lead: "Apps, jogos, pastas e sites que abrem com um clique.",
     group: "",
-    options: ["Sugestões de atalhos", "Atalhos", "Confirmar antes de abrir", "Seções", "Organizar automaticamente", "Grupos", "Ícones automáticos", "Pasta dos ícones", "Ícones que faltam", "steam", "epic", "jogos"],
+    options: ["Sugestões de atalhos", "Atalhos", "Confirmar antes de abrir", "Trazer para a frente se já estiver aberto", "Seções", "Organizar automaticamente", "Grupos", "Ícones automáticos", "Pasta dos ícones", "Ícones que faltam", "steam", "epic", "jogos"],
   },
   { id: "paginas", label: "Páginas e dock", lead: "O que aparece no dock da ilha, e em que ordem.", group: "", options: ["Páginas", "Ordem das páginas", "Voltar à ordem original", "dock"] },
   { id: "aparencia", label: "Aparência", lead: "Como a ilha se mostra.", group: "", options: ["Brilho ambiente", "Olhinhos", "Seguir o cursor", "Data e hora no topo", "Reduzir movimento", "cor", "animação"] },

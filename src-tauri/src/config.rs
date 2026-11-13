@@ -173,6 +173,8 @@ pub struct Config {
     pub screens: Vec<String>,
     /// Pede confirmação antes de abrir apps, jogos e grupos pelos atalhos.
     pub confirm_apps: bool,
+    /// Um app que já está aberto vem para a frente, em vez de abrir outra janela dele.
+    pub focus_open_apps: bool,
     /// Pasta dos ícones (imagens) dos atalhos; os ícones automáticos são guardados nela. Vazio = Documentos\Docky\icons.
     pub icons_folder: String,
     /// Busca na internet, uma vez, o ícone de cada atalho novo que ficou sem ícone.
@@ -234,6 +236,7 @@ impl Default for Config {
             timer_custom_minutes: 10,
             screens: Vec::new(),
             confirm_apps: true,
+            focus_open_apps: true,
             icons_folder: String::new(),
             auto_icons: true,
             scan_apps: false,
