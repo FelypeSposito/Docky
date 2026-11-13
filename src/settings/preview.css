@@ -12,13 +12,13 @@
 }
 .pv-glow {
   position: absolute;
-  inset: 35% -10% -60%;
+  inset: 20% -10% -30%;
   z-index: -1;
-  opacity: calc(var(--pv-glow, 0.7) * 0.75);
+  opacity: var(--pv-glow, 0.7);
   filter: blur(34px);
   background:
-    radial-gradient(closest-side at 26% 70%, #ff5c7a, transparent 100%),
-    radial-gradient(closest-side at 76% 82%, #7a3cff, transparent 100%);
+    radial-gradient(closest-side at 26% 60%, #ff5c7a, transparent 100%),
+    radial-gradient(closest-side at 76% 70%, #7a3cff, transparent 100%);
   transition: opacity 0.5s var(--ease);
   animation: drift 13s ease-in-out infinite alternate;
 }
