@@ -8,6 +8,11 @@
         "value": "inter",
         "createdAt": "2026-11-13T01:09:29.360Z",
         "reason": "user confirmed: Inter is a brand commitment recorded in PRODUCT.md (Brand Commitments)"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "jetbrains mono",
+        "createdAt": "2026-11-13T03:56:23.957Z"
       }
     ]
   }
