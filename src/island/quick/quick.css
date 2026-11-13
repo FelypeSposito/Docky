@@ -24,20 +24,20 @@
 .qs-title {
   margin: 10px 0 2px;
   color: var(--ink3);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
 }
 .qs-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  min-height: 42px;
-  padding: 6px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.045);
+  min-height: 44px;
+  padding: 6px 2px;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+}
+.qs-row:last-child {
+  box-shadow: none;
 }
 .qs-l {
   min-width: 0;
@@ -51,7 +51,7 @@
   display: block;
   margin-top: 1px;
   color: var(--ink3);
-  font-size: 10.5px;
+  font-size: 11.5px;
   line-height: 1.3;
 }
 .qs-c {
@@ -81,7 +81,7 @@
   transition: transform 0.25s var(--ease);
 }
 .qs-tg.on {
-  background: var(--accent, #4c8dff);
+  background: var(--accent, #ff5c7a);
 }
 .qs-tg.on i {
   transform: translateX(16px);
@@ -153,7 +153,7 @@
   user-select: text;
 }
 .qs-inp:focus {
-  box-shadow: 0 0 0 1.5px var(--accent, #4c8dff);
+  box-shadow: 0 0 0 1.5px var(--accent, #ff5c7a);
 }
 .qs-inp::placeholder {
   color: var(--ink3);
@@ -183,7 +183,7 @@
   opacity: 0.4;
 }
 .qs-btn.primary {
-  background: var(--accent, #4c8dff);
+  background: var(--accent, #ff5c7a);
   color: #07101f;
 }
 .qs-btn.danger {
@@ -228,7 +228,7 @@
   padding: 7px 14px;
 }
 .nbtn.go {
-  background: var(--accent, #4c8dff);
+  background: var(--accent, #ff5c7a);
   color: #07101f;
 }
 .nbtn.go:hover {
@@ -299,7 +299,7 @@
   background: rgba(255, 255, 255, 0.2);
 }
 .lcx-edit.on {
-  background: var(--accent, #4c8dff);
+  background: var(--accent, #ff5c7a);
   color: #07101f;
 }
 .lcx-grid {
@@ -428,7 +428,7 @@
   font-weight: 600;
 }
 .le-members button.on {
-  background: var(--accent, #4c8dff);
+  background: var(--accent, #ff5c7a);
   color: #07101f;
 }
 .le-sure {
@@ -522,7 +522,7 @@
 
 /* Botão de ajustes ao lado do de expandir */
 .xbtn.gear.on {
-  color: var(--accent, #4c8dff);
+  color: var(--accent, #ff5c7a);
   background: rgba(255, 255, 255, 0.12);
 }
 
@@ -594,7 +594,7 @@
   transform: scale(0.92);
 }
 .qs-ib.on {
-  color: var(--accent, #4c8dff);
+  color: var(--accent, #ff5c7a);
 }
 .qs-ib.danger:hover:not(:disabled) {
   background: rgba(229, 72, 77, 0.2);
@@ -618,10 +618,8 @@
 .lcx-h {
   margin: 0;
   color: var(--ink3);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
 }
 .lcx-sec h3 {
   flex: 1;
@@ -711,11 +709,9 @@
   padding: 0 4px;
   border-radius: 8px;
   color: var(--ink3);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 600;
   text-align: left;
-  text-transform: uppercase;
   transition: color 0.2s, background 0.2s;
 }
 .lsec-head:hover {
@@ -875,4 +871,25 @@
 .le-secsel option {
   background: #161616;
   color: #fff;
+}
+
+/* Tela expandida dos atalhos: a busca subiu para o cabeçalho; aqui ficam os filtros e o Editar numa linha só */
+.lcx-top {
+  height: 34px;
+}
+.lcx-top .lcx-chips {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.lcx-fill {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.lcx-edit {
+  height: 30px;
+  border-radius: 9px;
 }

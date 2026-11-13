@@ -47,7 +47,7 @@ export function TimerPage() {
   const setCustom = (value: number) => update({ timerCustomMinutes: clamp(value) });
 
   return (
-    <div className="bento pomo">
+    <div className={`bento pomo ${mode}`}>
       <div className="tile ringt">
         <div className="ring">
           <svg width="116" height="116" viewBox="0 0 118 118" aria-hidden="true">

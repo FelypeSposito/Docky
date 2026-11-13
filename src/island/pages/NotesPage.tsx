@@ -4,6 +4,7 @@ import { formatNoteDate } from "../../lib/format";
 import { ipc, type Note } from "../../lib/ipc";
 import { nextNoteOrder, splitNotes, togglePinned } from "../../notes/order";
 import { EmptyState } from "../EmptyState";
+import { HeaderField } from "../HeaderField";
 import { NoteIcon, PinIcon, TrashIcon } from "../icons";
 import { useGridSort } from "../useGridSort";
 
@@ -93,19 +94,15 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
 
   return (
     <div className={`bento nt${large ? " big" : ""}`}>
-      <label className="tile nin">
-        <span className="nin-ic">
-          <NoteIcon size={16} />
-        </span>
-        <input
-          value={text}
-          placeholder={notes.length > 0 ? `Nota rápida… (${notes.length} salvas)` : "Nota rápida…"}
-          autoComplete="off"
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && save()}
-        />
-        <kbd>Enter</kbd>
-      </label>
+      <HeaderField
+        icon={<NoteIcon size={14} />}
+        value={text}
+        label="Nota rápida"
+        placeholder={notes.length > 0 ? `Nota rápida · ${notes.length} salvas` : "Nota rápida"}
+        onChange={setText}
+        onEnter={save}
+        typeToFocus
+      />
 
       {error ? (
         <EmptyState
@@ -114,7 +111,7 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
           action={{ label: "Abrir configurações", onClick: () => ipc.openSettings("geral") }}
         />
       ) : notes.length === 0 ? (
-        <EmptyState title="Nenhuma nota ainda" text="Escreva acima e aperte Enter." />
+        <EmptyState title="Nenhuma nota ainda" text="Comece a digitar: a nota vai para o campo lá em cima, e Enter salva." />
       ) : (
         <div className="nlist" ref={listRef}>
           {ordered.map((note) => {

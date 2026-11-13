@@ -17,7 +17,6 @@ import { createHoverController } from "./hoverController";
 import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
 import { BatteryIcon, BellIcon, BoltIcon, CheckIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, SlidersIcon, VolumeIcon } from "./icons";
 import { bodyHeight, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, IDLE_TIMER, type Mode, resolveMode, SIZES } from "./modes";
-import { LauncherSearch } from "./pages/LauncherPage";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { visiblePages } from "./pageOrder";
@@ -26,6 +25,9 @@ import "./island.css";
 import "./quick/quick.css";
 
 const CHARGE_NOTICE_MS = 3400;
+/** Páginas que põem um campo no cabeçalho (a busca dos Atalhos, a nota rápida). */
+const FIELD_PAGES = new Set(["launch", "note"]);
+const setHeaderSlot = (el: HTMLDivElement | null) => useIslandStore.getState().setHeaderSlot(el);
 
 const fmtSeconds = (total: number) =>
   `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
@@ -354,7 +356,7 @@ export function Island() {
           style={{ width: largeOn ? EXPANDED_LARGE.w : SIZES.expanded.w, "--body-h": `${bodyHeight(largeOn)}px` } as React.CSSProperties}
         >
           <div className="hdr">
-            <div className="hdr-slot">{ActivePage.id === "launch" && !largeOn && !quickOn && <LauncherSearch />}</div>
+            <div className="hdr-slot" ref={setHeaderSlot} />
             {config.headerClock && (
               <div className="hdr-clock">
                 {charging ? (
@@ -362,8 +364,8 @@ export function Island() {
                     <BoltIcon />
                   </span>
                 ) : (
-                  // Em Atalhos a busca precisa do espaço: lá a bateria só aparece quando está acabando.
-                  showBattery && (ActivePage.id !== "launch" || largeOn || (power?.percent ?? 100) <= 20) && (
+                  // Nas páginas com campo no cabeçalho, ele precisa do espaço: lá a bateria só aparece quando está acabando.
+                  showBattery && (!FIELD_PAGES.has(ActivePage.id) || quickOn || (power?.percent ?? 100) <= 20) && (
                     <span className={`bat${(power?.percent ?? 100) <= 20 ? " low" : ""}`}>
                       <BatteryIcon />
                       {power?.percent}%

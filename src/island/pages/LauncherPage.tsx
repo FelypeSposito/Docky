@@ -27,6 +27,7 @@ import { ipc } from "../../lib/ipc";
 import { useSortable } from "../../settings/useSortable";
 import { useGridSort } from "../useGridSort";
 import { EmptyState } from "../EmptyState";
+import { HeaderField } from "../HeaderField";
 import { ArrowDownIcon, EyeIcon, EyeOffIcon, GripIcon, ListIcon, PencilIcon, SearchIcon, TrashIcon } from "../icons";
 import { QButton, QIconButton, QPath, QText } from "../quick/controls";
 import { Suggestions } from "../quick/Suggestions";
@@ -88,67 +89,30 @@ function Confirm({ text, onCancel, onOk }: { text: string; onCancel: () => void;
 /** Os grupos antes dos atalhos comuns, cada parte na ordem em que está. */
 const groupsFirst = <T extends { item: Shortcut }>(list: T[]): T[] => [...list.filter((e) => e.item.group), ...list.filter((e) => !e.item.group)];
 
-/** A busca dos atalhos, no cabeçalho da ilha aberta: qualquer tecla já começa a digitar aqui, e Enter abre o primeiro. */
-export function LauncherSearch() {
-  const shortcuts = useConfigStore((s) => s.config.shortcuts);
-  const query = useIslandStore((s) => s.launcherQuery);
-  const input = useRef<HTMLInputElement>(null);
-  const total = useMemo(() => filterShortcuts(shortcuts, "").length, [shortcuts]);
-
-  // Comece a digitar com a ilha aberta e a letra cai na busca, sem precisar clicar nela.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === " " && e.target instanceof Element && e.target.closest("button, [role=button]")) return;
-      if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]")) return;
-      input.current?.focus();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  return (
-    <label className="hsearch">
-      <SearchIcon />
-      <input
-        ref={input}
-        value={query}
-        placeholder={total > MAX_TILES ? `Buscar entre ${total} atalhos` : "Buscar atalho"}
-        aria-label="Buscar atalho"
-        autoComplete="off"
-        spellCheck={false}
-        onChange={(e) => useIslandStore.getState().setLauncherQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") useIslandStore.getState().submitLauncher();
-          // Esc com algo digitado só limpa a busca; vazio, deixa a ilha recolher como sempre.
-          if (e.key === "Escape" && query) {
-            e.stopPropagation();
-            e.nativeEvent.stopImmediatePropagation();
-            useIslandStore.getState().setLauncherQuery("");
-          }
-        }}
-      />
-      {query && <kbd>Enter</kbd>}
-    </label>
-  );
-}
-
-export function LauncherPage() {
+export function LauncherPage({ active }: { active: boolean }) {
   const { shortcuts, images, pending, setPending, error, open, ask } = useLauncher();
   const sections = useConfigStore((s) => s.config.shortcutSections);
-  const query = useIslandStore((s) => s.launcherQuery);
-  const enter = useIslandStore((s) => s.launcherEnter);
+  const [query, setQuery] = useState("");
   const all = useMemo(() => filterShortcuts(shortcuts, ""), [shortcuts]);
   const matches = useMemo(() => groupsFirst(filterShortcuts(shortcuts, query)), [shortcuts, query]);
   const searching = query.trim() !== "";
-
-  // Enter na busca do cabeçalho abre o primeiro da lista (com a confirmação, quando ela vale).
-  const lastEnter = useRef(enter);
+  // A ilha recolheu: a próxima vez começa sem busca.
   useEffect(() => {
-    if (enter === lastEnter.current) return;
-    lastEnter.current = enter;
-    if (matches[0]) ask(matches[0].index);
-  }, [enter, matches, ask]);
+    if (!active) setQuery("");
+  }, [active]);
+
+  const search =
+    all.length > 0 ? (
+      <HeaderField
+        icon={<SearchIcon />}
+        value={query}
+        label="Buscar atalho"
+        placeholder={all.length > MAX_TILES ? `Buscar entre ${all.length} atalhos` : "Buscar atalho"}
+        onChange={setQuery}
+        onEnter={() => matches[0] && ask(matches[0].index)}
+        typeToFocus
+      />
+    ) : null;
 
   if (all.length === 0) {
     return (
@@ -164,12 +128,25 @@ export function LauncherPage() {
   const sectionNames = sections.filter((section) => section.members.length > 0).map((section) => section.name).slice(0, 3);
 
   if (pending !== null && shortcuts[pending]) {
-    return <Confirm text={confirmationText(shortcuts[pending], shortcuts)} onCancel={() => setPending(null)} onOk={() => open(pending)} />;
+    return (
+      <>
+        {search}
+        <Confirm text={confirmationText(shortcuts[pending], shortcuts)} onCancel={() => setPending(null)} onOk={() => open(pending)} />
+      </>
+    );
   }
-  if (error) return <div className="tile lc-empty">{error}</div>;
+  if (error) {
+    return (
+      <>
+        {search}
+        <div className="tile lc-empty">{error}</div>
+      </>
+    );
+  }
   if (matches.length === 0) {
     return (
       <div className="lc-none">
+        {search}
         <b>Nenhum atalho com “{query.trim()}”</b>
         <span>Confira o nome ou crie um novo.</span>
         <button className="lc-more2" onClick={() => useIslandStore.getState().toggleLarge()}>
@@ -181,6 +158,7 @@ export function LauncherPage() {
 
   return (
     <div className="lc2">
+      {search}
       <div className="lgrid4">
         {matches.slice(0, MAX_TILES).map(({ item, index }, i) => (
           <button
@@ -430,10 +408,13 @@ function SearchResults({ entries, renderTile }: { entries: IndexedShortcut[]; re
 }
 
 /** A tela maior dos atalhos: grupos e atalhos em partes separadas e, em Editar, criar, ordenar, ocultar e montar grupos. */
-export function LauncherLarge() {
+export function LauncherLarge({ active }: { active: boolean }) {
   const { shortcuts, images, pending, setPending, error, open, ask } = useLauncher();
   const update = useConfigStore((s) => s.update);
   const [query, setQuery] = useState("");
+  useEffect(() => {
+    if (!active) setQuery("");
+  }, [active]);
   const [editing, setEditing] = useState(false);
   /** O atalho cujo ícone está sendo escolhido (o seletor ocupa o lugar da lista). */
   const [picking, setPicking] = useState<string | null>(null);
@@ -614,6 +595,17 @@ export function LauncherLarge() {
 
   return (
     <div className="bento lcx">
+      {!editing && (
+        <HeaderField
+          icon={<SearchIcon />}
+          value={query}
+          label="Buscar atalho"
+          placeholder={`Buscar entre ${shortcuts.length} atalhos`}
+          onChange={setQuery}
+          onEnter={() => matches[0] && ask(matches[0].index)}
+          typeToFocus
+        />
+      )}
       <div className="lcx-top">
         {editing ? (
           <>
@@ -622,14 +614,10 @@ export function LauncherLarge() {
             </QButton>
             <span className="qs-note">Arraste pela alça para ordenar. O olho oculta o atalho da lista, e ele continua nos grupos.</span>
           </>
+        ) : !searching && chips.length > 0 ? (
+          <FilterRow chips={chips} active={current} onSelect={selectFilter} />
         ) : (
-          <label className="tile nin">
-            <span className="nin-ic">
-              <SearchIcon />
-            </span>
-            <input value={query} placeholder="Buscar atalho…" autoComplete="off" onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && matches[0] && ask(matches[0].index)} />
-            <kbd>Enter</kbd>
-          </label>
+          <span className="lcx-fill">{searching ? `${matches.length} ${matches.length === 1 ? "resultado" : "resultados"}` : ""}</span>
         )}
         <button className={`lcx-edit${editing ? " on" : ""}`} onClick={() => setEditing((v) => !v)} aria-pressed={editing}>
           <PencilIcon size={13} />
@@ -689,7 +677,6 @@ export function LauncherLarge() {
         <Confirm text={confirmationText(shortcuts[pending], shortcuts)} onCancel={() => setPending(null)} onOk={() => open(pending)} />
       ) : (
         <>
-          {!searching && chips.length > 0 && <FilterRow chips={chips} active={current} onSelect={selectFilter} />}
           <div className="lcx-scroll" ref={scrollRef}>
             {error && <div className="tile lc-empty lcx-err">{error}</div>}
             {matches.length === 0 && !error && (

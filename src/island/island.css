@@ -1058,7 +1058,7 @@
   stroke: rgba(255, 255, 255, 0.1);
 }
 .ring .fg {
-  stroke: #ff6b4a;
+  stroke: var(--tc, #ff5c7a);
   transition: stroke-dashoffset 1s linear;
 }
 .ring .t {
@@ -1116,7 +1116,7 @@
   height: 32px;
   padding: 0 18px;
   border-radius: 16px;
-  background: #ff6b4a;
+  background: var(--tc, #ff5c7a);
   color: #1a0500;
   font-weight: 650;
   transition: transform 0.1s, filter 0.2s;
@@ -1144,7 +1144,7 @@
   background: rgba(255, 255, 255, 0.18);
 }
 .st .cyc i.on {
-  background: #ff6b4a;
+  background: var(--tc, #ff5c7a);
 }
 /* Contador livre: o tempo se escolhe aqui mesmo */
 .st.cust {
@@ -1191,7 +1191,7 @@
   user-select: text;
 }
 .mins:focus {
-  box-shadow: 0 0 0 1.5px #ff6b4a;
+  box-shadow: 0 0 0 1.5px var(--tc, #ff5c7a);
 }
 .st .stp span {
   margin: 0 2px 0 1px;
@@ -1213,7 +1213,7 @@
   color: #fff;
 }
 .chips button.on {
-  background: #ff6b4a;
+  background: var(--tc, #ff5c7a);
   color: #1a0500;
 }
 .st b {
@@ -1440,7 +1440,6 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 12px 13px;
-  background: linear-gradient(180deg, rgba(76, 141, 255, 0.3), rgba(76, 141, 255, 0.08));
 }
 .wx .big {
   font-size: 38px;
@@ -1705,7 +1704,7 @@
 
 /* Notas: lista com rolagem, para nenhuma sumir quando há muitas */
 .bento.nt {
-  grid-template-rows: 42px 98px;
+  grid-template-rows: minmax(0, 1fr);
   gap: 8px;
 }
 .nlist {
@@ -1823,7 +1822,7 @@
 /* Versões maiores das páginas (botão de expandir): ocupam o corpo inteiro da ilha ampliada */
 .bento.nt.big {
   height: var(--body-h);
-  grid-template-rows: 42px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 .nt.big .nlist {
   grid-template-columns: repeat(4, 1fr);
@@ -1859,10 +1858,8 @@
   padding: 8px 0 4px;
   color: var(--ink3);
   background: linear-gradient(#1c1c20, rgba(28, 28, 32, 0.9));
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
 }
 .calx-row {
   display: flex;
@@ -1941,15 +1938,15 @@
   display: block;
   height: 100%;
   border-radius: 2px;
-  background: #4c8dff;
+  background: var(--accent, #ff5c7a);
   transition: width 1s linear;
 }
 .go {
   flex: none;
   height: 28px;
   padding: 0 14px;
-  border-radius: 14px;
-  background: #4c8dff;
+  border-radius: 9px;
+  background: var(--accent, #ff5c7a);
   color: #fff;
   font-size: 12px;
   font-weight: 650;
@@ -2270,4 +2267,30 @@
 }
 .bat.low {
   color: #ff6b6b;
+}
+
+/* Foco: a cor do modo (a mesma da etiqueta na pílula) */
+.bento.pomo {
+  --tc: #ff5c7a;
+}
+.bento.pomo.short,
+.bento.pomo.long {
+  --tc: #3dd68c;
+}
+.bento.pomo.custom {
+  --tc: #a98bff;
+}
+.bento.pomo.short .pbtn,
+.bento.pomo.long .pbtn,
+.bento.pomo.short .chips button.on,
+.bento.pomo.long .chips button.on {
+  color: #04230f;
+}
+
+/* Notas: duas fileiras de cartões cabem no corpo, agora que a nota rápida mora no cabeçalho */
+.bento.nt:not(.big) .nlist {
+  grid-auto-rows: 70px;
+}
+.bento.nt:not(.big) .ncard p {
+  -webkit-line-clamp: 2;
 }
