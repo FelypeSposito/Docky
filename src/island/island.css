@@ -1372,9 +1372,6 @@
   padding: 0 8px 0 14px;
   border-radius: 21px;
 }
-.nin-ic {
-  color: var(--ink3);
-}
 .nin input {
   flex: 1;
   min-width: 0;
@@ -1394,12 +1391,6 @@
   background: var(--fill);
   color: var(--ink3);
   font: 600 10.5px Inter, sans-serif;
-}
-.ncards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  min-height: 0;
 }
 .ncard {
   display: flex;
@@ -1483,22 +1474,6 @@
 }
 .hrs i:first-child {
   background: #ffd166;
-}
-.cal-soon {
-  display: grid;
-  gap: 6px;
-  place-content: center;
-  padding: 0 24px;
-  text-align: center;
-}
-.cal-soon b {
-  font-size: 14px;
-  font-weight: 650;
-}
-.cal-soon span {
-  color: var(--ink2);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 /* Fase 5: sistema e atalhos */

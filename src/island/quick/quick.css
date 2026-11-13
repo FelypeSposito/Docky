@@ -11,13 +11,11 @@
   overscroll-behavior: contain;
 }
 .qs::-webkit-scrollbar,
-.lcx-list::-webkit-scrollbar,
-.lcx-grid::-webkit-scrollbar {
+.lcx-list::-webkit-scrollbar {
   width: 4px;
 }
 .qs::-webkit-scrollbar-thumb,
-.lcx-list::-webkit-scrollbar-thumb,
-.lcx-grid::-webkit-scrollbar-thumb {
+.lcx-list::-webkit-scrollbar-thumb {
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.22);
 }
@@ -302,38 +300,6 @@
   background: var(--accent, #ff5c7a);
   color: #1a0207;
 }
-.lcx-grid {
-  display: grid;
-  flex: 1;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-auto-rows: auto;
-  gap: 8px;
-  min-height: 0;
-  padding-right: 4px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  align-content: start;
-  position: relative;
-}
-.lcx-grid .lt {
-  min-height: 56px;
-}
-/* Arrastar um ícone para mudar a ordem: ele segue o mouse, por cima dos outros, sem a transição de sempre. */
-.lcx-grid .lt {
-  user-select: none;
-  -webkit-user-select: none;
-}
-.lcx-grid .lt.drag {
-  z-index: 5;
-  transition: none;
-  cursor: grabbing;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55);
-  pointer-events: none;
-}
-.lcx-grid .lc-empty {
-  grid-column: 1 / -1;
-  padding: 18px;
-}
 .lcx-err {
   color: #ff9b9b;
 }
@@ -411,25 +377,6 @@
   padding: 3px;
   background: rgba(255, 255, 255, 0.1);
   object-fit: contain;
-}
-.le-members {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-width: 0;
-}
-.le-members button {
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--ink2);
-  font-size: 11px;
-  font-weight: 600;
-}
-.le-members button.on {
-  background: var(--accent, #ff5c7a);
-  color: #1a0207;
 }
 .le-sure {
   display: inline-flex;
@@ -614,8 +561,7 @@
   gap: 8px;
   padding: 8px 4px 2px;
 }
-.lcx-sec h3,
-.lcx-h {
+.lcx-sec h3 {
   margin: 0;
   color: var(--ink3);
   font-size: 12px;
@@ -623,10 +569,6 @@
 }
 .lcx-sec h3 {
   flex: 1;
-}
-.lcx-h {
-  grid-column: 1 / -1;
-  padding: 4px 2px 0;
 }
 .lcx-list .sc {
   position: relative;

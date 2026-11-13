@@ -326,6 +326,8 @@ export function ShortcutsEditor() {
   };
   const hideable = hideableCount(items);
   const onIsland = islandIds(items);
+  /** Os atalhos que estão em algum grupo: só eles ganham o olho de ocultar da lista. */
+  const grouped = new Set(groups.flatMap((g) => g.item.members));
 
   const row = ({ item, index }: { item: Shortcut; index: number }, sortable: ReturnType<typeof useSortable>) => (
     <div
@@ -378,9 +380,11 @@ export function ShortcutsEditor() {
           <PinIcon />
         </IconButton>
       )}
-      <IconButton label={item.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!item.hidden} onClick={() => set(setHidden(items, item.id, !item.hidden))}>
-        {item.hidden ? <EyeOffIcon /> : <EyeIcon />}
-      </IconButton>
+      {(item.hidden || grouped.has(item.id)) && (
+        <IconButton label={item.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!item.hidden} onClick={() => set(setHidden(items, item.id, !item.hidden))}>
+          {item.hidden ? <EyeOffIcon /> : <EyeIcon />}
+        </IconButton>
+      )}
       <IconButton label="Remover" danger onClick={() => set(removeShortcut(items, index))}>
         <TrashIcon />
       </IconButton>
@@ -431,7 +435,7 @@ export function ShortcutsEditor() {
 
       {tab === "lista" && (
         <>
-      <AppSuggestions />
+      {config.scanApps && <AppSuggestions />}
 
       <Group>
         <Row label="Atalhos" hint="Os 8 primeiros aparecem na ilha (o pino rosa marca quais); os outros ficam na tela expandida. Clique no pino ou arraste para mudar">
@@ -462,6 +466,7 @@ export function ShortcutsEditor() {
           <Toggle label="Trazer para a frente se já estiver aberto" value={config.focusOpenApps} onChange={(v) => update({ focusOpenApps: v })} />
         </Row>
       </Group>
+      {!config.scanApps && <AppSuggestions />}
         </>
       )}
 

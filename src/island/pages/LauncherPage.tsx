@@ -194,6 +194,7 @@ function EditRow({
   editItems,
   toggleHidden,
   inIsland,
+  canHide = false,
   toggleIsland: onToggleIsland,
   autoFocus,
   sections,
@@ -217,6 +218,8 @@ function EditRow({
   toggleHidden: () => void;
   /** Aparece na ilha antes de expandir (um dos 8 primeiros). */
   inIsland?: boolean;
+  /** Está em algum grupo, então ocultar da lista faz sentido. */
+  canHide?: boolean;
   toggleIsland?: () => void;
 }) {
   const [sure, setSure] = useState(false);
@@ -269,7 +272,7 @@ function EditRow({
           <PinIcon />
         </QIconButton>
       )}
-      {!sure && (
+      {!sure && (shortcut.hidden || canHide) && (
         <QIconButton label={shortcut.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!shortcut.hidden} onClick={toggleHidden}>
           {shortcut.hidden ? <EyeOffIcon /> : <EyeIcon />}
         </QIconButton>
@@ -449,6 +452,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
 
   const set = (next: Shortcut[]) => update({ shortcuts: next });
   const onIsland = useMemo(() => islandIds(shortcuts), [shortcuts]);
+  const grouped = useMemo(() => new Set(shortcuts.filter((s) => s.group).flatMap((g) => g.members)), [shortcuts]);
   const sortGroups = useSortable(
     groups.map((e) => e.item.id),
     (order) => set(reorderSection(shortcuts, true, order)),
@@ -558,6 +562,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
       editItems={() => setEditingGroup(entry.item.id)}
       toggleHidden={() => set(setHidden(shortcuts, entry.item.id, !entry.item.hidden))}
       inIsland={onIsland.has(entry.item.id)}
+      canHide={grouped.has(entry.item.id)}
       toggleIsland={entry.item.group ? undefined : () => set(toggleIsland(shortcuts, entry.item.id))}
       sections={entry.item.group ? undefined : sections}
       sectionId={sectionOf(entry.item.id, sections)?.id ?? null}
@@ -655,7 +660,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
             <QButton onClick={() => setSuggesting(true)} title="Grupos prontos e apps que você mais usa">
               ✦ Sugestões
             </QButton>
-            <span className="qs-note">Os com o pino rosa aparecem na ilha. Arraste pela alça para ordenar; o olho oculta da lista.</span>
+            <span className="qs-note">Os com o pino rosa aparecem na ilha. Arraste pela alça para ordenar.</span>
           </>
         ) : !searching && chips.length > 0 ? (
           <FilterRow chips={chips} active={current} onSelect={selectFilter} />

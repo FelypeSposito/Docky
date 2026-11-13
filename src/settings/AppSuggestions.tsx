@@ -41,11 +41,8 @@ export function AppSuggestions() {
   if (!config.scanApps) {
     return (
       <Group>
-        <Row
-          label="Sugestões de atalhos"
-          hint="O Docky procura os apps e jogos instalados neste computador (Menu Iniciar, Steam e Epic Games) para sugerir atalhos prontos. A busca acontece só aqui: nada sai do computador."
-        >
-          <button className="btn primary" onClick={() => update({ scanApps: true })}>
+        <Row label="Sugerir atalhos dos apps instalados" hint="Procura no Menu Iniciar, na Steam e na Epic. Tudo fica neste computador">
+          <button className="btn" onClick={() => update({ scanApps: true })}>
             Permitir
           </button>
         </Row>
