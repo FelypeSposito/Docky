@@ -66,6 +66,18 @@ export interface Config {
   iconsFolder: string;
   /** Busca na internet, uma vez, o ícone de cada atalho novo que ficou sem ícone. */
   autoIcons: boolean;
+  /** A pessoa deixou o Docky procurar os apps e jogos instalados para sugerir atalhos (desligado até ela permitir). */
+  scanApps: boolean;
+  /** Seções da tela de atalhos (Jogos, Comunicação…), na ordem em que aparecem. */
+  shortcutSections: ShortcutSection[];
+}
+
+/** Uma seção da tela de atalhos: um nome, se está recolhida e os atalhos que estão nela (ids, sem grupos). */
+export interface ShortcutSection {
+  id: string;
+  name: string;
+  collapsed: boolean;
+  members: string[];
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -106,4 +118,6 @@ export const DEFAULT_CONFIG: Config = {
   confirmApps: true,
   iconsFolder: "",
   autoIcons: true,
+  scanApps: false,
+  shortcutSections: [],
 };

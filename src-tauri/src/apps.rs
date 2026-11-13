@@ -23,7 +23,14 @@ pub struct AppEntry {
     pub pinned: bool,
     /// Está aberto agora.
     pub running: bool,
+    /// De onde veio: `app` (Menu Iniciar e Loja), `steam` ou `epic` (jogos instalados).
+    pub kind: String,
+    /// Um arquivo local de onde o ícone do atalho pode sair (imagem `.jpg/.png/.ico` ou um programa `.exe`).
+    pub icon: Option<String>,
 }
+
+/// O tipo dos apps do Menu Iniciar e da Loja.
+const KIND_APP: &str = "app";
 
 impl AppEntry {
     /// O peso na ordenação: o histórico conta por abertura; fixado e aberto agora pesam bastante.
@@ -260,10 +267,279 @@ fn running_programs() -> std::collections::HashSet<String> {
         .collect()
 }
 
-/// Os apps instalados, dos mais usados para os menos (e por nome, onde não há registro de uso).
+/// As strings entre aspas de uma linha do formato de texto da Valve (KeyValues), já sem os escapes (`\\` e `\"`).
+fn quoted_strings(line: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut chars = line.chars();
+    while let Some(c) = chars.next() {
+        if c != '"' {
+            continue;
+        }
+        let mut text = String::new();
+        while let Some(c) = chars.next() {
+            match c {
+                '"' => break,
+                '\\' => match chars.next() {
+                    Some(escaped @ ('\\' | '"')) => text.push(escaped),
+                    Some(other) => {
+                        text.push('\\');
+                        text.push(other);
+                    }
+                    None => text.push('\\'),
+                },
+                other => text.push(other),
+            }
+        }
+        found.push(text);
+    }
+    found
+}
+
+/// Os pares chave/valor de um arquivo `.vdf`/`.acf` da Steam, com a profundidade de cada um (1 = dentro do bloco de
+/// fora). Uma linha com duas strings é um par; `{` e `}` sozinhos abrem e fecham blocos.
+pub fn vdf_pairs(text: &str) -> Vec<(usize, String, String)> {
+    let mut depth = 0usize;
+    let mut pairs = Vec::new();
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('{') {
+            depth += 1;
+            continue;
+        }
+        if trimmed.starts_with('}') {
+            depth = depth.saturating_sub(1);
+            continue;
+        }
+        let mut strings = quoted_strings(trimmed).into_iter();
+        if let (Some(key), Some(value)) = (strings.next(), strings.next()) {
+            pairs.push((depth, key, value));
+        }
+    }
+    pairs
+}
+
+/// As pastas de biblioteca da Steam listadas no `libraryfolders.vdf`.
+pub fn steam_library_paths(text: &str) -> Vec<PathBuf> {
+    vdf_pairs(text).into_iter().filter(|(_, key, _)| key.eq_ignore_ascii_case("path")).map(|(_, _, value)| PathBuf::from(value)).collect()
+}
+
+/// Um jogo instalado pela Steam, lido do `appmanifest_<appid>.acf`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SteamGame {
+    pub appid: String,
+    pub name: String,
+    /// Quando foi jogado pela última vez (segundos Unix; 0 se nunca).
+    pub last_played: u64,
+}
+
+/// Lê o `appid`, o `name` e o `LastPlayed` de um `appmanifest_<appid>.acf` (só os do bloco de fora).
+pub fn parse_app_manifest(text: &str) -> Option<SteamGame> {
+    let (mut appid, mut name, mut last_played) = (None, None, 0);
+    for (depth, key, value) in vdf_pairs(text) {
+        if depth != 1 {
+            continue;
+        }
+        match key.to_ascii_lowercase().as_str() {
+            "appid" if appid.is_none() => appid = Some(value),
+            "name" if name.is_none() => name = Some(value),
+            "lastplayed" => last_played = value.trim().parse().unwrap_or(0),
+            _ => {}
+        }
+    }
+    let (appid, name) = (appid?.trim().to_string(), name?.trim().to_string());
+    (!appid.is_empty() && !name.is_empty()).then_some(SteamGame { appid, name, last_played })
+}
+
+/// Ferramentas e bibliotecas que a Steam instala junto e que não são jogos.
+pub fn is_steam_tool(appid: &str, name: &str) -> bool {
+    let lower = name.to_lowercase();
+    appid == "228980" || ["redistributable", "steamworks", "proton", "steam linux runtime"].iter().any(|bad| lower.contains(bad))
+}
+
+/// Nome de arquivo que é um hash SHA-1 (40 dígitos hexadecimais): o ícone quadrado no cache novo da Steam.
+fn is_sha1_stem(stem: &str) -> bool {
+    stem.len() == 40 && stem.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// A melhor imagem do jogo no cache da Steam (`appcache\librarycache`): o ícone quadrado, depois o logo, por último
+/// a capa larga. Vale o cache novo (uma pasta por jogo) e o antigo (`<appid>_icon.jpg` soltos).
+pub fn steam_icon(cache: &Path, appid: &str) -> Option<PathBuf> {
+    let folder = cache.join(appid);
+    let square = fs::read_dir(&folder).ok().and_then(|entries| {
+        let mut found: Vec<PathBuf> = entries
+            .flatten()
+            .map(|entry| entry.path())
+            .filter(|path| {
+                path.is_file()
+                    && path.extension().is_some_and(|e| e.eq_ignore_ascii_case("jpg"))
+                    && path.file_stem().and_then(|s| s.to_str()).is_some_and(is_sha1_stem)
+            })
+            .collect();
+        found.sort();
+        found.into_iter().next()
+    });
+    square
+        .into_iter()
+        .chain([cache.join(format!("{appid}_icon.jpg")), folder.join("logo.png"), folder.join("header.jpg"), cache.join(format!("{appid}_header.jpg"))])
+        .find(|path| path.is_file())
+}
+
+/// Os jogos de uma instalação da Steam, dos jogados há menos tempo para os mais antigos.
+fn steam_games_in(steam: &Path) -> Vec<AppEntry> {
+    let mut libraries = vec![steam.to_path_buf()];
+    if let Ok(text) = fs::read_to_string(steam.join("steamapps").join("libraryfolders.vdf")) {
+        libraries.extend(steam_library_paths(&text));
+    }
+    let mut seen_libraries = std::collections::HashSet::new();
+    libraries.retain(|path| seen_libraries.insert(path.to_string_lossy().replace('/', "\\").trim_end_matches('\\').to_lowercase()));
+
+    let mut games: Vec<SteamGame> = Vec::new();
+    for library in libraries {
+        let Ok(entries) = fs::read_dir(library.join("steamapps")) else { continue };
+        for entry in entries.flatten() {
+            let file_name = entry.file_name().to_string_lossy().to_lowercase();
+            if !(file_name.starts_with("appmanifest_") && file_name.ends_with(".acf")) {
+                continue;
+            }
+            let Some(game) = fs::read_to_string(entry.path()).ok().and_then(|text| parse_app_manifest(&text)) else { continue };
+            if !is_steam_tool(&game.appid, &game.name) && !games.iter().any(|g| g.appid == game.appid) {
+                games.push(game);
+            }
+        }
+    }
+    games.sort_by(|a, b| b.last_played.cmp(&a.last_played).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+    let cache = steam.join("appcache").join("librarycache");
+    games
+        .into_iter()
+        .map(|game| AppEntry {
+            icon: steam_icon(&cache, &game.appid).map(|path| path.to_string_lossy().into_owned()),
+            target: format!("steam://rungameid/{}", game.appid),
+            name: game.name,
+            uses: 0,
+            pinned: false,
+            running: false,
+            kind: "steam".to_string(),
+        })
+        .collect()
+}
+
+/// A pasta da Steam: a que ela grava no registro (`SteamPath`, com barras `/`), ou a pasta padrão.
+#[cfg(windows)]
+fn steam_dir() -> Option<PathBuf> {
+    use windows::{
+        Win32::{
+            Foundation::ERROR_SUCCESS,
+            System::Registry::{HKEY_CURRENT_USER, RRF_RT_REG_SZ, RegGetValueW},
+        },
+        core::w,
+    };
+
+    let mut buffer = [0u16; 1024];
+    let mut size = (buffer.len() * 2) as u32;
+    let status = unsafe { RegGetValueW(HKEY_CURRENT_USER, w!(r"Software\Valve\Steam"), w!("SteamPath"), RRF_RT_REG_SZ, None, Some(buffer.as_mut_ptr().cast()), Some(&mut size)) };
+    let from_registry = (status == ERROR_SUCCESS)
+        .then(|| {
+            let end = buffer.iter().position(|c| *c == 0).unwrap_or(buffer.len());
+            PathBuf::from(String::from_utf16_lossy(&buffer[..end]).trim().replace('/', "\\"))
+        })
+        .filter(|path| path.is_dir());
+    let default = std::env::var_os("ProgramFiles(x86)").map_or_else(|| PathBuf::from(r"C:\Program Files (x86)"), PathBuf::from).join("Steam");
+    from_registry.or_else(|| default.is_dir().then_some(default))
+}
+
+#[cfg(not(windows))]
+fn steam_dir() -> Option<PathBuf> {
+    None
+}
+
+/// Os jogos instalados pela Steam nesta máquina.
+fn steam_games() -> Vec<AppEntry> {
+    steam_dir().map(|steam| steam_games_in(&steam)).unwrap_or_default()
+}
+
+/// Um jogo instalado pela Epic Games, lido de um manifesto `.item`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EpicGame {
+    pub name: String,
+    pub target: String,
+    /// O programa do jogo (`InstallLocation` + `LaunchExecutable`), se o manifesto diz qual é. Pode não existir.
+    pub executable: Option<PathBuf>,
+}
+
+/// Lê um manifesto `.item` da Epic. Fica só com jogos (categoria `games`); complementos (`addons`) só entram se
+/// abrem sozinhos (`addons/launchable`, como o Fortnite Reload).
+pub fn parse_epic_manifest(text: &str) -> Option<EpicGame> {
+    let json: serde_json::Value = serde_json::from_str(text.trim_start_matches('\u{feff}')).ok()?;
+    let field = |key: &str| json.get(key).and_then(|v| v.as_str()).map(str::trim).unwrap_or_default().to_string();
+    let categories: Vec<String> = json.get("AppCategories").and_then(|v| v.as_array()).into_iter().flatten().filter_map(|v| v.as_str()).map(str::to_lowercase).collect();
+    let has = |category: &str| categories.iter().any(|c| c == category);
+    let is_addon = categories.iter().any(|c| c == "addons" || c.starts_with("addons/"));
+    if !has("games") || (is_addon && !has("addons/launchable")) {
+        return None;
+    }
+    let name = field("DisplayName").replace(['®', '™'], "").trim().to_string();
+    let app = field("AppName");
+    if name.is_empty() || app.is_empty() {
+        return None;
+    }
+    let (namespace, item) = (field("CatalogNamespace"), field("CatalogItemId"));
+    let target = if namespace.is_empty() || item.is_empty() {
+        format!("com.epicgames.launcher://apps/{app}?action=launch&silent=true")
+    } else {
+        format!("com.epicgames.launcher://apps/{namespace}%3A{item}%3A{app}?action=launch&silent=true")
+    };
+    let (location, launch) = (field("InstallLocation"), field("LaunchExecutable"));
+    let executable = (!location.is_empty() && !launch.is_empty()).then(|| launch.split(['/', '\\']).filter(|part| !part.is_empty()).fold(PathBuf::from(&location), |path, part| path.join(part)));
+    Some(EpicGame { name, target, executable })
+}
+
+/// Os jogos dos manifestos da Epic numa pasta, sem repetir o nome, em ordem alfabética.
+fn epic_games_in(manifests: &Path) -> Vec<AppEntry> {
+    let Ok(entries) = fs::read_dir(manifests) else { return Vec::new() };
+    let mut paths: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.is_file() && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("item"))).collect();
+    paths.sort();
+    let mut games: Vec<EpicGame> = Vec::new();
+    for path in paths {
+        let Some(game) = fs::read_to_string(&path).ok().and_then(|text| parse_epic_manifest(&text)) else { continue };
+        if !games.iter().any(|g| normalize(&g.name) == normalize(&game.name)) {
+            games.push(game);
+        }
+    }
+    games.sort_by_key(|g| g.name.to_lowercase());
+    games
+        .into_iter()
+        .map(|game| AppEntry {
+            icon: game.executable.filter(|exe| exe.is_file()).map(|exe| exe.to_string_lossy().into_owned()),
+            target: game.target,
+            name: game.name,
+            uses: 0,
+            pinned: false,
+            running: false,
+            kind: "epic".to_string(),
+        })
+        .collect()
+}
+
+/// Os jogos instalados pela Epic Games nesta máquina (`%ProgramData%\Epic\EpicGamesLauncher\Data\Manifests`).
+fn epic_games() -> Vec<AppEntry> {
+    let data = std::env::var_os("ProgramData").map_or_else(|| PathBuf::from(r"C:\ProgramData"), PathBuf::from);
+    epic_games_in(&data.join(r"Epic\EpicGamesLauncher\Data\Manifests"))
+}
+
+/// Os apps instalados, dos mais usados para os menos (e por nome, onde não há registro de uso), e depois os jogos
+/// da Steam (dos jogados há menos tempo) e da Epic Games. Só procura se a pessoa permitiu (Configurações → Atalhos →
+/// Sugestões); sem a permissão, a lista volta vazia e nada do computador é lido.
 #[tauri::command]
-pub async fn list_apps() -> Result<Vec<AppEntry>, String> {
-    tauri::async_runtime::spawn_blocking(|| {
+pub async fn list_apps(state: tauri::State<'_, crate::config::ConfigState>) -> Result<Vec<AppEntry>, String> {
+    if !state.get().scan_apps {
+        return Ok(Vec::new());
+    }
+    tauri::async_runtime::spawn_blocking(collect_apps).await.map_err(|e| e.to_string())
+}
+
+/// A busca em si: Menu Iniciar, apps da Loja, Steam e Epic (lenta: lê arquivos e o histórico do Windows).
+fn collect_apps() -> Vec<AppEntry> {
+    {
         let usage = usage_history();
         let (pinned, running) = (pinned_names(), running_programs());
         let links = start_menu_apps();
@@ -283,6 +559,8 @@ pub async fn list_apps() -> Result<Vec<AppEntry>, String> {
                     running: program.as_ref().is_some_and(|p| running.contains(p)) || (key.len() >= 5 && running.iter().any(|p| p == &key || p.starts_with(&key))),
                     target: path.to_string_lossy().into_owned(),
                     name,
+                    kind: KIND_APP.to_string(),
+                    icon: None,
                 }
             })
             .collect();
@@ -299,20 +577,194 @@ pub async fn list_apps() -> Result<Vec<AppEntry>, String> {
                 running: key.len() >= 5 && running.iter().any(|program| program == &key || program.starts_with(&key)),
                 target: format!(r"shell:AppsFolder\{id}"),
                 name,
+                kind: KIND_APP.to_string(),
+                icon: None,
             });
         }
         apps.sort_by(|a, b| b.score().cmp(&a.score()).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+        // Os jogos vêm depois. Um atalho do Menu Iniciar com o mesmo nome de um jogo sai: o do jogo abre pela loja
+        // certa e traz a imagem do jogo.
+        let games: Vec<AppEntry> = steam_games().into_iter().chain(epic_games()).collect();
+        let game_names: std::collections::HashSet<String> = games.iter().map(|g| normalize(&g.name)).collect();
+        apps.retain(|app| !game_names.contains(&normalize(&app.name)));
+        apps.extend(games);
         apps
-    })
-    .await
-    .map_err(|e| e.to_string())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
-    use super::{lnk_target, normalize, parse_start_apps, program_of, rot13, usage_for};
+    use std::{fs, path::PathBuf};
+
+    use super::{
+        EpicGame, SteamGame, epic_games_in, is_steam_tool, lnk_target, normalize, parse_app_manifest, parse_epic_manifest, parse_start_apps, program_of, rot13, steam_games_in, steam_icon,
+        steam_library_paths, usage_for, vdf_pairs,
+    };
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("docky-apps-test-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    const LIBRARY_FOLDERS: &str = "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"C:\\\\Program Files (x86)\\\\Steam\"\n\t\t\"label\"\t\t\"\"\n\t\t\"apps\"\n\t\t{\n\t\t\t\"730\"\t\t\"73943688238\"\n\t\t}\n\t}\n\t\"1\"\n\t{\n\t\t\"path\"\t\t\"D:\\\\SteamLibrary\"\n\t}\n}\n";
+
+    fn app_manifest(appid: &str, name: &str, last_played: u64) -> String {
+        format!(
+            "\"AppState\"\n{{\n\t\"appid\"\t\t\"{appid}\"\n\t\"name\"\t\t\"{name}\"\n\t\"LastPlayed\"\t\t\"{last_played}\"\n\t\"UserConfig\"\n\t{{\n\t\t\"name\"\t\t\"outro\"\n\t}}\n}}\n"
+        )
+    }
+
+    #[test]
+    fn le_o_formato_de_texto_da_steam_com_caminhos_escapados() {
+        assert_eq!(steam_library_paths(LIBRARY_FOLDERS), vec![PathBuf::from(r"C:\Program Files (x86)\Steam"), PathBuf::from(r"D:\SteamLibrary")]);
+        let pairs = vdf_pairs(LIBRARY_FOLDERS);
+        assert!(pairs.contains(&(2, "label".to_string(), String::new())));
+        assert!(pairs.contains(&(3, "730".to_string(), "73943688238".to_string())));
+        assert_eq!(vdf_pairs("\"nome\"\t\"Diz \\\"oi\\\"\"\n"), vec![(0, "nome".to_string(), "Diz \"oi\"".to_string())]);
+    }
+
+    #[test]
+    fn le_o_manifesto_de_um_jogo_da_steam() {
+        assert_eq!(
+            parse_app_manifest(&app_manifest("730", "Counter-Strike 2", 1789254908)),
+            Some(SteamGame { appid: "730".into(), name: "Counter-Strike 2".into(), last_played: 1789254908 })
+        );
+        assert_eq!(parse_app_manifest("\"AppState\"\n{\n\t\"appid\"\t\t\"1\"\n}\n"), None);
+        assert_eq!(parse_app_manifest(""), None);
+    }
+
+    #[test]
+    fn pula_as_ferramentas_da_steam() {
+        assert!(is_steam_tool("228980", "Steamworks Common Redistributables"));
+        assert!(is_steam_tool("1", "Microsoft Visual C++ Redistributable"));
+        assert!(is_steam_tool("1493710", "Proton Experimental"));
+        assert!(is_steam_tool("1628350", "Steam Linux Runtime 3.0 (sniper)"));
+        for name in ["Counter-Strike 2", "QUIET Demo", "Fart Together Demo", "We Were Here", "Moonlighter", "Lossless Scaling", "SteamVR"] {
+            assert!(!is_steam_tool("730", name), "{name}");
+        }
+    }
+
+    #[test]
+    fn escolhe_a_imagem_do_jogo_no_cache_da_steam() {
+        let cache = temp_dir("cache-steam");
+        // Cache novo: uma pasta por jogo com o ícone quadrado (hash), o logo e a capa.
+        let new = cache.join("1007");
+        fs::create_dir_all(new.join("0eeacc724c77e1f5abeeba4fb542f45bad894470")).unwrap(); // pasta com nome de hash não conta
+        fs::write(new.join("header.jpg"), b"capa").unwrap();
+        fs::write(new.join("logo.png"), b"logo").unwrap();
+        assert_eq!(steam_icon(&cache, "1007"), Some(new.join("logo.png")));
+        fs::write(new.join("7807d6dcd71d8161465619b4f041794b0353a6d0.jpg"), b"icone").unwrap();
+        fs::write(new.join("library_600x900.jpg"), b"capa alta").unwrap();
+        assert_eq!(steam_icon(&cache, "1007"), Some(new.join("7807d6dcd71d8161465619b4f041794b0353a6d0.jpg")));
+        fs::remove_file(new.join("logo.png")).unwrap();
+        fs::remove_file(new.join("7807d6dcd71d8161465619b4f041794b0353a6d0.jpg")).unwrap();
+        assert_eq!(steam_icon(&cache, "1007"), Some(new.join("header.jpg")));
+
+        // Cache antigo: arquivos soltos `<appid>_icon.jpg` e `<appid>_header.jpg`.
+        fs::write(cache.join("440_header.jpg"), b"capa").unwrap();
+        assert_eq!(steam_icon(&cache, "440"), Some(cache.join("440_header.jpg")));
+        fs::write(cache.join("440_icon.jpg"), b"icone").unwrap();
+        assert_eq!(steam_icon(&cache, "440"), Some(cache.join("440_icon.jpg")));
+
+        assert_eq!(steam_icon(&cache, "999"), None);
+        let _ = fs::remove_dir_all(&cache);
+    }
+
+    #[test]
+    fn lista_os_jogos_da_steam_do_mais_recente_e_sem_ferramentas() {
+        let root = temp_dir("steam");
+        let steam = root.join("Steam");
+        let other = root.join("Biblioteca");
+        fs::create_dir_all(steam.join("steamapps")).unwrap();
+        fs::create_dir_all(other.join("steamapps")).unwrap();
+        let escaped = |p: &PathBuf| p.display().to_string().replace('\\', "\\\\");
+        fs::write(
+            steam.join("steamapps").join("libraryfolders.vdf"),
+            format!("\"libraryfolders\"\n{{\n\t\"0\"\n\t{{\n\t\t\"path\"\t\t\"{}\"\n\t}}\n\t\"1\"\n\t{{\n\t\t\"path\"\t\t\"{}\"\n\t}}\n}}\n", escaped(&steam), escaped(&other)),
+        )
+        .unwrap();
+        fs::write(steam.join("steamapps").join("appmanifest_228980.acf"), app_manifest("228980", "Steamworks Common Redistributables", 9)).unwrap();
+        fs::write(steam.join("steamapps").join("appmanifest_730.acf"), app_manifest("730", "Counter-Strike 2", 100)).unwrap();
+        fs::write(other.join("steamapps").join("appmanifest_606150.acf"), app_manifest("606150", "Moonlighter", 200)).unwrap();
+        let icon = steam.join("appcache").join("librarycache").join("730").join("8dbc71957312bbd3baea65848b545be9eae2a355.jpg");
+        fs::create_dir_all(icon.parent().unwrap()).unwrap();
+        fs::write(&icon, b"icone").unwrap();
+
+        let games = steam_games_in(&steam);
+        let summary: Vec<(&str, &str, &str)> = games.iter().map(|g| (g.name.as_str(), g.target.as_str(), g.kind.as_str())).collect();
+        assert_eq!(summary, [("Moonlighter", "steam://rungameid/606150", "steam"), ("Counter-Strike 2", "steam://rungameid/730", "steam")]);
+        assert_eq!(games[0].icon, None);
+        assert_eq!(games[1].icon.as_deref().map(PathBuf::from), Some(icon));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    const ROCKET_LEAGUE: &str = r#"{"FormatVersion": 0, "DisplayName": "Rocket League®", "AppName": "Sugar", "CatalogNamespace": "9773aa1aa54f4f7b80e44bef04986cea", "CatalogItemId": "530145df28a24424923f5828cc9031a1", "InstallLocation": "C:\\Program Files\\Epic Games\\rocketleague", "LaunchExecutable": "Binaries/Win64/Launcher.exe", "AppCategories": ["public", "games", "applications"]}"#;
+    const FORTNITE_RELOAD: &str = r#"{"DisplayName": "Fortnite Reload", "AppName": "21339bc36b00459aa034300a9a7ad99e", "CatalogNamespace": "fn", "CatalogItemId": "e86c48dd240e41bc9565c6b6b16a9ec1", "InstallLocation": "C:\\Program Files\\Epic Games\\Fortnite", "LaunchExecutable": "", "AppCategories": ["addons/launchable", "addons", "games", "games/experience", "applications"]}"#;
+    const FORTNITE: &str = "\u{feff}{\"DisplayName\": \"Fortnite\", \"AppName\": \"Fortnite\", \"CatalogNamespace\": \"fn\", \"CatalogItemId\": \"4fe75bbc5a674f4f9b356b5c90567da5\", \"InstallLocation\": \"C:\\\\Program Files\\\\Epic Games\\\\Fortnite\", \"LaunchExecutable\": \"FortniteGame/Binaries/Win64/FortniteBootstrapper.exe\", \"AppCategories\": [\"games\", \"applications\"]}";
+
+    #[test]
+    fn le_os_manifestos_da_epic() {
+        assert_eq!(
+            parse_epic_manifest(ROCKET_LEAGUE),
+            Some(EpicGame {
+                name: "Rocket League".into(),
+                target: "com.epicgames.launcher://apps/9773aa1aa54f4f7b80e44bef04986cea%3A530145df28a24424923f5828cc9031a1%3ASugar?action=launch&silent=true".into(),
+                executable: Some(PathBuf::from(r"C:\Program Files\Epic Games\rocketleague").join("Binaries").join("Win64").join("Launcher.exe")),
+            })
+        );
+        assert_eq!(
+            parse_epic_manifest(FORTNITE_RELOAD),
+            Some(EpicGame {
+                name: "Fortnite Reload".into(),
+                target: "com.epicgames.launcher://apps/fn%3Ae86c48dd240e41bc9565c6b6b16a9ec1%3A21339bc36b00459aa034300a9a7ad99e?action=launch&silent=true".into(),
+                executable: None,
+            })
+        );
+        let fortnite = parse_epic_manifest(FORTNITE).unwrap();
+        assert_eq!(fortnite.name, "Fortnite");
+        assert_eq!(fortnite.target, "com.epicgames.launcher://apps/fn%3A4fe75bbc5a674f4f9b356b5c90567da5%3AFortnite?action=launch&silent=true");
+        assert_eq!(fortnite.executable, Some(PathBuf::from(r"C:\Program Files\Epic Games\Fortnite").join("FortniteGame").join("Binaries").join("Win64").join("FortniteBootstrapper.exe")));
+    }
+
+    #[test]
+    fn epic_fica_so_com_jogos_e_sem_complementos() {
+        let addon = r#"{"DisplayName": "Pacote ™ ", "AppName": "Pacote", "AppCategories": ["addons", "games"]}"#;
+        assert_eq!(parse_epic_manifest(addon), None);
+        let tool = r#"{"DisplayName": "Unreal Engine", "AppName": "UE_5", "AppCategories": ["engines", "applications"]}"#;
+        assert_eq!(parse_epic_manifest(tool), None);
+        let no_catalog = r#"{"DisplayName": " Jogo™ ", "AppName": "Jogo", "AppCategories": ["games"]}"#;
+        assert_eq!(
+            parse_epic_manifest(no_catalog),
+            Some(EpicGame { name: "Jogo".into(), target: "com.epicgames.launcher://apps/Jogo?action=launch&silent=true".into(), executable: None })
+        );
+        assert_eq!(parse_epic_manifest("não é json"), None);
+    }
+
+    #[test]
+    fn lista_os_jogos_da_epic_sem_repetir_e_com_o_programa_como_icone() {
+        let dir = temp_dir("epic");
+        let install = dir.join("rocketleague");
+        let launcher = install.join("Binaries").join("Win64").join("Launcher.exe");
+        fs::create_dir_all(launcher.parent().unwrap()).unwrap();
+        fs::write(&launcher, b"MZ").unwrap();
+        let rocket = ROCKET_LEAGUE.replace(r"C:\\Program Files\\Epic Games\\rocketleague", &install.display().to_string().replace('\\', "\\\\"));
+        fs::write(dir.join("A.item"), &rocket).unwrap();
+        fs::write(dir.join("B.item"), FORTNITE_RELOAD).unwrap();
+        fs::write(dir.join("C.item"), FORTNITE).unwrap();
+        fs::write(dir.join("D.item"), FORTNITE.replace("4fe75bbc", "00000000")).unwrap(); // o mesmo nome de novo
+        fs::write(dir.join("nota.txt"), "x").unwrap();
+        let games = epic_games_in(&dir);
+        let names: Vec<&str> = games.iter().map(|g| g.name.as_str()).collect();
+        assert_eq!(names, ["Fortnite", "Fortnite Reload", "Rocket League"]);
+        assert!(games.iter().all(|g| g.kind == "epic" && g.target.starts_with("com.epicgames.launcher://apps/")));
+        assert_eq!(games[2].icon.as_deref().map(PathBuf::from), Some(launcher));
+        assert_eq!(games[1].icon, None);
+        let _ = fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn le_a_lista_de_apps_do_menu_iniciar_do_windows() {
@@ -390,11 +842,36 @@ mod smoke {
     /// Teste de fumaça na máquina real: o Menu Iniciar e o histórico de uso abrem e dão uma lista plausível.
     #[test]
     fn lista_os_apps_desta_maquina() {
-        let apps = tauri::async_runtime::block_on(super::list_apps()).unwrap();
+        let apps = super::collect_apps();
         println!("{} apps", apps.len());
         for app in apps.iter().take(20) {
             println!("{:>6}  uso={} fixado={} aberto={}  {}", app.score(), app.uses, app.pinned, app.running, app.name);
         }
         assert!(!apps.is_empty());
+    }
+
+    /// Teste de fumaça na máquina real: os jogos da Steam e da Epic instalados aqui aparecem. Só cobra o Counter-Strike 2
+    /// e o Fortnite se os manifestos deles existem nesta máquina.
+    #[test]
+    fn lista_os_jogos_desta_maquina() {
+        let steam = super::steam_games();
+        let epic = super::epic_games();
+        for game in steam.iter().chain(&epic) {
+            println!("{:<6} {:<28} {:<100} {}", game.kind, game.name, game.target, game.icon.as_deref().unwrap_or("-"));
+        }
+        let has_cs2 = super::steam_dir().is_some_and(|dir| dir.join("steamapps").join("appmanifest_730.acf").is_file());
+        if has_cs2 {
+            assert!(steam.iter().any(|g| g.name == "Counter-Strike 2" && g.target == "steam://rungameid/730" && g.kind == "steam"));
+        }
+        let manifests = std::path::PathBuf::from(std::env::var_os("ProgramData").unwrap_or_else(|| r"C:\ProgramData".into())).join(r"Epic\EpicGamesLauncher\Data\Manifests");
+        let has_fortnite = std::fs::read_dir(&manifests)
+            .map(|entries| entries.flatten().any(|e| std::fs::read_to_string(e.path()).ok()
+                    .and_then(|text| serde_json::from_str::<serde_json::Value>(text.trim_start_matches('\u{feff}')).ok())
+                    .is_some_and(|json| json["AppName"] == "Fortnite")))
+            .unwrap_or(false);
+        if has_fortnite {
+            assert!(epic.iter().any(|g| g.name == "Fortnite" && g.kind == "epic"));
+        }
+        assert!(steam.iter().chain(&epic).all(|g| super::normalize(&g.name).len() >= 2));
     }
 }

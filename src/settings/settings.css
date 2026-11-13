@@ -665,3 +665,24 @@ body[data-window="settings"] {
 .sa .srow.is-hidden .summary {
   opacity: 0.5;
 }
+
+/* "+ Atalho" no fim da lista: o atalho novo nasce ali, logo acima do botão */
+.sa .add-row {
+  justify-content: flex-start;
+  min-height: 48px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* Abrir e fechar uma parte secundária (os grupos dos atalhos) */
+.sa .btn.disc {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 14px;
+}
+.sa .btn.disc svg {
+  transition: transform 0.3s var(--ease);
+}
+.sa .btn.disc[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}

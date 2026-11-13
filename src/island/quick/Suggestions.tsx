@@ -1,21 +1,41 @@
 import { useConfigStore } from "../../config/useConfig";
 import { newId } from "../../launcher/model";
-import { MIN_GROUP, TEMPLATES, addApp, buildGroup, completeGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../../launcher/suggestions";
+import {
+  type AppEntry,
+  MIN_GROUP,
+  TEMPLATES,
+  addApps,
+  adoptAppIcon,
+  buildGroup,
+  completeGroup,
+  resolveTemplate,
+  suggestionSections,
+  useAppsStore,
+  useInstalledApps,
+  whySuggested,
+} from "../../launcher/suggestions";
 import { QButton, QPanel, QRow, QTitle } from "./controls";
 
 /** Sugestões de grupos e de apps para virar atalho, na tela maior dos atalhos (modo Editar). */
 export function Suggestions({ onClose }: { onClose: () => void }) {
   const shortcuts = useConfigStore((s) => s.config.shortcuts);
   const update = useConfigStore((s) => s.update);
+  const scanApps = useConfigStore((s) => s.config.scanApps);
   const apps = useInstalledApps();
   const loading = useAppsStore((s) => s.loading || !s.loaded);
-  const top = suggestedApps(apps, shortcuts, 10);
+  const sections = suggestionSections(apps, shortcuts, 10);
+  /** No fim da lista (a ordem dos seus atalhos não muda) e com o ícone do próprio app, quando ele tem. */
+  const add = (entry: AppEntry) => {
+    const { shortcuts: next, ids } = addApps(useConfigStore.getState().config.shortcuts, [entry], newId);
+    update({ shortcuts: next });
+    void adoptAppIcon(ids[0], entry);
+  };
 
   return (
     <QPanel>
       <div className="qs-line sg-head">
         <b>Sugestões</b>
-        <span className="qs-note">Grupos prontos e os apps que você mais usa</span>
+        <span className="qs-note">Grupos prontos e os apps e jogos que você tem</span>
         <QButton tone="primary" onClick={onClose}>
           Pronto
         </QButton>
@@ -55,14 +75,31 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
         );
       })}
 
-      <QTitle>Apps que você mais usa</QTitle>
-      {loading && apps.length === 0 && <p className="qs-note sg-note">Procurando os apps instalados…</p>}
-      {!loading && top.length === 0 && <p className="qs-note sg-note">Nenhum app novo para sugerir.</p>}
-      {top.map((entry) => (
-        <QRow key={entry.target} label={entry.name} hint={whySuggested(entry)}>
-          <QButton onClick={() => update({ shortcuts: addApp(shortcuts, entry, newId) })}>+ Adicionar</QButton>
-        </QRow>
-      ))}
+      {!scanApps ? (
+        <>
+          <QTitle>Apps e jogos instalados</QTitle>
+          <QRow label="Procurar no computador" hint="Menu Iniciar, Steam e Epic Games. A busca é só local: nada sai do computador.">
+            <QButton tone="primary" onClick={() => update({ scanApps: true })}>
+              Permitir
+            </QButton>
+          </QRow>
+        </>
+      ) : (
+        <>
+          {loading && apps.length === 0 && <p className="qs-note sg-note">Procurando apps e jogos instalados…</p>}
+          {!loading && sections.length === 0 && <p className="qs-note sg-note">Nenhum app ou jogo novo para sugerir.</p>}
+          {sections.map((section) => (
+            <div key={section.kind}>
+              <QTitle>{section.kind === "app" ? "Apps que você mais usa" : section.title}</QTitle>
+              {section.entries.map((entry) => (
+                <QRow key={entry.target} label={entry.name} hint={whySuggested(entry)}>
+                  <QButton onClick={() => add(entry)}>+ Adicionar</QButton>
+                </QRow>
+              ))}
+            </div>
+          ))}
+        </>
+      )}
     </QPanel>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Shortcut } from "../config/types";
-import { type AppEntry, MIN_GROUP, TEMPLATES, addApp, addAppToGroup, buildGroup, completeGroup, resolveTemplate, suggestedApps, whySuggested } from "./suggestions";
+import { type AppEntry, MIN_GROUP, TEMPLATES, addApp, addAppToGroup, addApps, buildGroup, completeGroup, resolveTemplate, suggestedApps, suggestionSections, whySuggested } from "./suggestions";
 
 const app = (name: string, extra: Partial<AppEntry> = {}): AppEntry => ({ name, target: `C:\\Menu\\${name}.lnk`, uses: 0, pinned: false, running: false, ...extra });
 const shortcut = (id: string, name: string, target = "", extra: Partial<Shortcut> = {}): Shortcut => ({ id, name, target, icon: "", group: false, members: [], ...extra });
@@ -131,5 +131,41 @@ describe("atalhos criados para grupos ficam ocultos", () => {
     const base = [shortcut("a", "Chrome", "C:\\Menu\\Chrome.lnk"), shortcut("g", "Trabalho", "", { group: true, members: ["a"] })];
     expect(addAppToGroup(base, "g", app("Claude"), ids()).find((s) => s.name === "Claude")?.hidden).toBe(true);
     expect(addApp([], app("Obsidian"), ids())[0].hidden).toBeUndefined();
+  });
+});
+
+describe("sugestões por origem (apps, Steam, Epic)", () => {
+  const cs = app("Counter-Strike 2", { kind: "steam", target: "steam://rungameid/730", icon: "C:/Steam/librarycache/730/abc.jpg" });
+  const moon = app("Moonlighter", { kind: "steam", target: "steam://rungameid/606150" });
+  const fortnite = app("Fortnite", { kind: "epic", target: "com.epicgames.launcher://apps/fn%3Ax%3AFortnite?action=launch&silent=true" });
+  const chrome = app("Google Chrome", { uses: 30 });
+
+  it("separa apps e jogos e tira o que já é atalho", () => {
+    const sections = suggestionSections([chrome, cs, moon, fortnite], [shortcut("a", "Moonlighter", "steam://rungameid/606150")]);
+    expect(sections.map((s) => [s.kind, s.entries.map((e) => e.name)])).toEqual([
+      ["app", ["Google Chrome"]],
+      ["steam", ["Counter-Strike 2"]],
+      ["epic", ["Fortnite"]],
+    ]);
+  });
+
+  it("jogos não aparecem entre os apps mais usados e seção vazia some", () => {
+    expect(suggestedApps([cs, chrome], []).map((e) => e.name)).toEqual(["Google Chrome"]);
+    expect(suggestionSections([cs], []).map((s) => s.kind)).toEqual(["steam"]);
+    expect(suggestionSections([], [])).toEqual([]);
+  });
+
+  it("diz de onde veio o jogo", () => {
+    expect(whySuggested(cs)).toBe("jogo instalado na Steam");
+    expect(whySuggested(fortnite)).toBe("jogo instalado na Epic Games");
+  });
+
+  it("adiciona vários no fim da lista, sem mexer na ordem dos que já existiam", () => {
+    const list = [shortcut("x", "Primeiro", "a"), shortcut("y", "Segundo", "b")];
+    const { shortcuts, ids: created } = addApps(list, [cs, fortnite], ids());
+    expect(shortcuts.map((s) => s.name)).toEqual(["Primeiro", "Segundo", "Counter-Strike 2", "Fortnite"]);
+    expect(created).toEqual(["id1", "id2"]);
+    expect(shortcuts[2]).toMatchObject({ target: "steam://rungameid/730", icon: "" });
+    expect(shortcuts[2].hidden).toBeFalsy(); // aparece na lista: não é atalho de grupo
   });
 });

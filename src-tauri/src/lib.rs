@@ -70,6 +70,7 @@ pub fn run() {
             icons::set_icons_folder,
             icons::open_icons_folder,
             icons::fetch_missing_icons,
+            icons::adopt_icon,
             apps::list_apps,
             picker::pick_path,
             shelf::shelf_send,

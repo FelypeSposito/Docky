@@ -45,6 +45,17 @@ prototype/     protótipos visuais descartáveis (Fase 0); a v2 é a referência
 docs/          MOTION-BRIEF.md: base do projeto, design e movimento (para animação e divulgação)
 ```
 
+## Sugestões e seções dos atalhos
+
+Em Configurações → Atalhos, depois de a pessoa clicar em **Permitir**, o Docky lê o que está instalado neste
+computador (Menu Iniciar, apps da Loja, biblioteca da Steam e manifestos da Epic Games) e sugere atalhos prontos, com o
+ícone do próprio jogo ou app (`src-tauri/src/apps.rs`). Sem a permissão, nada é lido. Tudo é local.
+
+Na tela grande dos atalhos, eles ficam em **seções** que abrem e fecham pela setinha (Jogos, Comunicação,
+Utilitários…). "Organizar automaticamente" separa os atalhos sem seção nas seções prontas (`src/launcher/sections.ts`);
+a seção de cada atalho se escolhe na linha dele, nas configurações ou no modo Editar da ilha. Os grupos ficam numa parte
+própria, fechada de início.
+
 ## Ícones automáticos
 
 Um atalho novo sem ícone ganha o do app (`src-tauri/src/icons.rs`): o Docky procura a imagem uma vez (biblioteca

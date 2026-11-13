@@ -38,7 +38,11 @@ Docky can show your upcoming events if you connect your Google account in Settin
   `Documents\Docky\icons`) and never requested again. If nothing is found, Docky uses the icon Windows already shows
   for the installed app, with no request at all.
 
-No other request is made. Notes, Shelf files, Focus timers and settings stay on your computer; the Claude Code
+No other request is made.
+
+**Installed apps and games (only after you click Permitir in Settings → Atalhos):** to suggest shortcuts, Docky reads
+the Start Menu, the Microsoft Store app list, the Steam library files and the Epic Games launcher manifests on your PC.
+This reading never leaves your computer, and you can turn it off at any time with "Não procurar". Notes, Shelf files, Focus timers and settings stay on your computer; the Claude Code
 integration only talks to a local server on `127.0.0.1`.
 
 ## Contact
@@ -61,5 +65,8 @@ análise de uso nem telemetria, e não envia seus dados ao desenvolvedor nem a t
 - **Ícones automáticos (dá para desligar em Configurações → Atalhos):** para um atalho sem ícone, o Docky pede ao jsDelivr
   (biblioteca aberta dashboard-icons) uma imagem com o nome do app e, para sites, ao serviço de favicons do Google o
   endereço do site. Só esse nome ou endereço é enviado, uma vez por atalho; a imagem fica na sua pasta de ícones.
+- **Apps e jogos instalados (só depois de clicar em Permitir, em Configurações → Atalhos):** para sugerir atalhos, o
+  Docky lê o Menu Iniciar, os apps da Loja, a biblioteca da Steam e os manifestos da Epic Games. Nada disso sai do
+  computador, e dá para desligar em "Não procurar".
 - Notas, arquivos do Shelf, timers e configurações ficam no seu computador.
 - Contato: pelo perfil do desenvolvedor no GitHub, <https://github.com/FelypeSposito>.

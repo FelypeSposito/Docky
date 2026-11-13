@@ -1,17 +1,18 @@
-import { useCallback, useMemo, useState } from "react";
-import type { Shortcut } from "../../config/types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Shortcut, ShortcutSection } from "../../config/types";
 import { useConfigStore } from "../../config/useConfig";
 import { filterShortcuts } from "../../launcher/filter";
 import { GroupEditor } from "../../launcher/GroupEditor";
 import { IconPicker } from "../../launcher/IconPicker";
 import { useShortcutImages } from "../../launcher/icons";
 import { confirmationText, hideGrouped, hideableCount, memberSummary, membersOf, needsConfirmation, newId, removeShortcut, reorderSection, reorderVisible, setHidden, splitShortcuts } from "../../launcher/model";
+import { type IndexedShortcut, assignSection, autoOrganize, layoutSections, sectionOf, toggleCollapsed } from "../../launcher/sections";
 import { SHORTCUT_COLORS, ShortcutIcon } from "../../launcher/ShortcutIcon";
 import { ipc } from "../../lib/ipc";
 import { useSortable } from "../../settings/useSortable";
 import { useGridSort } from "../useGridSort";
 import { EmptyState } from "../EmptyState";
-import { EyeIcon, EyeOffIcon, GripIcon, ListIcon, PencilIcon, SearchIcon, TrashIcon } from "../icons";
+import { ArrowDownIcon, EyeIcon, EyeOffIcon, GripIcon, ListIcon, PencilIcon, SearchIcon, TrashIcon } from "../icons";
 import { QButton, QIconButton, QPath, QText } from "../quick/controls";
 import { Suggestions } from "../quick/Suggestions";
 import { useIslandStore } from "../store";
@@ -143,7 +144,16 @@ function EditRow({
   pickIcon,
   editItems,
   toggleHidden,
+  autoFocus,
+  sections,
+  sectionId,
+  onSection,
 }: {
+  autoFocus?: boolean;
+  /** As seções para escolher (atalhos comuns); grupos não ficam em seção. */
+  sections?: ShortcutSection[];
+  sectionId?: string | null;
+  onSection?: (sectionId: string | null) => void;
   shortcut: Shortcut;
   index: number;
   image?: string;
@@ -158,20 +168,42 @@ function EditRow({
   const [sure, setSure] = useState(false);
   const id = shortcut.id;
   return (
-    <div className={`le-row${sortable.dragId === id ? " drag" : ""}${shortcut.hidden ? " is-hidden" : ""}`} ref={sortable.rowRef(id)} style={{ order: sortable.position.get(id) }}>
+    <div
+      className={`le-row${sortable.dragId === id ? " drag" : ""}${shortcut.hidden ? " is-hidden" : ""}`}
+      data-sid={id}
+      ref={sortable.rowRef(id)}
+      style={{ order: sortable.position.get(id) }}
+    >
       <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, id)}>
         <GripIcon />
       </span>
       <button className="le-ico" title="Escolher o ícone" aria-label={`Escolher o ícone de ${shortcut.name || "atalho"}`} onClick={pickIcon}>
         <Tile shortcut={shortcut} index={index} image={image} shortcuts={shortcuts} />
       </button>
-      <QText label="Nome do atalho" width={shortcut.group ? 150 : 124} value={shortcut.name} placeholder={shortcut.group ? "Nome do grupo" : "Nome"} onCommit={(v) => change({ name: v })} />
+      <QText
+        label="Nome do atalho"
+        width={shortcut.group ? 150 : 124}
+        value={shortcut.name}
+        placeholder={shortcut.group ? "Nome do grupo" : "Nome"}
+        autoFocus={autoFocus}
+        onCommit={(v) => change({ name: v })}
+      />
       {shortcut.group ? (
         <span className="le-summary" title={memberSummary(shortcut, shortcuts, 99)}>
           {memberSummary(shortcut, shortcuts)}
         </span>
       ) : (
-        <QPath label="Destino do atalho" kind="app" width={210} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: v })} />
+        <QPath label="Destino do atalho" kind="app" width={sections && sections.length > 0 ? 150 : 210} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: v })} />
+      )}
+      {sections && sections.length > 0 && onSection && (
+        <select className="le-secsel" aria-label={`Seção de ${shortcut.name || "atalho"}`} value={sectionId ?? ""} onChange={(e) => onSection(e.target.value || null)}>
+          <option value="">Sem seção</option>
+          {sections.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
       )}
       {shortcut.group && (
         <QIconButton label="Itens do grupo" onClick={editItems}>
@@ -195,6 +227,84 @@ function EditRow({
       )}
     </div>
   );
+}
+
+/** Um sim/não lembrado só neste computador (a parte "Outros" e a dos grupos, que não são seções da configuração). */
+function useLocalFlag(key: string, initial: boolean): [boolean, () => void] {
+  const [value, setValue] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved === null ? initial : saved === "1";
+    } catch {
+      return initial;
+    }
+  });
+  const toggle = () =>
+    setValue((current) => {
+      try {
+        localStorage.setItem(key, current ? "0" : "1");
+      } catch {
+        // sem armazenamento, só não lembra
+      }
+      return !current;
+    });
+  return [value, toggle];
+}
+
+type RenderTile = (entry: IndexedShortcut, sorter: ReturnType<typeof useGridSort>) => React.ReactNode;
+
+/**
+ * Uma seção da tela grande dos atalhos. O título (com a setinha) abre e fecha a parte; dentro, os ícones se
+ * reordenam arrastando, só entre eles. Recolhida, a grade some com o conteúdo inerte (fora do Tab e do leitor de tela).
+ */
+function SectionView({
+  id,
+  title,
+  collapsed,
+  onToggle,
+  entries,
+  onReorder,
+  canDrag,
+  renderTile,
+}: {
+  id: string;
+  title: string;
+  collapsed: boolean;
+  onToggle: () => void;
+  entries: IndexedShortcut[];
+  onReorder: (order: string[]) => void;
+  canDrag: boolean;
+  renderTile: RenderTile;
+}) {
+  const sorter = useGridSort(
+    entries.map((e) => e.item.id),
+    onReorder,
+    canDrag && !collapsed,
+  );
+  return (
+    <section className={`lsec${collapsed ? " closed" : ""}`} aria-labelledby={`lsec-${id}`}>
+      <button id={`lsec-${id}`} className="lsec-head" aria-expanded={!collapsed} onClick={onToggle}>
+        <ArrowDownIcon size={12} />
+        <span>{title}</span>
+        <i>{entries.length}</i>
+      </button>
+      <div className="lsec-body" inert={collapsed}>
+        <div className="lsec-clip">
+          <div className="lsec-grid">{entries.map((entry) => renderTile(entry, sorter))}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** O resultado de uma busca: tudo numa grade só, sem seções (o que você procura pode estar numa parte recolhida). */
+function SearchResults({ entries, renderTile }: { entries: IndexedShortcut[]; renderTile: RenderTile }) {
+  const sorter = useGridSort(
+    entries.map((e) => e.item.id),
+    () => {},
+    false,
+  );
+  return <div className="lsec-grid">{entries.map((entry) => renderTile(entry, sorter))}</div>;
 }
 
 /** A tela maior dos atalhos: grupos e atalhos em partes separadas e, em Editar, criar, ordenar, ocultar e montar grupos. */
@@ -222,27 +332,46 @@ export function LauncherLarge() {
     plain.map((e) => e.item.id),
     (order) => set(reorderSection(shortcuts, false, order)),
   );
-  const addItem = () => set([...shortcuts, { id: newId(), name: "", target: "", icon: "", group: false, members: [] }]);
+  /** Os grupos ficam numa parte que abre e fecha, abaixo dos atalhos e fechada de início: o foco são os atalhos. */
+  const [groupsOpen, setGroupsOpen] = useState(false);
+  /** O atalho recém-criado: entra no fim da lista (a ordem dos outros não muda), a lista rola até ele e o nome ganha o foco. */
+  const [fresh, setFresh] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const addItem = () => {
+    const id = newId();
+    set([...shortcuts, { id, name: "", target: "", icon: "", group: false, members: [] }]);
+    setFresh(id);
+  };
+  useEffect(() => {
+    const list = listRef.current;
+    if (fresh === null || !list) return;
+    const el = Array.from(list.querySelectorAll<HTMLElement>("[data-sid]")).find((row) => row.dataset.sid === fresh);
+    if (!el) return; // a linha ainda não apareceu: tenta de novo quando a lista mudar
+    // Só a lista rola (`scrollIntoView` mexeria também na janela da ilha).
+    const box = el.getBoundingClientRect();
+    const view = list.getBoundingClientRect();
+    if (box.top < view.top + 8 || box.bottom > view.bottom - 8) {
+      const top = box.top - view.top + list.scrollTop - (list.clientHeight - box.height) / 2;
+      list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }
+    setFresh(null); // o foco já foi dado na montagem; a linha não pede foco de novo ao voltar de um painel
+  }, [fresh, shortcuts]);
   /** Um grupo novo já abre o painel de itens, para dar nome e escolher o que ele abre. */
   const addGroup = () => {
     const group: Shortcut = { id: newId(), name: "", target: "", icon: "lib:briefcase", group: true, members: [] };
     set([group, ...shortcuts]);
     setEditingGroup(group.id);
+    setGroupsOpen(true);
   };
   const hideable = hideableCount(shortcuts);
-  // Os ícones se reordenam arrastando (só com a lista inteira à mostra, sem busca); cada parte sozinha.
+  // Seções (Jogos, Comunicação…): cada uma abre e fecha pelo título. As da pessoa guardam isso na configuração;
+  // "Outros" (os sem seção) e "Grupos" lembram só neste computador. Os grupos começam fechados: o foco são os atalhos.
   // Hooks ficam antes dos `return` dos painéis abaixo: trocar de painel não pode mudar a quantidade deles.
-  const canDrag = query.trim() === "";
-  const dragGroups = useGridSort(
-    shownGroups.map((e) => e.item.id),
-    (order) => set(reorderVisible(shortcuts, true, order)),
-    canDrag,
-  );
-  const dragItems = useGridSort(
-    shownItems.map((e) => e.item.id),
-    (order) => set(reorderVisible(shortcuts, false, order)),
-    canDrag,
-  );
+  const sections = useConfigStore((s) => s.config.shortcutSections);
+  const setSections = (next: ShortcutSection[]) => update({ shortcutSections: next });
+  const [restClosed, toggleRest] = useLocalFlag("docky-launcher-rest-closed", false);
+  const [groupsClosed, toggleGroups] = useLocalFlag("docky-launcher-groups-closed", true);
+  const searching = query.trim() !== "";
 
   const pickingIndex = picking === null ? -1 : shortcuts.findIndex((s) => s.id === picking);
   if (pickingIndex >= 0) {
@@ -286,35 +415,38 @@ export function LauncherLarge() {
       image={images[entry.index]}
       shortcuts={shortcuts}
       sortable={sortable}
+      autoFocus={entry.item.id === fresh}
       change={(patch) => set(shortcuts.map((s, i) => (i === entry.index ? { ...s, ...patch } : s)))}
       remove={() => set(removeShortcut(shortcuts, entry.index))}
       pickIcon={() => setPicking(entry.item.id)}
       editItems={() => setEditingGroup(entry.item.id)}
       toggleHidden={() => set(setHidden(shortcuts, entry.item.id, !entry.item.hidden))}
+      sections={entry.item.group ? undefined : sections}
+      sectionId={sectionOf(entry.item.id, sections)?.id ?? null}
+      onSection={(sectionId) => setSections(assignSection(sections, entry.item.id, sectionId))}
     />
   );
 
-  /** O `order` do CSS põe o título e os ícones de cada parte no lugar (os grupos antes dos atalhos). */
-  const ITEMS_BASE = 1000;
-
-  const tile = ({ item, index }: { item: Shortcut; index: number }) => {
-    const sorter = item.group ? dragGroups : dragItems;
-    return (
-      <button
-        key={item.id || index}
-        ref={sorter.tileRef(item.id)}
-        className={`tile lt${sorter.dragId === item.id ? " drag" : ""}`}
-        style={{ order: (item.group ? 1 : ITEMS_BASE + 1) + (sorter.position.get(item.id) ?? 0) }}
-        title={item.group ? `Grupo: ${confirmationText(item, shortcuts)}` : item.target}
-        onClick={() => ask(index)}
-        onPointerDown={(e) => sorter.down(e, item.id)}
-        onDragStart={(e) => e.preventDefault()}
-      >
-        <Tile shortcut={item} index={index} image={images[index]} shortcuts={shortcuts} />
-        <b>{item.name}</b>
-      </button>
-    );
-  };
+  const tile: RenderTile = ({ item, index }, sorter) => (
+    <button
+      key={item.id || index}
+      ref={sorter.tileRef(item.id)}
+      className={`tile lt${sorter.dragId === item.id ? " drag" : ""}`}
+      style={{ order: sorter.position.get(item.id) }}
+      title={item.group ? `Grupo: ${confirmationText(item, shortcuts)}` : item.target}
+      onClick={() => ask(index)}
+      onPointerDown={(e) => sorter.down(e, item.id)}
+      onDragStart={(e) => e.preventDefault()}
+    >
+      <Tile shortcut={item} index={index} image={images[index]} shortcuts={shortcuts} />
+      <b>{item.name}</b>
+    </button>
+  );
+  const blocks = layoutSections(shownItems, sections);
+  const reorderItems = (order: string[]) => set(reorderVisible(shortcuts, false, order));
+  /** Põe os atalhos sem seção nas seções prontas que fazem sentido (Jogos, Comunicação, Utilitários…). */
+  const organize = () => setSections(autoOrganize(shortcuts, sections, newId));
+  const unsorted = shortcuts.filter((s) => !s.group && !s.hidden && !sectionOf(s.id, sections)).length;
 
   return (
     <div className="bento lcx">
@@ -342,26 +474,20 @@ export function LauncherLarge() {
       </div>
 
       {editing ? (
-        <div className="tile lcx-list">
-          <div className="lcx-sec">
-            <h3>Grupos</h3>
-            <QButton tone="primary" disabled={shortcuts.length >= 60} onClick={addGroup}>
-              + Grupo
-            </QButton>
-          </div>
-          <div className="sc sortable">
-            {groups.length === 0 && <p className="qs-note">Nenhum grupo ainda. Um grupo abre vários atalhos de uma vez.</p>}
-            {groups.map((entry) => row(entry, sortGroups))}
-          </div>
-
+        <div className="tile lcx-list" ref={listRef}>
           <div className="lcx-sec">
             <h3>Atalhos</h3>
+            {unsorted > 0 && (
+              <QButton onClick={organize} title="Separa os atalhos em seções prontas (Jogos, Comunicação, Utilitários…). Dá para mudar a seção de cada um aqui.">
+                Organizar em seções
+              </QButton>
+            )}
             {hideable > 0 && (
               <QButton onClick={() => set(hideGrouped(shortcuts))} title="Esconde da lista os atalhos que já estão em algum grupo">
                 Ocultar os de grupos ({hideable})
               </QButton>
             )}
-            <QButton disabled={shortcuts.length >= 60} onClick={addItem}>
+            <QButton tone="primary" disabled={shortcuts.length >= 60} onClick={addItem}>
               + Atalho
             </QButton>
           </div>
@@ -369,27 +495,85 @@ export function LauncherLarge() {
             {plain.length === 0 && <p className="qs-note">Nenhum atalho ainda.</p>}
             {plain.map((entry) => row(entry, sortItems))}
           </div>
+          {plain.length > 0 && (
+            <button className="lcx-add" disabled={shortcuts.length >= 60} onClick={addItem}>
+              + Atalho
+            </button>
+          )}
+
+          <div className="lcx-sec">
+            <h3>
+              <button className="lcx-disc" aria-expanded={groupsOpen} onClick={() => setGroupsOpen((v) => !v)}>
+                Grupos ({groups.length})
+                <ArrowDownIcon size={11} />
+              </button>
+            </h3>
+            {groupsOpen && (
+              <QButton disabled={shortcuts.length >= 60} onClick={addGroup}>
+                + Grupo
+              </QButton>
+            )}
+          </div>
+          {groupsOpen && (
+            <div className="sc sortable">
+              {groups.length === 0 && <p className="qs-note">Nenhum grupo ainda. Um grupo abre vários atalhos de uma vez.</p>}
+              {groups.map((entry) => row(entry, sortGroups))}
+            </div>
+          )}
         </div>
       ) : pending !== null && shortcuts[pending] ? (
         <Confirm text={confirmationText(shortcuts[pending], shortcuts)} onCancel={() => setPending(null)} onOk={() => open(pending)} />
       ) : (
-        <div className="lcx-grid">
+        <div className="lcx-scroll">
           {error && <div className="tile lc-empty lcx-err">{error}</div>}
           {matches.length === 0 && !error && (
             <div className="tile lc-empty">{shortcuts.length === 0 ? "Nenhum atalho ainda. Toque em Editar para criar." : "Nenhum atalho com esse nome."}</div>
           )}
-          {shownGroups.length > 0 && (
-            <h3 className="lcx-h" style={{ order: 0 }}>
-              Grupos
-            </h3>
+          {searching ? (
+            <SearchResults entries={[...shownItems, ...shownGroups]} renderTile={tile} />
+          ) : (
+            <>
+              {blocks.map(({ section, entries }) =>
+                section ? (
+                  <SectionView
+                    key={section.id}
+                    id={section.id}
+                    title={section.name}
+                    collapsed={section.collapsed}
+                    onToggle={() => setSections(toggleCollapsed(sections, section.id))}
+                    entries={entries}
+                    onReorder={reorderItems}
+                    canDrag
+                    renderTile={tile}
+                  />
+                ) : (
+                  <SectionView
+                    key="rest"
+                    id="rest"
+                    title={sections.length > 0 ? "Outros" : "Atalhos"}
+                    collapsed={restClosed}
+                    onToggle={toggleRest}
+                    entries={entries}
+                    onReorder={reorderItems}
+                    canDrag
+                    renderTile={tile}
+                  />
+                ),
+              )}
+              {shownGroups.length > 0 && (
+                <SectionView
+                  id="groups"
+                  title="Grupos"
+                  collapsed={groupsClosed}
+                  onToggle={toggleGroups}
+                  entries={shownGroups}
+                  onReorder={(order) => set(reorderVisible(shortcuts, true, order))}
+                  canDrag
+                  renderTile={tile}
+                />
+              )}
+            </>
           )}
-          {shownGroups.map(tile)}
-          {shownItems.length > 0 && (
-            <h3 className="lcx-h" style={{ order: ITEMS_BASE }}>
-              Atalhos
-            </h3>
-          )}
-          {shownItems.map(tile)}
         </div>
       )}
     </div>

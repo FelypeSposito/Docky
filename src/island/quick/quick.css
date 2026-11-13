@@ -639,3 +639,178 @@
   flex-direction: column;
   gap: 4px;
 }
+/* "+ Atalho" no fim da lista: o atalho novo nasce ali, logo acima do botão */
+.lcx-add {
+  flex: none;
+  height: 34px;
+  border-radius: 12px;
+  color: var(--ink3);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: background 0.2s, color 0.2s, transform 0.1s;
+}
+.lcx-add:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.lcx-add:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.lcx-add:disabled {
+  opacity: 0.4;
+}
+/* Os grupos abrem e fecham pelo título da parte */
+.lcx-disc {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 0;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  transition: color 0.2s;
+}
+.lcx-disc:hover {
+  color: #fff;
+}
+.lcx-disc svg {
+  transition: transform 0.3s var(--ease);
+}
+.lcx-disc[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* Seções da tela grande dos atalhos (Jogos, Comunicação…): o título com a setinha abre e fecha a parte. */
+.lcx-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.lcx-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.lcx-scroll::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.lcx-scroll > .lc-empty {
+  flex: none;
+  padding: 18px;
+}
+.lsec {
+  flex: none;
+}
+.lsec-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: 8px;
+  color: var(--ink3);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  transition: color 0.2s, background 0.2s;
+}
+.lsec-head:hover {
+  color: var(--ink2);
+  background: rgba(255, 255, 255, 0.04);
+}
+.lsec-head:focus-visible {
+  outline: 2px solid var(--accent, #ff5c7a);
+  outline-offset: 1px;
+}
+.lsec-head svg {
+  flex: none;
+  transition: transform 0.32s var(--ease);
+}
+.lsec.closed .lsec-head svg {
+  transform: rotate(-90deg);
+}
+.lsec-head span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lsec-head i {
+  margin-left: 2px;
+  color: var(--ink3);
+  font-style: normal;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  opacity: 0.75;
+}
+/* Abrir e fechar: a altura vai de 0 ao conteúdo (grid 0fr → 1fr) e o conteúdo some junto. */
+.lsec-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: grid-template-rows 0.34s var(--ease), opacity 0.22s ease;
+}
+.lsec.closed .lsec-body {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.lsec-clip {
+  min-height: 0;
+  overflow: clip;
+  overflow-clip-margin: 12px;
+}
+.lsec-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 2px 0 6px;
+}
+.lsec-grid .lt {
+  min-height: 56px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.lsec-grid .lt.drag {
+  z-index: 5;
+  transition: none;
+  cursor: grabbing;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+.reduce-motion .lsec-body,
+.reduce-motion .lsec-head svg {
+  transition: none;
+}
+/* A seção de cada atalho no modo Editar */
+.le-secsel {
+  flex: none;
+  max-width: 116px;
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink2);
+  font: 500 11.5px Inter, system-ui, sans-serif;
+  cursor: pointer;
+}
+.le-secsel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.le-secsel:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent, #ff5c7a);
+}
+.le-secsel option {
+  background: #161616;
+  color: #fff;
+}

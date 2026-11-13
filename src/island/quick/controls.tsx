@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ipc } from "../../lib/ipc";
 import { FolderIcon } from "../icons";
 
@@ -90,19 +90,27 @@ export function QText({
   placeholder,
   label,
   width = 200,
+  autoFocus,
   onCommit,
 }: {
   value: string;
   placeholder?: string;
   label: string;
   width?: number | string;
+  /** Recebe o foco ao aparecer, sem rolar nada (quem cria o campo cuida de mostrá-lo). */
+  autoFocus?: boolean;
   onCommit: (value: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (autoFocus) ref.current?.focus({ preventScroll: true });
+  }, [autoFocus]);
   const commit = () => draft.trim() !== value && onCommit(draft.trim());
   return (
     <input
+      ref={ref}
       className="qs-inp"
       style={{ width }}
       value={draft}

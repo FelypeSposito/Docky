@@ -1,0 +1,35 @@
+/* Seções dos atalhos nas configurações: a lista de seções e a escolha da seção na linha de cada atalho. */
+.row.sec-row {
+  gap: 8px;
+}
+.sec-row .summary {
+  flex: 1;
+  color: var(--ink3, rgba(255, 255, 255, 0.36));
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.secsel {
+  flex: none;
+  max-width: 150px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink2, rgba(255, 255, 255, 0.62));
+  font: 500 12px Inter, system-ui, sans-serif;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.secsel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.secsel:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent, #ff5c7a);
+}
+.secsel option {
+  background: #161616;
+  color: #fff;
+}

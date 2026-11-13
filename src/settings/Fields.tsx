@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import type { ShelfFolder, Shortcut } from "../config/types";
 import type { MonitorInfo } from "../lib/ipc";
@@ -13,6 +13,8 @@ import { cleanTarget, hideGrouped, hideableCount, memberSummary, newId, removeSh
 import { MIN_GROUP, TEMPLATES, addApp, buildGroup, completeGroup, resolveTemplate, suggestedApps, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
 import { ipc } from "../lib/ipc";
 import { Group, IconButton, Row, Segmented, Toggle } from "./controls";
+import { AppSuggestions } from "./AppSuggestions";
+import { SectionSelect, SectionsGroup } from "./SectionsGroup";
 import { usePanelScroll } from "./usePanelScroll";
 import { useSortable } from "./useSortable";
 
@@ -22,16 +24,24 @@ interface TextFieldProps {
   label: string;
   width?: number;
   type?: string;
+  /** Recebe o foco ao aparecer (sem rolar nada: quem cria o campo cuida de mostrá-lo). */
+  autoFocus?: boolean;
   onCommit: (value: string) => void;
 }
 
 /** Campo de texto que só grava ao sair dele ou apertar Enter, para não salvar a cada tecla. */
-export function TextField({ value, placeholder, label, width = 240, type = "text", onCommit }: TextFieldProps) {
+export function TextField({ value, placeholder, label, width = 240, type = "text", autoFocus, onCommit }: TextFieldProps) {
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
+  const ref = useRef<HTMLInputElement>(null);
+  // `preventScroll`: o foco do navegador rolaria também o contêiner da janela e empurraria o cabeçalho para fora.
+  useEffect(() => {
+    if (autoFocus) ref.current?.focus({ preventScroll: true });
+  }, [autoFocus]);
   const commit = () => draft !== value && onCommit(draft.trim());
   return (
     <input
+      ref={ref}
       className="inp"
       style={{ width }}
       type={type}
@@ -158,6 +168,37 @@ const HOTKEYS: [string, string[]][] = [
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+/** Se a parte dos grupos fica aberta: lembrada neste computador (o armazenamento pode faltar, e aí começa fechada). */
+const GROUPS_OPEN_KEY = "docky-settings-groups-open";
+const readGroupsOpen = () => {
+  try {
+    return localStorage.getItem(GROUPS_OPEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+const saveGroupsOpen = (open: boolean) => {
+  try {
+    localStorage.setItem(GROUPS_OPEN_KEY, open ? "1" : "0");
+  } catch {
+    // sem armazenamento: só não lembra da escolha
+  }
+};
+
+/**
+ * Rola só a área rolável das configurações até `el`, se ele não estiver à vista, deixando-o no meio.
+ * `scrollIntoView` rolaria também o contêiner da janela (e empurraria o cabeçalho para fora), como em `usePanelScroll`.
+ */
+function revealInMain(el: HTMLElement, margin = 24) {
+  const scroller = el.closest<HTMLElement>(".sa-main");
+  if (!scroller) return;
+  const box = el.getBoundingClientRect();
+  const view = scroller.getBoundingClientRect();
+  if (box.top >= view.top + margin && box.bottom <= view.bottom - margin) return;
+  const top = box.top - view.top + scroller.scrollTop - (scroller.clientHeight - box.height) / 2;
+  scroller.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+}
+
 /** Os ícones automáticos: o Docky acha o ícone do app uma vez, guarda numa pasta e mostra onde ela está. */
 function AutoIconsGroup() {
   const { config, update } = useConfigStore();
@@ -232,12 +273,33 @@ export function ShortcutsEditor() {
   const [suggesting, setSuggesting] = useState(false);
   const groupToEdit = editingGroup === null ? undefined : items.find((s) => s.id === editingGroup && s.group);
   const pickApp = (id: string) => void ipc.pickPath("app").then((path) => path && change(id, { target: path }));
-  const addItem = () => set([...items, { name: "", target: "", icon: "", id: newId(), group: false, members: [] }]);
+  /** Os grupos ficam numa parte que abre e fecha, fechada de início: o foco da tela são os atalhos. */
+  const [groupsOpen, setGroupsOpen] = useState(readGroupsOpen);
+  const toggleGroups = (open: boolean) => {
+    setGroupsOpen(open);
+    saveGroupsOpen(open);
+  };
+  /** O atalho recém-criado: entra no fim da lista (a ordem dos outros não muda), a tela rola até ele e o nome ganha o foco. */
+  const [fresh, setFresh] = useState<string | null>(null);
+  const itemsRef = useRef<HTMLDivElement>(null);
+  const addItem = () => {
+    const id = newId();
+    set([...items, { name: "", target: "", icon: "", id, group: false, members: [] }]);
+    setFresh(id);
+  };
+  useEffect(() => {
+    if (fresh === null) return;
+    const el = Array.from(itemsRef.current?.children ?? []).find((child) => (child as HTMLElement).dataset.sid === fresh);
+    if (!(el instanceof HTMLElement)) return; // a linha ainda não apareceu: tenta de novo quando a lista mudar
+    revealInMain(el);
+    setFresh(null); // o foco já foi dado na montagem; a linha não pede foco de novo se for montada outra vez
+  }, [fresh, items]);
   /** Um grupo novo já abre o painel de itens, para dar nome e escolher o que ele abre. */
   const addGroup = () => {
     const group: Shortcut = { name: "", target: "", icon: "lib:briefcase", id: newId(), group: true, members: [] };
     set([group, ...items]);
     setEditingGroup(group.id);
+    toggleGroups(true);
   };
   const hideable = hideableCount(items);
 
@@ -245,6 +307,7 @@ export function ShortcutsEditor() {
     <div
       className={`row folder-row srow${sortable.dragId === item.id ? " drag" : ""}${item.hidden ? " is-hidden" : ""}`}
       key={item.id}
+      data-sid={item.id}
       ref={sortable.rowRef(item.id)}
       style={{ order: sortable.position.get(item.id) }}
     >
@@ -254,7 +317,14 @@ export function ShortcutsEditor() {
       <button className="sico" aria-label={`Escolher o ícone de ${item.name || "atalho"}`} title="Escolher o ícone" onClick={() => setPicking(item.id)}>
         <ShortcutIcon shortcut={item} image={images[index]} color={SHORTCUT_COLORS[index % SHORTCUT_COLORS.length]} className="li" />
       </button>
-      <TextField label="Nome do atalho" width={item.group ? 170 : 140} value={item.name} placeholder={item.group ? "Nome do grupo" : "Nome"} onCommit={(v) => change(item.id, { name: v })} />
+      <TextField
+        label="Nome do atalho"
+        width={item.group ? 170 : 140}
+        value={item.name}
+        placeholder={item.group ? "Nome do grupo" : "Nome"}
+        autoFocus={item.id === fresh}
+        onCommit={(v) => change(item.id, { name: v })}
+      />
       {item.group ? (
         <>
           <span className="summary" title={memberSummary(item, items, 99)}>
@@ -268,7 +338,7 @@ export function ShortcutsEditor() {
         <>
           <TextField
             label="Destino do atalho"
-            width={190}
+            width={config.shortcutSections.length > 0 ? 150 : 190}
             value={item.target}
             placeholder="C:\Apps\app.exe, uma pasta ou https://…"
             onCommit={(v) => change(item.id, { target: cleanTarget(v) })}
@@ -276,6 +346,7 @@ export function ShortcutsEditor() {
           <IconButton label="Escolher um programa, atalho ou arquivo" onClick={() => pickApp(item.id)}>
             <FolderIcon />
           </IconButton>
+          <SectionSelect shortcutId={item.id} name={item.name} />
         </>
       )}
       <IconButton label={item.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!item.hidden} onClick={() => set(setHidden(items, item.id, !item.hidden))}>
@@ -313,18 +384,7 @@ export function ShortcutsEditor() {
         )}
       </div>
 
-      <Group>
-        <Row label="Grupos" hint="Abrem vários atalhos de uma vez">
-          <button className="btn primary" disabled={items.length >= 60} onClick={addGroup}>
-            + Grupo
-          </button>
-          <button className="btn" onClick={() => setSuggesting((v) => !v)} aria-pressed={suggesting}>
-            Sugestões
-          </button>
-        </Row>
-        {groups.length === 0 && <Row label="Nenhum grupo ainda" hint="Crie um, ou veja as sugestões (Trabalho, Jogos, Estudos…)" />}
-        <div className="sortable">{groups.map((entry) => row(entry, sortGroups))}</div>
-      </Group>
+      <AppSuggestions />
 
       <Group>
         <Row label="Atalhos" hint="Apps, jogos, pastas, arquivos e sites. O olho oculta da lista, e o atalho continua valendo nos grupos">
@@ -338,10 +398,46 @@ export function ShortcutsEditor() {
           </button>
         </Row>
         {plain.length === 0 && <Row label="Nenhum atalho ainda" />}
-        <div className="sortable">{plain.map((entry) => row(entry, sortItems))}</div>
+        <div className="sortable" ref={itemsRef}>
+          {plain.map((entry) => row(entry, sortItems))}
+        </div>
+        {plain.length > 0 && (
+          <div className="row add-row">
+            <button className="btn" disabled={items.length >= 60} onClick={addItem}>
+              + Atalho
+            </button>
+          </div>
+        )}
         <Row label="Confirmar antes de abrir" hint="Apps, jogos e grupos pedem confirmação antes de abrir">
           <Toggle label="Confirmar antes de abrir" value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
         </Row>
+      </Group>
+
+      <SectionsGroup />
+
+      <Group>
+        <Row label="Grupos" hint={groups.length > 0 ? `${plural(groups.length, "grupo", "grupos")}. Abrem vários atalhos de uma vez` : "Abrem vários atalhos de uma vez"}>
+          {groupsOpen && (
+            <>
+              <button className="btn" onClick={() => setSuggesting((v) => !v)} aria-pressed={suggesting}>
+                Sugestões
+              </button>
+              <button className="btn primary" disabled={items.length >= 60} onClick={addGroup}>
+                + Grupo
+              </button>
+            </>
+          )}
+          <button className="btn disc" aria-expanded={groupsOpen} onClick={() => toggleGroups(!groupsOpen)}>
+            {groupsOpen ? "Ocultar" : "Mostrar"}
+            <ArrowDownIcon size={12} />
+          </button>
+        </Row>
+        {groupsOpen && (
+          <>
+            {groups.length === 0 && <Row label="Nenhum grupo ainda" hint="Crie um, ou veja as sugestões (Trabalho, Jogos, Estudos…)" />}
+            <div className="sortable">{groups.map((entry) => row(entry, sortGroups))}</div>
+          </>
+        )}
       </Group>
 
       <AutoIconsGroup />

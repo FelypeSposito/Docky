@@ -23,7 +23,11 @@ const DASHBOARD_ICONS: &str = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard
 const MAX_BYTES: usize = 1_500_000;
 /// As imagens da biblioteca são grandes; um favicon menor que isto é o globo genérico ou fica borrado demais.
 const MIN_FAVICON_WIDTH: u32 = 32;
-const IMAGE_EXTENSIONS: [&str; 7] = ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico"];
+const IMAGE_EXTENSIONS: [&str; 8] = ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "bmp"];
+/// Imagens que `adopt_icon` copia como estão para a pasta de ícones.
+const ADOPT_IMAGES: [&str; 7] = ["jpg", "jpeg", "png", "webp", "ico", "gif", "bmp"];
+/// Programas e atalhos de onde `adopt_icon` tira o ícone que o Windows mostra.
+const ADOPT_PROGRAMS: [&str; 3] = ["exe", "lnk", "dll"];
 
 #[cfg(windows)]
 fn documents_dir() -> Option<PathBuf> {
@@ -426,6 +430,66 @@ pub fn open_icons_folder(state: State<ConfigState>) -> Result<(), String> {
     tauri_plugin_opener::open_path(dir.display().to_string(), None::<&str>).map_err(|e| e.to_string())
 }
 
+/// Traz para a pasta de ícones o ícone que está num arquivo local: uma imagem é copiada como está (`slug.jpg`) e um
+/// programa tem o ícone extraído por `extract` em PNG (`slug.png`). O nome sai de `name` (ou do nome do arquivo). Se a
+/// pasta já tem um arquivo com esse nome, é ele que fica. `None` para outros tipos de arquivo ou se algo falhar.
+pub fn adopt(dir: &Path, source: &Path, name: &str, extract: &dyn Fn(&str) -> Option<Vec<u8>>) -> Option<String> {
+    let mut slug = slugify(name);
+    if slug.is_empty() {
+        slug = slugify(&source.file_stem()?.to_string_lossy());
+    }
+    slug.truncate(60);
+    let slug = slug.trim_end_matches('-');
+    if slug.is_empty() {
+        return None;
+    }
+    let extension = source.extension()?.to_str()?.to_ascii_lowercase();
+    if ADOPT_IMAGES.contains(&extension.as_str()) {
+        let file_name = format!("{slug}.{extension}");
+        if !valid_asset_name(&file_name) {
+            return None;
+        }
+        let destination = dir.join(&file_name);
+        if !destination.is_file() {
+            let metadata = fs::metadata(source).ok()?;
+            if !metadata.is_file() || metadata.len() > MAX_BYTES as u64 {
+                return None;
+            }
+            fs::create_dir_all(dir).ok()?;
+            // Por um arquivo temporário, para nunca sobrar uma cópia pela metade.
+            let temporary = dir.join(format!(".{file_name}.part"));
+            fs::copy(source, &temporary).ok()?;
+            fs::rename(&temporary, &destination).ok()?;
+        }
+        Some(format!("{ASSET_PREFIX}{file_name}"))
+    } else if ADOPT_PROGRAMS.contains(&extension.as_str()) {
+        let file_name = format!("{slug}.png");
+        if !valid_asset_name(&file_name) {
+            return None;
+        }
+        if dir.join(&file_name).is_file() {
+            return Some(format!("{ASSET_PREFIX}{file_name}"));
+        }
+        let bytes = extract(&source.to_string_lossy()).filter(|b| is_png(b) && b.len() <= MAX_BYTES)?;
+        save(dir, slug, &bytes)
+    } else {
+        None
+    }
+}
+
+/// Faz de um arquivo local (a imagem de um jogo, o programa de um app) o ícone de um atalho: copia ou extrai para a
+/// pasta de ícones e devolve `asset:nome.ext`, ou `None` se não der.
+#[tauri::command]
+pub async fn adopt_icon(state: State<'_, ConfigState>, source: String, name: String) -> Result<Option<String>, String> {
+    let dir = icons_dir(&state.get());
+    tauri::async_runtime::spawn_blocking(move || {
+        let source = crate::launcher::clean_target(&source);
+        adopt(&dir, Path::new(&source), &name, &|target| crate::shell_icon::icon_png(target, 256))
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
 /// Procura agora o ícone de todos os atalhos que estão sem (botão das configurações). Devolve quantos ganharam.
 #[tauri::command]
 pub async fn fetch_missing_icons(app: AppHandle) -> Result<usize, String> {
@@ -551,6 +615,63 @@ mod tests {
         assert_eq!(config.shortcuts[1].icon, elsewhere.join("slack.png").display().to_string());
         let _ = fs::remove_dir_all(&dir);
         let _ = fs::remove_dir_all(&elsewhere);
+    }
+
+    #[test]
+    fn adota_a_imagem_de_um_jogo_copiando_para_a_pasta() {
+        let dir = temp_dir("adota-imagem");
+        let source_dir = temp_dir("adota-imagem-origem");
+        fs::create_dir_all(&source_dir).unwrap();
+        let source = source_dir.join("7807d6dcd71d8161465619b4f041794b0353a6d0.jpg");
+        fs::write(&source, b"jpeg do jogo").unwrap();
+        let never = |_: &str| -> Option<Vec<u8>> { panic!("imagem não se extrai") };
+        assert_eq!(adopt(&dir, &source, "Counter-Strike 2", &never).as_deref(), Some("asset:counter-strike-2.jpg"));
+        assert_eq!(fs::read(dir.join("counter-strike-2.jpg")).unwrap(), b"jpeg do jogo");
+        assert!(resolve_asset(&dir, "asset:counter-strike-2.jpg").is_some());
+
+        // Já existe um arquivo com esse nome: fica o que está lá.
+        fs::write(&source, b"outra imagem").unwrap();
+        assert_eq!(adopt(&dir, &source, "Counter-Strike 2", &never).as_deref(), Some("asset:counter-strike-2.jpg"));
+        assert_eq!(fs::read(dir.join("counter-strike-2.jpg")).unwrap(), b"jpeg do jogo");
+
+        // Sem nome, vale o nome do arquivo; bmp e ico também.
+        let bmp = source_dir.join("Capa Grande.BMP");
+        fs::write(&bmp, b"bmp").unwrap();
+        assert_eq!(adopt(&dir, &bmp, " ®™ ", &never).as_deref(), Some("asset:capa-grande.bmp"));
+        assert!(resolve_asset(&dir, "asset:capa-grande.bmp").is_some());
+
+        // Grande demais, inexistente ou de outro tipo: nada.
+        let huge = source_dir.join("enorme.png");
+        fs::write(&huge, vec![0u8; MAX_BYTES + 1]).unwrap();
+        assert_eq!(adopt(&dir, &huge, "Enorme", &never), None);
+        assert_eq!(adopt(&dir, &source_dir.join("sumiu.png"), "Sumiu", &never), None);
+        let text = source_dir.join("nota.txt");
+        fs::write(&text, b"x").unwrap();
+        assert_eq!(adopt(&dir, &text, "Nota", &never), None);
+        assert_eq!(adopt(&dir, &source, "???", &never).as_deref(), Some("asset:7807d6dcd71d8161465619b4f041794b0353a6d0.jpg"));
+        let _ = fs::remove_dir_all(&dir);
+        let _ = fs::remove_dir_all(&source_dir);
+    }
+
+    #[test]
+    fn adota_o_icone_de_um_programa_extraindo_em_png() {
+        let dir = temp_dir("adota-programa");
+        let exe = Path::new(r"C:\Program Files\Epic Games\rocketleague\Binaries\Win64\Launcher.exe");
+        let extract = |target: &str| target.ends_with("Launcher.exe").then(|| fake_png(256));
+        assert_eq!(adopt(&dir, exe, "Rocket League", &extract).as_deref(), Some("asset:rocket-league.png"));
+        assert!(dir.join("rocket-league.png").is_file());
+
+        // Segunda vez: reaproveita, nem extrai.
+        let never = |_: &str| -> Option<Vec<u8>> { panic!("não era para extrair de novo") };
+        assert_eq!(adopt(&dir, exe, "Rocket League", &never).as_deref(), Some("asset:rocket-league.png"));
+
+        // A extração falha ou não devolve PNG: nada.
+        let fails = |_: &str| None;
+        assert_eq!(adopt(&dir, Path::new(r"C:\x\Raro.lnk"), "Raro", &fails), None);
+        let not_png = |_: &str| Some(b"nao e png".to_vec());
+        assert_eq!(adopt(&dir, Path::new(r"C:\x\lib.dll"), "Lib", &not_png), None);
+        assert!(!dir.join("lib.png").exists());
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

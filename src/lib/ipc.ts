@@ -398,6 +398,14 @@ export const ipc = {
     return isTauri ? invoke<void>("open_icons_folder") : Promise.resolve();
   },
 
+  /**
+   * Leva para a pasta de ícones a imagem (ou o ícone do programa) de onde sai o ícone de um app sugerido, e devolve a
+   * referência `asset:nome` para pôr no atalho, ou `null` se não deu.
+   */
+  async adoptIcon(source: string, name: string): Promise<string | null> {
+    return isTauri ? invoke<string | null>("adopt_icon", { source, name }) : null;
+  },
+
   /** Procura agora o ícone de todos os atalhos que estão sem. Devolve quantos ganharam. */
   async fetchMissingIcons(): Promise<number> {
     return isTauri ? invoke<number>("fetch_missing_icons") : 0;
@@ -412,6 +420,9 @@ export const ipc = {
       { name: "Discord", target: "C:\Menu\Discord.lnk", uses: 30, pinned: false, running: false },
       { name: "Obsidian", target: "C:\Menu\Obsidian.lnk", uses: 12, pinned: false, running: false },
       { name: "Steam", target: "C:\Menu\Steam.lnk", uses: 9, pinned: false, running: false },
+      { name: "Counter-Strike 2", target: "steam://rungameid/730", uses: 0, pinned: false, running: false, kind: "steam" },
+      { name: "Moonlighter", target: "steam://rungameid/606150", uses: 0, pinned: false, running: false, kind: "steam" },
+      { name: "Fortnite", target: "com.epicgames.launcher://apps/fn%3Aitem%3AFortnite?action=launch&silent=true", uses: 0, pinned: false, running: false, kind: "epic" },
     ];
   },
 

@@ -1,17 +1,24 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import type { Shortcut } from "../config/types";
+import { useConfigStore } from "../config/useConfig";
 import { ipc } from "../lib/ipc";
 import { cleanTarget } from "./model";
 
-/** Um app instalado (do Menu Iniciar ou da Área de Trabalho), com os sinais de que você o usa. */
+/** De onde veio um app instalado: o Menu Iniciar (e a Loja), a biblioteca da Steam ou a da Epic Games. */
+export type AppKind = "app" | "steam" | "epic";
+
+/** Um app instalado (do Menu Iniciar, da Área de Trabalho, da Steam ou da Epic), com os sinais de que você o usa. */
 export interface AppEntry {
   name: string;
-  /** O atalho `.lnk`, que abre o app como o Menu Iniciar abriria. */
+  /** O que abre o app: o atalho `.lnk`, `shell:AppsFolder\…`, `steam://rungameid/…` ou o endereço da Epic. */
   target: string;
   uses: number;
   pinned: boolean;
   running: boolean;
+  kind?: AppKind;
+  /** Um arquivo de onde sai o ícone (a arte do jogo na Steam, o executável na Epic), quando há um. */
+  icon?: string | null;
 }
 
 export interface TemplateApp {
@@ -155,15 +162,39 @@ export function addAppToGroup(shortcuts: Shortcut[], groupId: string, entry: App
   return created ? [...updated, created] : updated;
 }
 
-/** Os apps mais usados que ainda não são atalhos (só os que têm algum sinal de uso, ou os primeiros por nome). */
+const kindOf = (entry: AppEntry): AppKind => entry.kind ?? "app";
+
+/** Os apps mais usados que ainda não são atalhos (só os que têm algum sinal de uso, ou os primeiros por nome). Jogos ficam de fora. */
 export function suggestedApps(apps: AppEntry[], shortcuts: Shortcut[], limit = 10): AppEntry[] {
-  const fresh = apps.filter((entry) => !shortcuts.some((s) => !s.group && sameApp(s, entry)));
+  const fresh = apps.filter((entry) => kindOf(entry) === "app" && !shortcuts.some((s) => !s.group && sameApp(s, entry)));
   const used = fresh.filter((entry) => entry.uses > 0 || entry.pinned || entry.running);
   return (used.length > 0 ? used : fresh).slice(0, limit);
 }
 
+export interface SuggestionSection {
+  kind: AppKind;
+  title: string;
+  entries: AppEntry[];
+}
+
+/**
+ * As sugestões de atalho por origem: os apps que você mais usa, os jogos da Steam e os da Epic Games, sem os que já
+ * são atalhos. Seções vazias ficam de fora.
+ */
+export function suggestionSections(apps: AppEntry[], shortcuts: Shortcut[], appLimit = 12): SuggestionSection[] {
+  const fresh = (kind: AppKind) => apps.filter((entry) => kindOf(entry) === kind && !shortcuts.some((s) => !s.group && sameApp(s, entry)));
+  const sections: SuggestionSection[] = [
+    { kind: "app", title: "Apps que você mais usa", entries: suggestedApps(apps, shortcuts, appLimit) },
+    { kind: "steam", title: "Jogos da Steam", entries: fresh("steam") },
+    { kind: "epic", title: "Jogos da Epic Games", entries: fresh("epic") },
+  ];
+  return sections.filter((section) => section.entries.length > 0);
+}
+
 /** Por que um app foi sugerido, em poucas palavras. */
 export function whySuggested(entry: AppEntry): string {
+  if (kindOf(entry) === "steam") return "jogo instalado na Steam";
+  if (kindOf(entry) === "epic") return "jogo instalado na Epic Games";
   if (entry.pinned && entry.running) return "fixado na barra e aberto agora";
   if (entry.pinned) return "fixado na barra de tarefas";
   if (entry.running) return "aberto agora";
@@ -172,6 +203,27 @@ export function whySuggested(entry: AppEntry): string {
 }
 
 export const addApp = (shortcuts: Shortcut[], entry: AppEntry, makeId: () => string): Shortcut[] => [...shortcuts, newShortcut(entry, makeId())];
+
+/** Vários apps de uma vez, no fim da lista e na ordem dada. Devolve a lista nova e os ids criados (na mesma ordem). */
+export function addApps(shortcuts: Shortcut[], entries: AppEntry[], makeId: () => string): { shortcuts: Shortcut[]; ids: string[] } {
+  const created = entries.map((entry) => newShortcut(entry, makeId()));
+  return { shortcuts: [...shortcuts, ...created], ids: created.map((s) => s.id) };
+}
+
+/**
+ * Dá ao atalho recém-criado o ícone do próprio app quando ele tem um arquivo de origem (a arte da Steam, o executável
+ * da Epic). Relê a configuração na hora de gravar: só preenche se o atalho ainda existe e continua sem ícone. Sem
+ * arquivo, quem preenche é a busca automática de ícones.
+ */
+export async function adoptAppIcon(id: string, entry: AppEntry): Promise<void> {
+  if (!entry.icon) return;
+  const icon = await ipc.adoptIcon(entry.icon, entry.name).catch(() => null);
+  if (!icon) return;
+  const { config, update } = useConfigStore.getState();
+  const current = config.shortcuts.find((s) => s.id === id);
+  if (!current || (current.icon ?? "").trim()) return;
+  update({ shortcuts: config.shortcuts.map((s) => (s.id === id ? { ...s, icon } : s)) });
+}
 
 interface AppsStore {
   apps: AppEntry[];
@@ -196,9 +248,15 @@ export const useAppsStore = create<AppsStore>((set, get) => ({
   },
 }));
 
-/** Carrega a lista de apps instalados quando a tela de sugestões abre. */
+/**
+ * Carrega a lista de apps instalados quando a tela de sugestões abre, só se a pessoa deixou o Docky procurar
+ * (Configurações → Atalhos → Sugestões). Sem a permissão, a lista fica vazia.
+ */
 export function useInstalledApps(): AppEntry[] {
   const { apps, load } = useAppsStore();
-  useEffect(() => void load(), [load]);
-  return apps;
+  const allowed = useConfigStore((s) => s.config.scanApps);
+  useEffect(() => {
+    if (allowed) void load();
+  }, [allowed, load]);
+  return allowed ? apps : [];
 }

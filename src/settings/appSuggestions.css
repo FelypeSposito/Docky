@@ -1,0 +1,12 @@
+/* Sugestões de atalhos (apps e jogos instalados): uma linha por origem, com os chips e "Adicionar todos" ao lado. */
+.row.sug-sec {
+  align-items: flex-start;
+  gap: 12px;
+}
+.sug-sec .ge-sec {
+  flex: 1;
+  min-width: 0;
+}
+.sug-sec > .btn {
+  flex: none;
+}

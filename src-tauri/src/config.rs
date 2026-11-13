@@ -35,6 +35,33 @@ pub struct Shortcut {
     pub hidden: bool,
 }
 
+/// Arruma a configuração antes de usar e de gravar: ids dos atalhos, caminhos de pasta e membros das seções.
+pub fn normalize(config: &mut Config) {
+    normalize_shortcuts(&mut config.shortcuts);
+    normalize_paths(config);
+    normalize_sections(&mut config.shortcut_sections, &config.shortcuts);
+}
+
+/// Uma seção da tela de atalhos (Jogos, Comunicação…): o nome, se está recolhida e os atalhos dela (ids, sem grupos).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ShortcutSection {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub collapsed: bool,
+    #[serde(default)]
+    pub members: Vec<String>,
+}
+
+/// Tira das seções os atalhos que não existem mais (ou viraram grupo) e deixa cada atalho numa seção só (a primeira).
+pub fn normalize_sections(sections: &mut [ShortcutSection], shortcuts: &[Shortcut]) {
+    let plain: HashSet<&str> = shortcuts.iter().filter(|s| !s.group).map(|s| s.id.as_str()).collect();
+    let mut placed: HashSet<String> = HashSet::new();
+    for section in sections.iter_mut() {
+        section.members.retain(|m| plain.contains(m.as_str()) && placed.insert(m.clone()));
+    }
+}
+
 /// Um caminho como o Windows o abre: sem espaços nas pontas e sem as aspas que o "Copiar como caminho" do Explorer traz.
 pub fn clean_path(path: &str) -> String {
     path.trim().trim_matches(|c| c == '"' || c == '\'').trim().to_string()
@@ -146,6 +173,11 @@ pub struct Config {
     pub icons_folder: String,
     /// Busca na internet, uma vez, o ícone de cada atalho novo que ficou sem ícone.
     pub auto_icons: bool,
+    /// A pessoa deixou o Docky procurar os apps e jogos instalados (Menu Iniciar, Steam, Epic) para sugerir atalhos.
+    /// Desligado até ela permitir; a busca é toda local.
+    pub scan_apps: bool,
+    /// Seções da tela de atalhos, na ordem em que aparecem.
+    pub shortcut_sections: Vec<ShortcutSection>,
 }
 
 /// Se existir um cofre do Obsidian chamado "brain" em Documentos, as notas vão para a Inbox dele.
@@ -198,6 +230,8 @@ impl Default for Config {
             confirm_apps: true,
             icons_folder: String::new(),
             auto_icons: true,
+            scan_apps: false,
+            shortcut_sections: Vec::new(),
         }
     }
 }
@@ -219,8 +253,7 @@ impl ConfigState {
             .ok()
             .and_then(|text| serde_json::from_str(&text).ok())
             .unwrap_or_default();
-        normalize_shortcuts(&mut current.shortcuts);
-        normalize_paths(&mut current);
+        normalize(&mut current);
         Self { path, current: Mutex::new(current) }
     }
 
@@ -239,8 +272,7 @@ impl ConfigState {
         let snapshot = {
             let mut current = self.current.lock().unwrap();
             change(&mut current);
-            normalize_shortcuts(&mut current.shortcuts);
-            normalize_paths(&mut current);
+            normalize(&mut current);
             current.clone()
         };
         self.save(&snapshot).map_err(|e| e.to_string())?;
@@ -261,8 +293,7 @@ pub fn set_config(
     mut config: Config,
 ) -> Result<Config, String> {
     let previous = state.get();
-    normalize_shortcuts(&mut config.shortcuts);
-    normalize_paths(&mut config);
+    normalize(&mut config);
 
     if previous.start_with_windows != config.start_with_windows {
         let autolaunch = app.autolaunch();
@@ -291,7 +322,7 @@ pub fn set_config(
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, ShelfFolder, Shortcut, clean_path, normalize_paths, normalize_shortcuts};
+    use super::{Config, ShelfFolder, Shortcut, ShortcutSection, clean_path, normalize, normalize_paths, normalize_shortcuts};
 
     #[test]
     fn tira_as_aspas_do_copiar_como_caminho() {
@@ -304,6 +335,17 @@ mod tests {
         normalize_paths(&mut config);
         assert_eq!(config.shelf_folders[0].path, "C:\\Clipes");
         assert_eq!(config.notes_folder, "D:\\Notas");
+    }
+
+    #[test]
+    fn secao_so_guarda_atalhos_que_existem_cada_um_numa_secao() {
+        let mut config = Config::default();
+        config.shortcuts = vec![shortcut("a", false, &[]), shortcut("b", false, &[]), shortcut("g", true, &["a"])];
+        let section = |id: &str, members: &[&str]| ShortcutSection { id: id.into(), name: id.into(), collapsed: false, members: members.iter().map(|m| m.to_string()).collect() };
+        config.shortcut_sections = vec![section("s1", &["a", "sumiu", "g"]), section("s2", &["a", "b"])];
+        normalize(&mut config);
+        assert_eq!(config.shortcut_sections[0].members, ["a"]);
+        assert_eq!(config.shortcut_sections[1].members, ["b"], "o a já está na primeira seção");
     }
 
     fn shortcut(id: &str, group: bool, members: &[&str]) -> Shortcut {
