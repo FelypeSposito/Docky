@@ -1,6 +1,6 @@
 [package]
 name = "docky"
-version = "0.1.0"
+version = "0.2.0"
 description = "Docky — uma ilha dinâmica para o Windows"
 authors = ["Docky"]
 edition = "2024"
