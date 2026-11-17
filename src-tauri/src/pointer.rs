@@ -48,35 +48,91 @@ pub fn set_island_rect(window: WebviewWindow, state: State<PointerState>, rect: 
     state.rects.lock().unwrap().insert(window.label().to_string(), rect);
 }
 
+/// How many ticks (~0.5 s) the window list, their position and scale stay cached: every Tauri window getter is a
+/// round trip to the main thread, and asking 60 times a second made the island stutter on hover.
+const GEOMETRY_EVERY: u32 = 30;
+
+/// Global cursor position in physical pixels, read straight from Windows (no trip to the main thread).
+#[cfg(windows)]
+fn global_cursor(_app: &AppHandle) -> Option<(f64, f64)> {
+    use windows::Win32::{Foundation::POINT, UI::WindowsAndMessaging::GetCursorPos};
+    let mut point = POINT::default();
+    unsafe { GetCursorPos(&mut point) }.ok()?;
+    Some((point.x as f64, point.y as f64))
+}
+
+#[cfg(not(windows))]
+fn global_cursor(app: &AppHandle) -> Option<(f64, f64)> {
+    app.cursor_position().ok().map(|p| (p.x, p.y))
+}
+
+/// What the loop remembers about each island window.
+struct Seen {
+    /// Whether the mouse was over the island last time (None = not known yet, or the window is hidden).
+    inside: Option<bool>,
+    /// Last cursor position sent to the frontend.
+    sent: (f64, f64),
+    visible: bool,
+    origin: (f64, f64),
+    scale: f64,
+}
+
 /// Cada janela é transparente e ignora cliques. Esta rotina lê o cursor global, avisa o frontend (olhos e
 /// hover) e só deixa a janela receber cliques enquanto o mouse está sobre a ilha dela.
 pub fn spawn(app: AppHandle) {
     thread::spawn(move || {
-        // Por janela: se o mouse estava dentro da ilha e onde estava o cursor da última vez.
-        let mut seen: HashMap<String, (Option<bool>, (f64, f64))> = HashMap::new();
+        let mut seen: HashMap<String, Seen> = HashMap::new();
+        let mut windows: Vec<WebviewWindow> = Vec::new();
         let mut last_down = false;
+        let mut follow = true;
+        let mut tick: u32 = 0;
 
         loop {
             thread::sleep(POLL_INTERVAL);
+            let refresh = tick % GEOMETRY_EVERY == 0;
+            tick = tick.wrapping_add(1);
+            if refresh {
+                windows = island::windows(&app);
+                follow = app.try_state::<crate::config::ConfigState>().map(|c| c.eyes_follow()).unwrap_or(true);
+            }
             let down = mouse_button_down();
+            let Some((cursor_x, cursor_y)) = global_cursor(&app) else {
+                last_down = down;
+                continue;
+            };
 
-            for window in island::windows(&app) {
+            for window in &windows {
                 let label = window.label().to_string();
-                let entry = seen.entry(label.clone()).or_insert((None, (f64::NAN, f64::NAN)));
-                if !window.is_visible().unwrap_or(false) {
-                    entry.0 = None;
+                let fresh = !seen.contains_key(&label);
+                let entry = seen.entry(label.clone()).or_insert(Seen {
+                    inside: None,
+                    sent: (f64::NAN, f64::NAN),
+                    visible: false,
+                    origin: (0.0, 0.0),
+                    scale: 1.0,
+                });
+                if refresh || fresh {
+                    entry.visible = window.is_visible().unwrap_or(false);
+                    if entry.visible {
+                        if let Ok(origin) = window.outer_position() {
+                            entry.origin = (origin.x as f64, origin.y as f64);
+                        }
+                        entry.scale = window.scale_factor().unwrap_or(1.0);
+                    }
+                }
+                if !entry.visible {
+                    entry.inside = None;
                     continue;
                 }
-                let (Ok(cursor), Ok(origin)) = (window.cursor_position(), window.outer_position()) else {
-                    continue;
-                };
 
-                let scale = window.scale_factor().unwrap_or(1.0);
-                let x = (cursor.x - origin.x as f64) / scale;
-                let y = (cursor.y - origin.y as f64) / scale;
+                let x = (cursor_x - entry.origin.0) / entry.scale;
+                let y = (cursor_y - entry.origin.1) / entry.scale;
 
-                if (x, y) != entry.1 {
-                    entry.1 = (x, y);
+                // The eyes get the cursor at ~30 per second while they follow it; otherwise only now and then, so the
+                // frontend still knows the mouse is moving (they fall asleep when it stops).
+                let send_cursor = if follow { tick % 2 == 0 } else { refresh };
+                if send_cursor && (x, y) != entry.sent {
+                    entry.sent = (x, y);
                     let _ = app.emit_to(label.as_str(), "pointer-cursor", Cursor { x, y });
                 }
 
@@ -88,8 +144,8 @@ pub fn spawn(app: AppHandle) {
                     let _ = app.emit_to(label.as_str(), "island-outside-click", ());
                 }
 
-                if entry.0 != Some(inside) {
-                    entry.0 = Some(inside);
+                if entry.inside != Some(inside) {
+                    entry.inside = Some(inside);
                     let _ = window.set_ignore_cursor_events(!inside);
                     let _ = app.emit_to(label.as_str(), "island-hover", inside);
                 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { runningSessions } from "../claude/sessions";
 import { startClaudeSync, useClaudeStore } from "../claude/store";
 import { useConfigStore } from "../config/useConfig";
@@ -30,6 +30,22 @@ const CHARGE_NOTICE_MS = 3400;
 /** Páginas com campo próprio no cabeçalho (a busca dos Atalhos, a nota rápida); as outras ganham a busca geral. */
 const FIELD_PAGES = new Set(["launch", "note"]);
 const setHeaderSlot = (el: HTMLDivElement | null) => useIslandStore.getState().setHeaderSlot(el);
+const choosePage = (id: string) => useIslandStore.getState().setPage(id);
+
+/** O conteúdo da ilha aberta. Fica montado o tempo todo, então só redesenha quando muda algo dele (não a cada hover). */
+const ExpandedContent = memo(function ExpandedContent({ pageId, large, active }: { pageId: string; large: boolean; active: boolean }) {
+  const page = PAGES.find((p) => p.id === pageId)!;
+  const Body = large && page.Large ? page.Large : page.Component;
+  return (
+    <>
+      <div className="body">
+        <Body active={active} />
+      </div>
+      {!FIELD_PAGES.has(page.id) && <GlobalSearch key={page.id} active={active} />}
+      <Dock page={page.id} onPage={choosePage} />
+    </>
+  );
+});
 
 const fmtSeconds = (total: number) =>
   `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
@@ -249,7 +265,6 @@ export function Island() {
       <div className="ear r" />
       <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick}>
         <div className={`glow${mode === "expanded" ? " on" : ""}`} />
-        <div className="grain" />
         {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
 
         <div className={`layer${mode === "idle" ? " on" : ""}`} style={{ width: idleSize.w }}>
@@ -257,7 +272,7 @@ export function Island() {
             <div className="c clock">
               <span className="time">{clock}</span>
             </div>
-            <div className="r">{timerChip ?? (playing && <Equalizer playing />)}</div>
+            <div className="r">{timerChip ?? (playing && <Equalizer playing={mode === "idle"} />)}</div>
           </div>
         </div>
 
@@ -270,7 +285,7 @@ export function Island() {
                   <ClaudeSpinner />
                 </span>
               )}
-              {timerChip ?? <Equalizer playing={playing} />}
+              {timerChip ?? <Equalizer playing={playing && mode === "lyric"} />}
             </div>
           </div>
         </div>
@@ -412,20 +427,11 @@ export function Island() {
                   {largeOn ? <ShrinkIcon /> : <ExpandIcon />}
                 </button>
               )}
-              {playing && <Equalizer playing />}
+              {playing && <Equalizer playing={mode === "expanded"} />}
             </div>
           </div>
 
-          <div className="body">
-            {largeOn && ActivePage.Large ? (
-              <ActivePage.Large active={mode === "expanded"} />
-            ) : (
-              <ActivePage.Component active={mode === "expanded"} />
-            )}
-          </div>
-
-          {!FIELD_PAGES.has(ActivePage.id) && <GlobalSearch key={ActivePage.id} active={mode === "expanded"} />}
-          <Dock page={ActivePage.id} onPage={(id) => useIslandStore.getState().setPage(id)} />
+          <ExpandedContent pageId={ActivePage.id} large={largeOn} active={mode === "expanded"} />
         </div>
       </div>
     </div>

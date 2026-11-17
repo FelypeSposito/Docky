@@ -149,8 +149,6 @@ pub struct Config {
     pub claude_work_strip: bool,
     /// Páginas escondidas do dock (ids).
     pub hidden_pages: Vec<String>,
-    /// De quanto em quanto tempo a página Sistema atualiza, em milissegundos.
-    pub system_refresh_ms: u32,
     /// Unidade da temperatura: "c" ou "f".
     pub weather_unit: String,
     /// Shelf: mover os arquivos para o destino (apaga o original) em vez de copiar.
@@ -165,8 +163,6 @@ pub struct Config {
     pub pinned_notes: Vec<String>,
     /// Ordem das notas escolhida arrastando (nomes de arquivo). As notas novas, que não estão aqui, ficam no topo.
     pub note_order: Vec<String>,
-    /// Ordem dos medidores da página Sistema (ids). Vazio = ordem original.
-    pub system_order: Vec<String>,
     /// Duração do contador personalizado do Foco, em minutos.
     pub timer_custom_minutes: u32,
     /// Em quais telas a ilha aparece (nomes dos monitores). Vazio = só na principal.
@@ -225,14 +221,12 @@ impl Default for Config {
             header_clock: true,
             claude_work_strip: true,
             hidden_pages: Vec::new(),
-            system_refresh_ms: 1500,
             weather_unit: "c".into(),
             shelf_move: false,
             shortcuts: Vec::new(),
             page_order: Vec::new(),
             pinned_notes: Vec::new(),
             note_order: Vec::new(),
-            system_order: Vec::new(),
             timer_custom_minutes: 10,
             screens: Vec::new(),
             confirm_apps: true,
@@ -268,6 +262,12 @@ impl ConfigState {
 
     pub fn get(&self) -> Config {
         self.current.lock().unwrap().clone()
+    }
+
+    /// The eyes are on and follow the cursor. Read by the pointer loop without cloning the whole config.
+    pub fn eyes_follow(&self) -> bool {
+        let config = self.current.lock().unwrap();
+        config.eyes && config.follow_cursor
     }
 
     fn save(&self, config: &Config) -> std::io::Result<()> {

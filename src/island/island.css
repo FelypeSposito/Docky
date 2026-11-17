@@ -63,7 +63,7 @@
   background: radial-gradient(circle at 100% 100%, transparent 15.4px, #000 16px);
 }
 
-/* Brilho ambiente e grão. */
+/* Brilho ambiente. */
 .glow {
   position: absolute;
   left: -15%;
@@ -80,9 +80,11 @@
   mask-image: linear-gradient(transparent 0, #000 40%);
   transition: opacity 0.9s ease;
   animation: drift 13s ease-in-out infinite alternate;
+  animation-play-state: paused;
 }
 .glow.on {
   opacity: calc(var(--glow-strength, 0.7) * 0.62);
+  animation-play-state: running;
 }
 @keyframes drift {
   0% {
@@ -91,14 +93,6 @@
   100% {
     transform: translate3d(4%, -5%, 0) scale(1.1);
   }
-}
-.grain {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.07;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
 /* Camadas: cada estado é uma camada que entra com desfoque e escala. */
@@ -112,20 +106,25 @@
   filter: blur(9px);
   pointer-events: none;
   transform: translateX(-50%) scale(0.965);
-  transition: opacity 0.16s ease, filter 0.16s ease, transform 0.3s var(--ease);
+  visibility: hidden;
+  transition: opacity 0.16s ease, filter 0.16s ease, transform 0.3s var(--ease), visibility 0s linear 0.3s;
 }
 .layer.on {
   opacity: 1;
   filter: none;
   pointer-events: auto;
   transform: translateX(-50%) scale(1);
-  transition: opacity 0.3s ease 0.07s, filter 0.3s ease 0.07s, transform 0.5s var(--ease) 0.05s;
+  visibility: visible;
+  transition: opacity 0.3s ease 0.07s, filter 0.3s ease 0.07s, transform 0.5s var(--ease) 0.05s, visibility 0s;
 }
 .reduce-motion .layer,
 .reduce-motion .layer.on {
   filter: none;
   transform: translateX(-50%);
-  transition: opacity 0.15s linear;
+  transition: opacity 0.15s linear, visibility 0s linear 0.15s;
+}
+.reduce-motion .layer.on {
+  transition: opacity 0.15s linear, visibility 0s;
 }
 .reduce-motion .glow {
   animation: none;
@@ -444,9 +443,10 @@
 .eq i {
   display: block;
   width: 2.6px;
-  height: 4px;
+  height: 14px;
   border-radius: 2px;
   background: var(--accent, #ff5c7a);
+  transform: scaleY(0.29);
 }
 .eq.play i {
   animation: eq 820ms ease-in-out infinite alternate;
@@ -456,12 +456,12 @@
 .eq.play i:nth-child(3) { animation-delay: -0.1s; animation-duration: 930ms; }
 .eq.play i:nth-child(4) { animation-delay: -0.7s; animation-duration: 760ms; }
 @keyframes eq {
-  from { height: 3px; }
-  to { height: 14px; }
+  from { transform: scaleY(0.21); }
+  to { transform: scaleY(1); }
 }
 .reduce-motion .eq.play i {
   animation: none;
-  height: 8px;
+  transform: scaleY(0.57);
 }
 /* Sem os olhinhos, a letra da pílula começa logo no canto da ilha */
 .notch.no-eyes .pl {
@@ -1476,73 +1476,13 @@
   background: #ffd166;
 }
 
-/* Fase 5: sistema e atalhos */
-.bento.sy {
-  grid-template-columns: repeat(3, 1fr);
-}
+/* Fase 5: atalhos */
 .sm {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-}
-.sm label {
-  color: var(--ink2);
-  font-size: 11.5px;
-  font-weight: 550;
-}
-.sm small {
-  color: var(--ink3);
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-}
-.rg {
-  position: relative;
-  width: 72px;
-  height: 72px;
-}
-.rg svg {
-  transform: rotate(-90deg);
-}
-.rb {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 6;
-}
-.rf {
-  fill: none;
-  stroke: var(--accent, #ff5c7a);
-  stroke-width: 6;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.9s var(--ease);
-}
-.rg b {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-.sm .net {
-  width: 84px;
-  height: 44px;
-}
-.sm .net path {
-  fill: none;
-  stroke: var(--accent, #ff5c7a);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.sm .nv {
-  font-size: 14px;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
 }
 
 .bento.lc {
@@ -1952,21 +1892,18 @@
   font-size: 11px;
 }
 
-/* Arrastar para mudar a ordem (notas, pastas da Shelf e medidores do Sistema): o item segue o mouse por cima dos outros. */
+/* Arrastar para mudar a ordem (notas e pastas da Shelf): o item segue o mouse por cima dos outros. */
 .nlist,
-.dgrid,
-.bento.sy {
+.dgrid {
   position: relative;
 }
 .nlist .ncard,
-.dgrid .fd,
-.bento.sy .sm {
+.dgrid .fd {
   user-select: none;
   -webkit-user-select: none;
 }
 .nlist .ncard.drag,
-.dgrid .fd.drag,
-.bento.sy .sm.drag {
+.dgrid .fd.drag {
   z-index: 5;
   transition: none;
   cursor: grabbing;

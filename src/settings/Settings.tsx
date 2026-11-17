@@ -1,7 +1,7 @@
 import { type ComponentType, useEffect, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { Eyes } from "../island/Eyes";
-import { CloudIcon, GearIcon, GridIcon, KeyboardIcon, MusicIcon, PulseIcon, SearchIcon, SparkIcon, SunIcon, TimerIcon, TrayIcon } from "../island/icons";
+import { CloudIcon, GearIcon, GridIcon, KeyboardIcon, MusicIcon, SearchIcon, SparkIcon, SunIcon, TimerIcon, TrayIcon } from "../island/icons";
 import { trackDomCursor } from "../lib/cursor";
 import { ipc } from "../lib/ipc";
 import "../island/island.css";
@@ -23,7 +23,6 @@ const ICONS: Record<AreaId, ComponentType<{ size?: number }>> = {
   integracoes: CloudIcon,
   shelf: TrayIcon,
   geral: GearIcon,
-  sistema: PulseIcon,
 };
 
 /** A área pedida por `?section=` ou pela ilha (os ids continuam os mesmos das versões anteriores). */
@@ -150,24 +149,6 @@ function AreaContent({ id }: { id: AreaId }) {
             <NotesFolderRow />
           </Group>
         </>
-      );
-    case "sistema":
-      return (
-        <Group>
-          <Row label="Atualizar a cada" hint="Quanto menor, mais fluido, e um pouco mais de uso do processador enquanto a página está aberta">
-            <Segmented
-              label="Atualizar a cada"
-              value={config.systemRefreshMs}
-              options={[
-                { value: 1000, label: "1 s" },
-                { value: 1500, label: "1,5 s" },
-                { value: 3000, label: "3 s" },
-                { value: 5000, label: "5 s" },
-              ]}
-              onChange={(v) => update({ systemRefreshMs: v })}
-            />
-          </Row>
-        </Group>
       );
     case "claude":
       return <ClaudeSection />;

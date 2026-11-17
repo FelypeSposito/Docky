@@ -21,7 +21,6 @@ mod power;
 mod settings_window;
 mod shell_icon;
 mod shelf;
-mod system;
 mod tray;
 mod volume;
 mod weather;
@@ -43,7 +42,6 @@ pub fn run() {
         .manage(pointer::PointerState::default())
         .plugin(tauri_plugin_opener::init())
         .manage(island::Visibility::default())
-        .manage(system::SystemState::new())
         .manage(google::GoogleState::default())
         .invoke_handler(tauri::generate_handler![
             config::get_config,
@@ -61,7 +59,6 @@ pub fn run() {
             google::google_events,
             google::open_meeting,
             launcher::launch,
-            system::system_stats,
             notes::notes_save,
             notes::notes_recent,
             notes::notes_open,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { cursor, onCursorMove } from "../lib/cursor";
 import type { EyesPhase } from "./hooks";
 
@@ -36,7 +36,7 @@ function lookTarget(mood: EyesMood, now: number, follow: boolean, glance: { x: n
  * O mascote do Docky: dois olhinhos que seguem o cursor, piscam e olham em volta quando nada acontece.
  * O laço de animação só roda enquanto há algo se mexendo; parado, não gasta CPU.
  */
-export function Eyes({ mood, follow, shake, phase = "open" }: EyesProps) {
+export const Eyes = memo(function Eyes({ mood, follow, shake, phase = "open" }: EyesProps) {
   const root = useRef<HTMLDivElement>(null);
   const [blink, setBlink] = useState(false);
   const [sleepy, setSleepy] = useState(false);
@@ -165,4 +165,4 @@ export function Eyes({ mood, follow, shake, phase = "open" }: EyesProps) {
       </div>
     </div>
   );
-}
+});

@@ -41,7 +41,7 @@ export function PeekPlayer({ active }: { active: boolean }) {
           <b>{media.title || "Sem título"}</b>
           {media.artist && <em> · {media.artist}</em>}
         </span>
-        <Equalizer playing={media.playing} />
+        <Equalizer playing={media.playing && active} />
       </div>
       <div className="pk-row">
         {thumbnail ? <img className="pk-cover" src={thumbnail} alt="" /> : <span className="pk-cover empty">

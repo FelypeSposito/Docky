@@ -1,12 +1,11 @@
 import type { ComponentType } from "react";
-import { CalendarIcon, GridIcon, MusicIcon, NoteIcon, PulseIcon, SparkIcon, TimerIcon, TrayIcon } from "../icons";
+import { CalendarIcon, GridIcon, MusicIcon, NoteIcon, SparkIcon, TimerIcon, TrayIcon } from "../icons";
 import { AgendaLarge, AgendaPage } from "./AgendaPage";
 import { ClaudePage } from "./ClaudePage";
 import { LauncherLarge, LauncherPage } from "./LauncherPage";
 import { MusicPage } from "./MusicPage";
 import { NotesLarge, NotesPage } from "./NotesPage";
 import { ShelfPage } from "./ShelfPage";
-import { SystemPage } from "./SystemPage";
 import { TimerPage } from "./TimerPage";
 
 export interface PageDef {
@@ -28,6 +27,5 @@ export const PAGES: PageDef[] = [
   { id: "tray", label: "Shelf", Icon: TrayIcon, Component: ShelfPage, area: "shelf" },
   { id: "cal", label: "Agenda", Icon: CalendarIcon, Component: AgendaPage, Large: AgendaLarge, area: "integracoes" },
   { id: "launch", label: "Atalhos", Icon: GridIcon, Component: LauncherPage, Large: LauncherLarge, area: "atalhos" },
-  { id: "system", label: "Sistema", Icon: PulseIcon, Component: SystemPage, area: "sistema" },
   { id: "claude", label: "Claude", Icon: SparkIcon, Component: ClaudePage, area: "claude" },
 ];

@@ -49,7 +49,6 @@ export interface Config {
   headerClock: boolean;
   claudeWorkStrip: boolean;
   hiddenPages: string[];
-  systemRefreshMs: number;
   weatherUnit: "c" | "f";
   shelfMove: boolean;
   shortcuts: Shortcut[];
@@ -59,7 +58,6 @@ export interface Config {
   /** Ordem das notas escolhida arrastando (nomes de arquivo). As notas novas, que não estão aqui, ficam no topo. */
   noteOrder: string[];
   /** Ordem dos medidores da página Sistema (ids). Vazio = ordem original. */
-  systemOrder: string[];
   /** Duração do contador personalizado do Foco, em minutos. */
   timerCustomMinutes: number;
   /** Em quais telas a ilha aparece (nomes dos monitores). Vazio = só na principal. */
@@ -113,14 +111,12 @@ export const DEFAULT_CONFIG: Config = {
   headerClock: true,
   claudeWorkStrip: true,
   hiddenPages: [],
-  systemRefreshMs: 1500,
   weatherUnit: "c",
   shelfMove: false,
   shortcuts: [],
   pageOrder: [],
   pinnedNotes: [],
   noteOrder: [],
-  systemOrder: [],
   timerCustomMinutes: 10,
   screens: [],
   confirmApps: true,

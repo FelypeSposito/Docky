@@ -247,7 +247,7 @@
   font-weight: 600;
 }
 
-/* Shelf, agenda e sistema */
+/* Shelf e agenda */
 .pv-shelf {
   display: grid;
   grid-template-columns: 1.3fr 1fr 1fr 1fr;
@@ -309,31 +309,4 @@
   display: block;
   font-size: 12px;
   font-weight: 650;
-}
-.pv-meters {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  height: 100%;
-}
-.pv-meter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.065);
-}
-.pv-meter i {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: conic-gradient(#ff5c7a calc(var(--v) * 1%), rgba(255, 255, 255, 0.12) 0);
-  -webkit-mask: radial-gradient(circle, transparent 8px, #000 9px);
-}
-.pv-meter b {
-  color: var(--ink2);
-  font-size: 10px;
-  font-weight: 600;
 }

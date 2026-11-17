@@ -178,24 +178,6 @@ export function Preview({ area }: { area: AreaId }) {
         </Open>
       );
       break;
-    case "sistema":
-      island = (
-        <Open width={300} height={84}>
-          <div className="pv-meters">
-            {[
-              ["CPU", 32],
-              ["Memória", 58],
-              ["GPU", 21],
-            ].map(([label, value]) => (
-              <span key={label as string} className="pv-meter" style={{ "--v": value } as React.CSSProperties}>
-                <i />
-                <b>{label}</b>
-              </span>
-            ))}
-          </div>
-        </Open>
-      );
-      break;
     default:
       island = (
         <Pill width={220}>

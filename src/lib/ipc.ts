@@ -83,19 +83,6 @@ export interface FileDropEvent {
   paths: string[];
 }
 
-export interface SystemStats {
-  /** 0 a 100 */
-  cpu: number;
-  /** Frequência atual do processador, em MHz */
-  cpuMhz: number;
-  memoryUsed: number;
-  memoryTotal: number;
-  /** Uso da GPU em % (0 a 100); null se o Windows não expõe o contador */
-  gpu: number | null;
-  /** Memória dedicada da GPU em uso, em bytes */
-  gpuMemoryUsed: number | null;
-}
-
 export type Hotkey = "toggle" | "next" | "previous" | "notes";
 
 export interface HooksPlan {
@@ -363,12 +350,6 @@ export const ipc = {
       subscribe<{ paths: string[] }>(`${prefix}drag-drop`, (p) => handler({ type: "drop", paths: p.paths ?? [] })),
     ]);
     return () => offs.forEach((off) => off());
-  },
-
-  async systemStats(): Promise<SystemStats> {
-    if (isTauri) return invoke<SystemStats>("system_stats");
-    const wobble = (base: number, spread: number) => base + Math.random() * spread;
-    return { cpu: wobble(15, 30), cpuMhz: 4600, memoryUsed: wobble(7.6, 1) * 1e9, memoryTotal: 16e9, gpu: wobble(10, 40), gpuMemoryUsed: wobble(1.5, 1) * 1e9 };
   },
 
   /** Abre o atalho da posição `index` da lista cadastrada nas configurações. */
