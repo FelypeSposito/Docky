@@ -1,4 +1,5 @@
 mod apps;
+mod bluetooth;
 mod claude;
 mod clipboard;
 mod claude_hooks;
@@ -148,6 +149,7 @@ pub fn run() {
             call::spawn(handle.clone());
             downloads::spawn(handle.clone());
             clipboard::spawn(handle.clone());
+            bluetooth::spawn(handle.clone());
             fullscreen::spawn(handle);
             Ok(())
         })

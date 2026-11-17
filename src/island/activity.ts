@@ -1,9 +1,10 @@
 import { create } from "zustand";
-import { type Call, type DiscordState, type DownloadDone, type FullscreenSummary, ipc } from "../lib/ipc";
+import { type BatteryNotice, type Call, type DiscordState, type DownloadDone, type FullscreenSummary, ipc } from "../lib/ipc";
 import { useIslandStore } from "./store";
 
 const DOWNLOAD_NOTICE_MS = 6000;
 const GAME_NOTICE_MS = 7000;
+const HEADSET_NOTICE_MS = 4000;
 
 /** What the pill shows about the rest of the computer: a finished download, a call, the end of a game. */
 interface ActivityStore {
@@ -14,6 +15,8 @@ interface ActivityStore {
   /** The fullscreen session that just ended (for the notice). */
   game: FullscreenSummary | null;
   discord: DiscordState | null;
+  /** Headphones that just connected or ran low (for the notice). */
+  headset: BatteryNotice | null;
   toggleMic: () => void;
 }
 
@@ -26,6 +29,7 @@ export const useActivityStore = create<ActivityStore>((set, get) => ({
   micMuted: false,
   game: null,
   discord: null,
+  headset: null,
   toggleMic: () => {
     const muted = !get().micMuted;
     ipc.setMicMuted(muted);
@@ -46,6 +50,10 @@ export function startActivitySync(): () => void {
     ipc.onDownloadDone((finished) => {
       useActivityStore.setState({ finished });
       useIslandStore.getState().showOverlay("download", DOWNLOAD_NOTICE_MS);
+    }),
+    ipc.onBluetoothBattery((headset) => {
+      useActivityStore.setState({ headset });
+      useIslandStore.getState().showOverlay("bluetooth", HEADSET_NOTICE_MS);
     }),
     ipc.onCall((call) => {
       useActivityStore.setState({ call });

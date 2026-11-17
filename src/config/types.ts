@@ -57,6 +57,8 @@ export interface Config {
   noticeGame: boolean;
   /** Short notice when a download finishes. */
   noticeDownload: boolean;
+  /** Short notice with the charge of Bluetooth headphones when they connect, and when it runs low. */
+  noticeBluetooth: boolean;
   /** Call timer and mic mute on the pill while an app uses the microphone. */
   callPill: boolean;
   /** Um som suave quando o Foco ou o contador termina. */
@@ -138,6 +140,7 @@ export const DEFAULT_CONFIG: Config = {
   noticeTimer: true,
   noticeGame: true,
   noticeDownload: true,
+  noticeBluetooth: true,
   callPill: true,
   timerSound: true,
   headerClock: true,

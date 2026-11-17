@@ -85,6 +85,9 @@ function AreaContent({ id }: { id: AreaId }) {
             <Row label="Resumo do jogo" hint="Quando você sai de um jogo em tela cheia: quanto tempo jogou">
               <Toggle label="Resumo do jogo" value={config.noticeGame} onChange={(v) => update({ noticeGame: v })} />
             </Row>
+            <Row label="Bateria do fone" hint="Quando um fone Bluetooth conecta, a carga dele; e um aviso quando ela fica em 20% (se o fone informa a carga ao Windows)">
+              <Toggle label="Bateria do fone" value={config.noticeBluetooth} onChange={(v) => update({ noticeBluetooth: v })} />
+            </Row>
             <Row label="Download concluído" hint="Quando um download do navegador termina, com um botão para mostrar o arquivo">
               <Toggle label="Download concluído" value={config.noticeDownload} onChange={(v) => update({ noticeDownload: v })} />
             </Row>

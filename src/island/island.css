@@ -233,8 +233,9 @@
   color: var(--ink2);
   font-variant-numeric: tabular-nums;
 }
-/* "Claude terminou": a long project name gives way to the summary next to it. */
-.strip .c.pad.done-c {
+/* Notices with a name and a detail ("Claude terminou", headphones): the name gives way to the detail, and both keep
+   clear of the eyes on the left and the icon on the right. */
+.strip .c.pad.roomy {
   padding-left: 56px;
   padding-right: 48px;
 }
@@ -253,6 +254,39 @@
   border-radius: 50%;
   background: #1fd15a;
   color: #04230f;
+}
+/* Headphones' charge: a small battery filled to the percent, in the accent (red when low). */
+.bt-bat {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 12px;
+  padding: 2px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.55);
+}
+.bt-bat::after {
+  content: "";
+  position: absolute;
+  top: 3.5px;
+  right: -3px;
+  width: 2px;
+  height: 5px;
+  border-radius: 0 1px 1px 0;
+  background: rgba(255, 255, 255, 0.55);
+}
+.bt-bat i {
+  display: block;
+  width: var(--v, 0%);
+  height: 100%;
+  border-radius: 2px;
+  background: #1fd15a;
+}
+.bt-bat.low i {
+  background: #ff5f57;
+}
+.sub.bt-low {
+  color: #ff7b80;
 }
 .bat {
   display: flex;

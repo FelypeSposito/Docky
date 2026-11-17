@@ -97,6 +97,9 @@ A ilha fica no centro do topo ou em qualquer ponto dele, até encostada num cant
 cabeçalho, com ela aberta) ou escolha em Configurações, Aparência. Duplo clique numa parte vazia a traz de volta ao
 centro.
 
+Quando um fone Bluetooth conecta, a pílula mostra a carga dele por alguns segundos, e avisa de novo quando ela fica em
+20%. Vale para fones que informam a carga ao Windows (a mesma que aparece em Configurações, Bluetooth).
+
 A página Copiados guarda os últimos 10 textos que você copiou; um clique põe um deles de volta na área de
 transferência. O histórico fica só na memória (some quando o Docky fecha) e ignora o que os gerenciadores de senha
 marcam como privado, como o histórico do Windows (Win+V) faz. Dá para desligar em Configurações, Geral.

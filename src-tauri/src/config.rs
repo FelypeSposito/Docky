@@ -159,6 +159,8 @@ pub struct Config {
     pub notice_game: bool,
     /// Short notice on the pill when a download finishes.
     pub notice_download: bool,
+    /// Short notice with the charge of Bluetooth headphones when they connect, and when it runs low.
+    pub notice_bluetooth: bool,
     /// Call timer and mic mute on the pill while an app uses the microphone.
     pub call_pill: bool,
     /// Data e hora no cabeçalho da ilha aberta.
@@ -251,6 +253,7 @@ impl Default for Config {
             timer_sound: true,
             notice_game: true,
             notice_download: true,
+            notice_bluetooth: true,
             call_pill: true,
             header_clock: true,
             island_position: 0.5,

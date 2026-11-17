@@ -51,6 +51,13 @@ let devClips: ClipItem[] = [
 ];
 const devClipsChanged = () => window.dispatchEvent(new CustomEvent("docky:clipboard", { detail: devClips }));
 
+/** Bluetooth headphones just connected (with their charge), or their charge just ran low. */
+export interface BatteryNotice {
+  name: string;
+  percent: number;
+  low: boolean;
+}
+
 export interface DownloadDone {
   name: string;
   path: string;
@@ -399,6 +406,10 @@ export const ipc = {
 
   setMicMuted(muted: boolean): void {
     if (isTauri) void invoke("set_mic_muted", { muted });
+  },
+
+  onBluetoothBattery(handler: (notice: BatteryNotice) => void): Unlisten {
+    return isTauri ? subscribe("bt-battery", handler) : devListen("docky:bt-battery", handler);
   },
 
   onFullscreenSummary(handler: (summary: FullscreenSummary) => void): Unlisten {
@@ -766,6 +777,10 @@ if (!isTauri && import.meta.env.DEV) {
     /** Simula um evento dos hooks: __docky.claude("UserPromptSubmit") */
     claude(event: string, sessionId = "s1", cwd = "C:\\dev\\docky") {
       send("docky:claude-event", { event, sessionId, cwd, toolName: null } satisfies ClaudeEvent);
+    },
+    /** Simula um fone Bluetooth conectando: __docky.fone(80) ou, bateria baixa, __docky.fone(15, true) */
+    fone(percent = 80, low = false, name = "UGREEN Studio Pro") {
+      send("docky:bt-battery", { name, percent, low } satisfies BatteryNotice);
     },
     /** Simula uma tecla global: __docky.hotkey("toggle") */
     hotkey(key: Hotkey = "toggle") {

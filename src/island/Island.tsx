@@ -183,6 +183,7 @@ export function Island() {
   const micMuted = useActivityStore((s) => s.micMuted);
   const finishedDownload = useActivityStore((s) => s.finished);
   const game = useActivityStore((s) => s.game);
+  const headset = useActivityStore((s) => s.headset);
   const discord = useActivityStore((s) => s.discord);
   const discordCall = inDiscordCall(discord) ? discord : null;
   const focusMode = useFocusStore((s) => s.mode);
@@ -473,7 +474,7 @@ export function Island() {
 
         <div className={`layer${mode === "done" ? " on" : ""}`} style={{ width: SIZES.done.w }}>
           <div className="strip">
-            <div className="c pad done-c">
+            <div className="c pad roomy">
               {finishedSession ? (
                 <>
                   <span className="txt done-p" title={finishedSession.project}>
@@ -499,6 +500,23 @@ export function Island() {
               <span className="txt sub">{game ? (game.video ? `${formatMinutes(game.minutes)} em tela cheia` : `jogou ${formatMinutes(game.minutes)}`) : ""}</span>
             </div>
             <div className="r">{!game?.video && <ClawdMini src={gamingSvg} show={mode === "game"} />}</div>
+          </div>
+        </div>
+
+        <div className={`layer${mode === "bluetooth" ? " on" : ""}`} style={{ width: SIZES.bluetooth.w }}>
+          <div className="strip">
+            <div className="c pad roomy">
+              <span className="txt" title={headset?.name}>
+                {headset?.name}
+              </span>
+              <span className={`txt sub${headset?.low ? " bt-low" : ""}`}>{headset ? (headset.low ? `bateria baixa · ${headset.percent}%` : `${headset.percent}%`) : ""}</span>
+            </div>
+            <div className="r">
+              {/* The headphones' charge as a small battery: red at 20% or less. */}
+              <span className={`bt-bat${(headset?.percent ?? 100) <= 20 ? " low" : ""}`} style={{ "--v": `${headset?.percent ?? 0}%` } as React.CSSProperties} aria-hidden="true">
+                <i />
+              </span>
+            </div>
           </div>
         </div>
 
