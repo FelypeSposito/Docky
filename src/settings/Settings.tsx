@@ -48,6 +48,9 @@ function AreaContent({ id }: { id: AreaId }) {
             <Row label="Esconder em tela cheia" hint="Jogos, vídeos e apresentações">
               <Toggle label="Esconder em tela cheia" value={config.hideInFullscreen} onChange={(v) => update({ hideInFullscreen: v })} />
             </Row>
+            <Row label="Chamada na pílula" hint="Enquanto um app usa o microfone: o tempo da chamada e um botão para mutar">
+              <Toggle label="Chamada na pílula" value={config.callPill} onChange={(v) => update({ callPill: v })} />
+            </Row>
           </Group>
           <Group title="Avisos curtos">
             <Row label="Aviso do carregador" hint="Quando você liga o carregador">
@@ -58,6 +61,12 @@ function AreaContent({ id }: { id: AreaId }) {
             </Row>
             <Row label="Aviso do Foco" hint="Quando um foco ou uma pausa termina">
               <Toggle label="Aviso do Foco" value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
+            </Row>
+            <Row label="Resumo do jogo" hint="Quando você sai de um jogo em tela cheia: quanto tempo jogou">
+              <Toggle label="Resumo do jogo" value={config.noticeGame} onChange={(v) => update({ noticeGame: v })} />
+            </Row>
+            <Row label="Download concluído" hint="Quando um download do navegador termina, com um botão para mostrar o arquivo">
+              <Toggle label="Download concluído" value={config.noticeDownload} onChange={(v) => update({ noticeDownload: v })} />
             </Row>
           </Group>
           <HotkeysGroup />

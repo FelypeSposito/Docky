@@ -43,6 +43,12 @@ export interface Config {
   noticeVolume: boolean;
   noticeClaudeDone: boolean;
   noticeTimer: boolean;
+  /** Short notice when a long fullscreen session (a game) ends. */
+  noticeGame: boolean;
+  /** Short notice when a download finishes. */
+  noticeDownload: boolean;
+  /** Call timer and mic mute on the pill while an app uses the microphone. */
+  callPill: boolean;
   /** Um som suave quando o Foco ou o contador termina. */
   timerSound: boolean;
   /** Data e hora no cabeçalho da ilha aberta. */
@@ -82,6 +88,8 @@ export interface ShortcutSection {
   name: string;
   collapsed: boolean;
   members: string[];
+  /** Part of the day when this section goes first in the island ("morning", "afternoon", "night"); empty = always. */
+  hours?: string;
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -107,6 +115,9 @@ export const DEFAULT_CONFIG: Config = {
   noticeVolume: true,
   noticeClaudeDone: true,
   noticeTimer: true,
+  noticeGame: true,
+  noticeDownload: true,
+  callPill: true,
   timerSound: true,
   headerClock: true,
   claudeWorkStrip: true,

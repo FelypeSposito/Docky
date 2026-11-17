@@ -34,6 +34,33 @@ export interface Media {
 
 export type RepeatMode = "none" | "track" | "list";
 
+/** A download in progress (the browser's partial file in the Downloads folder). */
+export interface Download {
+  /** The final name; empty while the browser does not know it yet. */
+  name: string;
+  bytes: number;
+}
+
+export interface DownloadDone {
+  name: string;
+  path: string;
+}
+
+/** An app using the microphone now (a call). */
+export interface Call {
+  app: string;
+  /** Unix ms */
+  since: number;
+}
+
+/** A long fullscreen session that just ended. */
+export interface FullscreenSummary {
+  app: string;
+  minutes: number;
+  /** A browser or player: a video, not a game. */
+  video: boolean;
+}
+
 /** Um app no mixer: as sessões de áudio dele somadas, como no mixer de volume do Windows. */
 export interface AudioApp {
   /** Caminho do programa, ou "system" para os sons do Windows. */
@@ -288,6 +315,38 @@ export const ipc = {
       if (action.startsWith("repeat-")) DEV_MEDIA.repeat = action.slice("repeat-".length) as RepeatMode;
       window.dispatchEvent(new CustomEvent("docky:media", { detail: { ...DEV_MEDIA, playing: devPlaying() } }));
     }
+  },
+
+  onDownloads(handler: (downloads: Download[]) => void): Unlisten {
+    return isTauri ? subscribe("downloads", handler) : devListen("docky:downloads", handler);
+  },
+
+  onDownloadDone(handler: (done: DownloadDone) => void): Unlisten {
+    return isTauri ? subscribe("download-done", handler) : devListen("docky:download-done", handler);
+  },
+
+  revealDownload(path: string): void {
+    if (isTauri) void invoke("reveal_download", { path }).catch(() => {});
+  },
+
+  async currentCall(): Promise<Call | null> {
+    return isTauri ? invoke<Call | null>("current_call") : null;
+  },
+
+  onCall(handler: (call: Call | null) => void): Unlisten {
+    return isTauri ? subscribe("call", handler) : devListen("docky:call", handler);
+  },
+
+  async micMuted(): Promise<boolean> {
+    return isTauri ? invoke<boolean>("mic_muted") : false;
+  },
+
+  setMicMuted(muted: boolean): void {
+    if (isTauri) void invoke("set_mic_muted", { muted });
+  },
+
+  onFullscreenSummary(handler: (summary: FullscreenSummary) => void): Unlisten {
+    return isTauri ? subscribe("fullscreen-summary", handler) : devListen("docky:fullscreen-summary", handler);
   },
 
   /** Traz para a frente o app que está tocando (ou abre, se ele não tiver janela). */

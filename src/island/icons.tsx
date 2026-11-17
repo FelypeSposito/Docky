@@ -367,3 +367,23 @@ export const MixerIcon = (p: IconProps) => (
     <path d="M5 20v-6M5 10V4M12 20v-8M12 8V4M19 20v-4M19 12V4M2.5 14h5M9.5 8h5M16.5 16h5" />
   </Stroke>
 );
+
+export const MicIcon = (p: IconProps) => (
+  <Stroke size={13} stroke={2} {...p}>
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" />
+  </Stroke>
+);
+
+export const MicOffIcon = (p: IconProps) => (
+  <Stroke size={13} stroke={2} {...p}>
+    <path d="M15 9.5V6a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 4.6 2.5M5.5 11a6.5 6.5 0 0 0 10.4 5.2M18.5 11a6.4 6.4 0 0 1-.4 2.2M12 17.5V21M3 3l18 18" />
+  </Stroke>
+);
+
+export const GlobeIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+  </Stroke>
+);

@@ -1,6 +1,6 @@
 /** Estados visuais da ilha e seus tamanhos (pixels lógicos). Cresce a cada fase. */
-export type Overlay = "charge" | "volume" | "done" | "timer";
-export type Mode = "idle" | "lyric" | "charge" | "volume" | "done" | "timer" | "work" | "ask" | "peek" | "expanded";
+export type Overlay = "charge" | "volume" | "done" | "timer" | "game" | "download";
+export type Mode = "idle" | "lyric" | "charge" | "volume" | "done" | "timer" | "game" | "download" | "work" | "ask" | "peek" | "expanded";
 
 /** O que o Claude Code está pedindo da ilha agora. */
 export type ClaudeActivity = "ask" | "work" | null;
@@ -17,6 +17,10 @@ export const SIZES: Record<Mode, Size> = {
   volume: { w: 270, h: 36 },
   done: { w: 262, h: 36 },
   timer: { w: 296, h: 36 },
+  /** "Valorant · jogou 1h 23min", with Clawd playing. */
+  game: { w: 320, h: 36 },
+  /** "Download concluído · arquivo.zip" and a button to show it. */
+  download: { w: 400, h: 36 },
   work: { w: 380, h: 36 },
   ask: { w: 456, h: 142 },
   /** O mouse sobre a pílula: o player de música ou o resumo, numa ilha um pouco maior. */
@@ -26,6 +30,9 @@ export const SIZES: Record<Mode, Size> = {
 
 /** A pílula recolhida com o Foco rodando: o relógio no meio e o tempo do Foco numa etiqueta à direita. */
 export const IDLE_TIMER: Size = { w: 274, h: 36 };
+
+/** How much each chip on the collapsed pill adds to its width (the Foco timer, a call, a download). */
+export const CHIP_WIDTH = { timer: 60, call: 84, download: 84 } as const;
 
 /** A ilha aberta na versão maior de uma página (botão de expandir no cabeçalho). Cabe na janela de `island.rs`. */
 export const EXPANDED_LARGE: Size = { w: 640, h: 400 };

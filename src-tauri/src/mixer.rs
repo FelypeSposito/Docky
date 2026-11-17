@@ -33,6 +33,15 @@ pub fn name_from_path(path: &str) -> String {
     }
 }
 
+/// A program's display name: its file description ("Google Chrome"), or else its file name.
+pub fn describe(path: &str) -> String {
+    #[cfg(windows)]
+    if let Some(description) = sessions::file_description(path) {
+        return description;
+    }
+    name_from_path(path)
+}
+
 #[cfg(windows)]
 mod sessions {
     use std::{
@@ -53,7 +62,7 @@ mod sessions {
         core::{Interface, PCWSTR},
     };
 
-    use super::{AudioApp, name_from_path};
+    use super::AudioApp;
 
     pub struct Session {
         pub id: String,
@@ -105,7 +114,7 @@ mod sessions {
         let found = if id == "system" {
             ("Sons do sistema".to_string(), None)
         } else {
-            let name = file_description(id).unwrap_or_else(|| name_from_path(id));
+            let name = super::describe(id);
             let icon = crate::shell_icon::icon_png(id, 32).map(|png| format!("data:image/png;base64,{}", STANDARD.encode(png)));
             (name, icon)
         };
@@ -114,7 +123,7 @@ mod sessions {
     }
 
     /// The "File description" of a program (what the Task Manager shows: "Google Chrome", "Spotify").
-    fn file_description(path: &str) -> Option<String> {
+    pub fn file_description(path: &str) -> Option<String> {
         use std::ffi::c_void;
         use windows::Win32::Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
 

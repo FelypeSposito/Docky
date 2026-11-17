@@ -24,6 +24,9 @@ import {
   toggleCollapsed,
 } from "../../launcher/sections";
 import { SHORTCUT_COLORS, ShortcutIcon } from "../../launcher/ShortcutIcon";
+import { addSiteShortcut } from "../../launcher/addSite";
+import { linkFrom, siteHost } from "../../launcher/link";
+import { scheduledSection, scheduleFirst } from "../../launcher/schedule";
 import { ipc } from "../../lib/ipc";
 import { useSortable } from "../../settings/useSortable";
 import { useGridSort } from "../useGridSort";
@@ -93,8 +96,19 @@ export function LauncherPage({ active }: { active: boolean }) {
   const sections = useConfigStore((s) => s.config.shortcutSections);
   const [query, setQuery] = useState("");
   const all = useMemo(() => filterShortcuts(shortcuts, ""), [shortcuts]);
-  const matches = useMemo(() => groupsFirst(filterShortcuts(shortcuts, query)), [shortcuts, query]);
   const searching = query.trim() !== "";
+  // The section scheduled for this part of the day goes first (read again each time the island opens).
+  const scheduled = useMemo(() => scheduledSection(sections, new Date()), [sections, active]);
+  const matches = useMemo(() => {
+    const found = groupsFirst(filterShortcuts(shortcuts, query));
+    return query.trim() ? found : scheduleFirst(found, scheduled);
+  }, [shortcuts, query, scheduled]);
+  const link = linkFrom(query);
+  const addLink = () => {
+    if (!link) return;
+    addSiteShortcut(link);
+    setQuery("");
+  };
   // A ilha recolheu: a próxima vez começa sem busca.
   useEffect(() => {
     if (!active) setQuery("");
@@ -108,7 +122,7 @@ export function LauncherPage({ active }: { active: boolean }) {
         label="Buscar atalho"
         placeholder={all.length > MAX_TILES ? `Buscar entre ${all.length} atalhos` : "Buscar atalho"}
         onChange={setQuery}
-        onEnter={() => matches[0] && ask(matches[0].index)}
+        onEnter={() => (matches[0] ? ask(matches[0].index) : addLink())}
         typeToFocus
       />
     ) : null;
@@ -140,6 +154,18 @@ export function LauncherPage({ active }: { active: boolean }) {
         {search}
         <div className="tile lc-empty">{error}</div>
       </>
+    );
+  }
+  if (matches.length === 0 && link) {
+    return (
+      <div className="lc-none">
+        {search}
+        <b>{siteHost(link)}</b>
+        <span>Enter cria um atalho para este site, com o ícone dele.</span>
+        <button className="lc-more2" onClick={addLink}>
+          Criar atalho
+        </button>
+      </div>
     );
   }
   if (matches.length === 0) {
@@ -174,7 +200,7 @@ export function LauncherPage({ active }: { active: boolean }) {
       {more > 0 && (
         <button className="lc-more2" onClick={() => useIslandStore.getState().toggleLarge()} title="Ver todos os atalhos na tela expandida">
           {searching ? `+${more} ${more === 1 ? "resultado" : "resultados"}` : `+${more} atalhos`}
-          {!searching && sectionNames.length > 0 && <span> · {sectionNames.join(", ")}</span>}
+          {!searching && scheduled ? <span> · agora: {scheduled.name}</span> : !searching && sectionNames.length > 0 && <span> · {sectionNames.join(", ")}</span>}
         </button>
       )}
     </div>

@@ -14,6 +14,8 @@ mod picker;
 mod placement;
 mod launcher;
 mod lyrics;
+mod call;
+mod downloads;
 mod media;
 mod mixer;
 mod notes;
@@ -89,6 +91,10 @@ pub fn run() {
             mixer::media_app_volume,
             mixer::set_media_app_volume,
             mixer::set_media_app_muted,
+            call::current_call,
+            call::mic_muted,
+            call::set_mic_muted,
+            downloads::reveal_download,
             volume::get_volume,
             volume::set_volume,
             volume::set_muted,
@@ -116,6 +122,8 @@ pub fn run() {
             media::spawn(handle.clone());
             claude::spawn(handle.clone());
             volume::spawn(handle.clone());
+            call::spawn(handle.clone());
+            downloads::spawn(handle.clone());
             fullscreen::spawn(handle);
             Ok(())
         })

@@ -17,13 +17,19 @@ import { PeekGlance, PeekPlayer } from "./Peek";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
 import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
-import { BatteryIcon, BellIcon, BoltIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, VolumeIcon } from "./icons";
-import { bodyHeight, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, IDLE_TIMER, type Mode, resolveMode, SIZES } from "./modes";
+import { ArrowDownIcon, BatteryIcon, BellIcon, BoltIcon, ClaudeSpinner, MicIcon, MicOffIcon, Equalizer, ExpandIcon, ShrinkIcon, VolumeIcon } from "./icons";
+import { bodyHeight, CHIP_WIDTH, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { visiblePages } from "./pageOrder";
 import { useIslandStore } from "./store";
 import celebrateSvg from "../assets/clawd/clawd-celebrating.svg";
+import codingSvg from "../assets/clawd/clawd-coding.svg";
+import coffeeSvg from "../assets/clawd/clawd-coffee.svg";
+import gamingSvg from "../assets/clawd/clawd-gaming.svg";
+import yogaSvg from "../assets/clawd/clawd-yoga.svg";
+import { formatBytes, formatElapsed, formatMinutes, startActivitySync, useActivityStore } from "./activity";
+import { ClawdMini } from "./ClawdMini";
 import "./island.css";
 import "./quick/quick.css";
 
@@ -115,6 +121,40 @@ function TimerChip({ mode, left, total }: { mode: TimerMode; left: number; total
   );
 }
 
+/** A call on the pill: the mic button (mutes the whole microphone, like the Windows mute) and how long it has been. */
+function CallChip({ app, since, muted }: { app: string; since: number; muted: boolean }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <span className={`cchip${muted ? " muted" : ""}`} title={`Em chamada no ${app}`}>
+      <button
+        className="cchip-mic"
+        aria-label={muted ? "Ativar o microfone" : "Mutar o microfone"}
+        aria-pressed={muted}
+        onClick={() => useActivityStore.getState().toggleMic()}
+      >
+        {muted ? <MicOffIcon /> : <MicIcon />}
+      </button>
+      <b>{formatElapsed((now - since) / 1000)}</b>
+    </span>
+  );
+}
+
+/** Downloads in progress: an arrow that keeps dropping and how much has come in. */
+function DownloadChip({ count, bytes, name }: { count: number; bytes: number; name: string }) {
+  return (
+    <span className="dchip" title={count > 1 ? `Baixando ${count} arquivos` : name ? `Baixando ${name}` : "Baixando"}>
+      <i className="dchip-ic">
+        <ArrowDownIcon size={12} />
+      </i>
+      <b>{count > 1 ? `${count} · ${formatBytes(bytes)}` : formatBytes(bytes)}</b>
+    </span>
+  );
+}
+
 export function Island() {
   const config = useConfigStore((s) => s.config);
   const expanded = useIslandStore((s) => s.expanded);
@@ -132,6 +172,13 @@ export function Island() {
   useMediaSync();
   useEffect(() => startClaudeSync(), []);
   useEffect(() => startShelfSync(), []);
+  useEffect(() => startActivitySync(), []);
+  const downloads = useActivityStore((s) => s.downloads);
+  const call = useActivityStore((s) => s.call);
+  const micMuted = useActivityStore((s) => s.micMuted);
+  const finishedDownload = useActivityStore((s) => s.finished);
+  const game = useActivityStore((s) => s.game);
+  const focusMode = useFocusStore((s) => s.mode);
   useHotkeys();
   const timerRunning = useFocusStore((s) => s.running);
   const timerLeft = useFocusStore((s) => s.left);
@@ -162,7 +209,12 @@ export function Island() {
   // Páginas com tela maior (Large) ou só com ajustes (Settings) ganham o botão de expandir.
   const canExpand = !!ActivePage.Large;
   const largeOn = large && canExpand;
-  const idleSize = timerRunning ? IDLE_TIMER : SIZES.idle;
+  const showCall = config.callPill && !!call;
+  const downloading = downloads.length > 0;
+  const idleSize = {
+    w: SIZES.idle.w + (timerRunning ? CHIP_WIDTH.timer : 0) + (showCall ? CHIP_WIDTH.call : 0) + (downloading ? CHIP_WIDTH.download : 0),
+    h: SIZES.idle.h,
+  };
   const size = mode === "expanded" && largeOn ? EXPANDED_LARGE : mode === "idle" ? idleSize : SIZES[mode];
 
   const notchRef = useRef<HTMLDivElement>(null);
@@ -249,6 +301,13 @@ export function Island() {
   const charging = !!power && power.hasBattery && (power.charging || power.plugged);
   const playing = !!media?.playing;
   const timerChip = timerRunning ? <TimerChip mode={timerMode} left={timerLeft} total={timerTotal} /> : null;
+  const callChip = showCall && call ? <CallChip app={call.app} since={call.since} muted={micMuted} /> : null;
+  const downloadChip = downloading ? (
+    <DownloadChip count={downloads.length} bytes={downloads.reduce((sum, d) => sum + d.bytes, 0)} name={downloads[0].name} />
+  ) : null;
+  const chips = timerChip || callChip || downloadChip;
+  // End of a Foco: Clawd takes a coffee (or does yoga before a long break); end of a break: back to coding.
+  const alarmClawd = timerFinished === "focus" ? (focusMode === "long" ? yogaSvg : coffeeSvg) : timerFinished === "short" || timerFinished === "long" ? codingSvg : null;
   const volumeLevel = volume?.muted ? 0 : (volume?.level ?? 0);
   const eyesMood: EyesMood = mode === "ask" ? "ask" : mode === "work" ? "work" : mode === "charge" || mode === "done" || mode === "timer" ? "wide" : "normal";
   const workSeconds = useSeconds(mode === "work" ? running[0]?.since : undefined);
@@ -273,7 +332,17 @@ export function Island() {
             <div className="c clock">
               <span className="time">{clock}</span>
             </div>
-            <div className="r">{timerChip ?? (playing && <Equalizer playing={mode === "idle"} />)}</div>
+            <div className="r">
+              {chips ? (
+                <>
+                  {callChip}
+                  {downloadChip}
+                  {timerChip}
+                </>
+              ) : (
+                playing && <Equalizer playing={mode === "idle"} />
+              )}
+            </div>
           </div>
         </div>
 
@@ -286,7 +355,7 @@ export function Island() {
                   <ClaudeSpinner />
                 </span>
               )}
-              {timerChip ?? <Equalizer playing={playing && mode === "lyric"} />}
+              {timerChip ?? callChip ?? downloadChip ?? <Equalizer playing={playing && mode === "lyric"} />}
             </div>
           </div>
         </div>
@@ -341,9 +410,13 @@ export function Island() {
               <span className="txt sub">{timerFinished === "custom" ? "Tempo esgotado" : timerFinished === "focus" ? "Hora da pausa" : "Hora de focar"}</span>
             </div>
             <div className="r">
-              <span className="alarm-ic">
-                <BellIcon />
-              </span>
+              {alarmClawd ? (
+                <ClawdMini src={alarmClawd} show={mode === "timer"} />
+              ) : (
+                <span className="alarm-ic">
+                  <BellIcon />
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -355,9 +428,33 @@ export function Island() {
             </div>
             <div className="r">
               {/* Clawd celebrating (clawd-pet, MIT), cropped to the pill; only mounted while the notice shows. */}
-              <span className="clawd-mini" aria-hidden="true">
-                {mode === "done" && <img src={celebrateSvg} alt="" draggable={false} />}
+              <ClawdMini src={celebrateSvg} show={mode === "done"} />
+            </div>
+          </div>
+        </div>
+
+        <div className={`layer${mode === "game" ? " on" : ""}`} style={{ width: SIZES.game.w }}>
+          <div className="strip">
+            <div className="c pad">
+              <span className="txt">{game?.app}</span>
+              <span className="txt sub">{game ? (game.video ? `${formatMinutes(game.minutes)} em tela cheia` : `jogou ${formatMinutes(game.minutes)}`) : ""}</span>
+            </div>
+            <div className="r">{!game?.video && <ClawdMini src={gamingSvg} show={mode === "game"} />}</div>
+          </div>
+        </div>
+
+        <div className={`layer${mode === "download" ? " on" : ""}`} style={{ width: SIZES.download.w }}>
+          <div className="strip">
+            <div className="c pad dl-done">
+              <span className="txt">Download concluído</span>
+              <span className="txt sub" title={finishedDownload?.name}>
+                {finishedDownload?.name}
               </span>
+            </div>
+            <div className="r">
+              <button className="pill-btn" onClick={() => finishedDownload && ipc.revealDownload(finishedDownload.path)}>
+                Mostrar
+              </button>
             </div>
           </div>
         </div>

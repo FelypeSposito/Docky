@@ -51,6 +51,9 @@ pub struct ShortcutSection {
     pub collapsed: bool,
     #[serde(default)]
     pub members: Vec<String>,
+    /// Part of the day when this section goes first in the island ("morning", "afternoon", "night"); empty = always.
+    #[serde(default)]
+    pub hours: String,
 }
 
 /// Tira das seções os atalhos que não existem mais (ou viraram grupo) e deixa cada atalho numa seção só (a primeira).
@@ -143,6 +146,12 @@ pub struct Config {
     pub notice_timer: bool,
     /// Um som suave quando o Foco ou o contador termina.
     pub timer_sound: bool,
+    /// Short notice on the pill when a long fullscreen session (a game) ends.
+    pub notice_game: bool,
+    /// Short notice on the pill when a download finishes.
+    pub notice_download: bool,
+    /// Call timer and mic mute on the pill while an app uses the microphone.
+    pub call_pill: bool,
     /// Data e hora no cabeçalho da ilha aberta.
     pub header_clock: bool,
     /// Faixa "Claude trabalhando" na ilha recolhida.
@@ -218,6 +227,9 @@ impl Default for Config {
             notice_claude_done: true,
             notice_timer: true,
             timer_sound: true,
+            notice_game: true,
+            notice_download: true,
+            call_pill: true,
             header_clock: true,
             claude_work_strip: true,
             hidden_pages: Vec::new(),
@@ -262,6 +274,11 @@ impl ConfigState {
 
     pub fn get(&self) -> Config {
         self.current.lock().unwrap().clone()
+    }
+
+    /// Hide the island while an app is fullscreen. Read every second, so without cloning the whole config.
+    pub fn hide_in_fullscreen(&self) -> bool {
+        self.current.lock().unwrap().hide_in_fullscreen
     }
 
     /// The eyes are on and follow the cursor. Read by the pointer loop without cloning the whole config.
@@ -350,7 +367,7 @@ mod tests {
     fn secao_so_guarda_atalhos_que_existem_cada_um_numa_secao() {
         let mut config = Config::default();
         config.shortcuts = vec![shortcut("a", false, &[]), shortcut("b", false, &[]), shortcut("g", true, &["a"])];
-        let section = |id: &str, members: &[&str]| ShortcutSection { id: id.into(), name: id.into(), collapsed: false, members: members.iter().map(|m| m.to_string()).collect() };
+        let section = |id: &str, members: &[&str]| ShortcutSection { id: id.into(), name: id.into(), collapsed: false, members: members.iter().map(|m| m.to_string()).collect(), hours: String::new() };
         config.shortcut_sections = vec![section("s1", &["a", "sumiu", "g"]), section("s2", &["a", "b"])];
         normalize(&mut config);
         assert_eq!(config.shortcut_sections[0].members, ["a"]);

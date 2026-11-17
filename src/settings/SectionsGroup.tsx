@@ -4,6 +4,7 @@ import { filterShortcuts } from "../launcher/filter";
 import { useConfigStore } from "../config/useConfig";
 import { GripIcon, TrashIcon } from "../island/icons";
 import { newId } from "../launcher/model";
+import { DAY_PARTS } from "../launcher/schedule";
 import { addSection, assignSection, autoOrganize, removeSection, renameSection, sectionOf, toggleCollapsed } from "../launcher/sections";
 import { Group, IconButton, Row, Toggle } from "./controls";
 import { TextField } from "./Fields";
@@ -58,7 +59,7 @@ export function SectionsGroup() {
 
       {sections.length > 0 && (
         <Group title="Ordem de prioridade">
-          <p className="grp-note">A primeira seção aparece em cima e primeiro nos filtros da ilha. Arraste pela alça para mudar.</p>
+          <p className="grp-note">A primeira seção aparece em cima e primeiro nos filtros da ilha. Arraste pela alça para mudar. Com um horário, os atalhos da seção vêm primeiro na ilha nesse período (por exemplo, Trabalho de manhã e Jogos à noite).</p>
           <div className="sortable">
             {sections.map((section, i) => (
               <div
@@ -74,7 +75,7 @@ export function SectionsGroup() {
                 <span className="sec-rank" aria-label={`Prioridade ${(sortable.position.get(section.id) ?? i) + 1}`}>
                   {(sortable.position.get(section.id) ?? i) + 1}
                 </span>
-                <TextField label="Nome da seção" width={200} value={section.name} placeholder="Nome da seção" onCommit={(v) => set(renameSection(sections, section.id, v))} />
+                <TextField label="Nome da seção" width={150} value={section.name} placeholder="Nome da seção" onCommit={(v) => set(renameSection(sections, section.id, v))} />
                 <button
                   className={`btn sec-pick${choosing === section.id ? " on" : ""}`}
                   aria-expanded={choosing === section.id}
@@ -83,6 +84,20 @@ export function SectionsGroup() {
                 >
                   {plural(section.members.length, "atalho", "atalhos")}
                 </button>
+                <select
+                  className="secsel sec-hours"
+                  aria-label={`Quando ${section.name} vem primeiro na ilha`}
+                  title="Nesse período, os atalhos desta seção aparecem primeiro na ilha"
+                  value={section.hours ?? ""}
+                  onChange={(e) => set(sections.map((s) => (s.id === section.id ? { ...s, hours: e.target.value } : s)))}
+                >
+                  <option value="">Qualquer hora</option>
+                  {DAY_PARTS.map((part) => (
+                    <option key={part.value} value={part.value}>
+                      {part.label} ({part.hours})
+                    </option>
+                  ))}
+                </select>
                 <span className="summary" />
                 <span className="sec-open">
                   <span>Aberta</span>

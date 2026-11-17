@@ -9,7 +9,9 @@ import { SHORTCUT_COLORS, ShortcutIcon } from "../launcher/ShortcutIcon";
 import { ipc, type Note } from "../lib/ipc";
 import { useMediaStore } from "../media/store";
 import { HeaderField } from "./HeaderField";
-import { GearIcon, NextIcon, NoteIcon, PauseIcon, PlayIcon, SearchIcon, TimerIcon } from "./icons";
+import { addSiteShortcut } from "../launcher/addSite";
+import { linkFrom, siteHost } from "../launcher/link";
+import { GearIcon, GlobeIcon, NextIcon, NoteIcon, PauseIcon, PlayIcon, SearchIcon, TimerIcon } from "./icons";
 import { visiblePages } from "./pageOrder";
 import { PAGES } from "./pages/registry";
 import { type Candidate, noteTitle, rank } from "./search";
@@ -156,6 +158,20 @@ export function GlobalSearch({ active }: { active: boolean }) {
   const results = useMemo(() => {
     if (!searching) return [];
     const found = rank(items, query, 6);
+    // A pasted link: the first thing offered is a shortcut for that site.
+    const link = linkFrom(query);
+    if (link) {
+      found.unshift({
+        id: "a:site",
+        kind: "action",
+        title: `Criar atalho para ${siteHost(link)}`,
+        icon: <GlobeIcon size={15} />,
+        run: () => {
+          addSiteShortcut(link);
+          done();
+        },
+      });
+    }
     // Sempre dá para guardar o que foi digitado como nota.
     if (query.trim().length >= 3) {
       found.push({
