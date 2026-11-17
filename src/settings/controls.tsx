@@ -117,6 +117,39 @@ export function Segmented<T extends string | number>({ label, value, options, on
   );
 }
 
+/** One color out of a few, as round swatches; `null` is the "automatic" choice, drawn as a ring of hues. */
+export function Swatches({
+  label,
+  value,
+  options,
+  auto,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  options: readonly { id: string; label: string; color: string }[];
+  auto: string;
+  onChange: (value: string | null) => void;
+}) {
+  return (
+    <div className="sws" role="radiogroup" aria-label={label}>
+      <button className={`sw auto${value === null ? " on" : ""}`} role="radio" aria-checked={value === null} aria-label={auto} title={auto} onClick={() => onChange(null)} />
+      {options.map((o) => (
+        <button
+          key={o.id}
+          className={`sw${value === o.id ? " on" : ""}`}
+          role="radio"
+          aria-checked={value === o.id}
+          aria-label={o.label}
+          title={o.label}
+          style={{ "--sw": o.color } as React.CSSProperties}
+          onClick={() => onChange(o.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function Soon({ phase, text }: { phase: number; text: string }) {
   return (
     <div className="soon-card">

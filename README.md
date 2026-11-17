@@ -94,6 +94,10 @@ A ilha fica no centro do topo ou em qualquer ponto dele, até encostada num cant
 cabeçalho, com ela aberta) ou escolha em Configurações, Aparência. Duplo clique numa parte vazia a traz de volta ao
 centro.
 
+Em Configurações, Aparência, a ilha pode seguir a cor da capa da música ou ficar sempre numa cor (rosa, âmbar, verde,
+azul, lilás ou grafite), com o brilho ambiente mais forte ou mais fraco, com ou sem a borda de vidro, e o relógio em
+24 ou 12 horas.
+
 Os ícones de atalhos e pastas da Shelf podem ser uma foto, um emoji ou um desenho da biblioteca minimalista do
 Docky (`lib:nome`, em `src/launcher/iconLibrary.tsx`). Na tela expandida dos atalhos, o botão Sugestões oferece grupos
 prontos (Trabalho, Jogos, Estudos…) e os apps que você mais usa: o Docky lê o Menu Iniciar, os apps fixados na barra,

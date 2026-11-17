@@ -27,6 +27,12 @@ export interface Config {
   eyes: boolean;
   followCursor: boolean;
   glow: number;
+  /** The island's color (see island/theme.ts); empty = taken from the album cover of what is playing. */
+  islandColor: string;
+  /** The thin light along the island's edge. */
+  glassEdge: boolean;
+  /** The clock on the pill and in the header on a 12-hour dial. */
+  clock12h: boolean;
   reduceMotion: boolean;
   lyricPill: boolean;
   lyricDelayMs: number;
@@ -107,6 +113,9 @@ export const DEFAULT_CONFIG: Config = {
   eyes: true,
   followCursor: true,
   glow: 70,
+  islandColor: "",
+  glassEdge: true,
+  clock12h: false,
   reduceMotion: false,
   lyricPill: true,
   lyricDelayMs: 0,

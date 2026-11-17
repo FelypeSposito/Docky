@@ -9,7 +9,6 @@ import { startShelfSync } from "../shelf/store";
 import { startCursorTracking } from "../lib/cursor";
 import { formatClock, formatDate } from "../lib/format";
 import { ipc } from "../lib/ipc";
-import { DEFAULT_ACCENT } from "../media/accent";
 import { lineIndexAt } from "../media/lrc";
 import { useMediaStore, useMediaSync, usePositionMs } from "../media/store";
 import { Dock } from "./Dock";
@@ -22,6 +21,7 @@ import { BatteryIcon, BellIcon, BoltIcon, ClaudeSpinner, MicIcon, MicOffIcon, Eq
 import { bodyHeight, CHIP_WIDTH, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
+import { glowOpacity, glowReach, islandAccent } from "./theme";
 import { useIslandDrag } from "./useIslandDrag";
 import { visiblePages } from "./pageOrder";
 import { useIslandStore } from "./store";
@@ -169,7 +169,8 @@ export function Island() {
   const peek = useIslandStore((s) => s.peek);
   const media = useMediaStore((s) => s.media);
   const lyrics = useMediaStore((s) => s.lyrics);
-  const accent = useMediaStore((s) => s.accent) ?? DEFAULT_ACCENT;
+  const musicAccent = useMediaStore((s) => s.accent);
+  const accent = islandAccent(config.islandColor, musicAccent);
   const volume = useMediaStore((s) => s.volume);
   const now = useNow();
   const eyesPhase = useEyesPhase(config.eyes, config.reduceMotion);
@@ -329,7 +330,7 @@ export function Island() {
     reduceMotion: config.reduceMotion,
   });
 
-  const clock = useMemo(() => formatClock(now), [now]);
+  const clock = useMemo(() => formatClock(now, config.clock12h), [now, config.clock12h]);
   const date = useMemo(() => formatDate(now, false), [now]);
 
   const onIslandClick = (e: React.MouseEvent) => {
@@ -356,14 +357,15 @@ export function Island() {
   const clawdInEyes = eyesPhase === "gone" && !config.reduceMotion ? (asking ? WAIT_CLAWD : running.length > 0 ? WORK_CLAWD[work].src : null) : null;
 
   const islandStyle = {
-    "--glow-strength": config.glow / 100,
+    "--glow-opacity": glowOpacity(config.glow),
+    "--glow-reach": glowReach(config.glow),
     "--glow": accent.primary,
     "--glow2": accent.secondary,
     "--accent": accent.primary,
   } as React.CSSProperties;
 
   return (
-    <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}`} data-mode={mode}>
+    <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}${config.glassEdge ? "" : " no-glass"}`} data-mode={mode}>
       <div className="ear l" />
       <div className="ear r" />
       <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick} onPointerDown={drag.onPointerDown} onDoubleClick={drag.onDoubleClick}>

@@ -7,6 +7,13 @@ describe("format", () => {
     expect(formatClock(new Date(2026, 9, 30, 22, 1))).toBe("22:01");
   });
 
+  it("formata a hora de 12 horas sem zero à esquerda", () => {
+    expect(formatClock(new Date(2026, 9, 30, 22, 1), true)).toBe("10:01");
+    expect(formatClock(new Date(2026, 9, 30, 0, 5), true)).toBe("12:05");
+    expect(formatClock(new Date(2026, 9, 30, 12, 30), true)).toBe("12:30");
+    expect(formatClock(new Date(2026, 9, 30, 7, 5), true)).toBe("7:05");
+  });
+
   it("formata a data em português", () => {
     expect(formatDate(new Date(2026, 9, 30))).toBe("sex 30 out 2026");
     expect(formatDate(new Date(2026, 0, 4))).toBe("dom 04 jan 2026");

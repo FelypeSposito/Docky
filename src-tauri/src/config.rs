@@ -122,6 +122,12 @@ pub struct Config {
     pub eyes: bool,
     pub follow_cursor: bool,
     pub glow: u8,
+    /// The island's color (see `island/theme.ts`); empty = taken from the album cover of what is playing.
+    pub island_color: String,
+    /// The thin light along the island's edge.
+    pub glass_edge: bool,
+    /// The clock on the pill and in the header on a 12-hour dial.
+    pub clock_12h: bool,
     pub reduce_motion: bool,
     /// Mostra a linha atual da letra na pílula quando a ilha está recolhida.
     pub lyric_pill: bool,
@@ -219,6 +225,9 @@ impl Default for Config {
             eyes: true,
             follow_cursor: true,
             glow: 70,
+            island_color: String::new(),
+            glass_edge: true,
+            clock_12h: false,
             reduce_motion: false,
             lyric_pill: true,
             lyric_delay_ms: 0,

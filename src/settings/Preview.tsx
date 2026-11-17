@@ -7,18 +7,21 @@ import { filterShortcuts } from "../launcher/filter";
 import { useShortcutImages } from "../launcher/icons";
 import { layoutSections } from "../launcher/sections";
 import { SHORTCUT_COLORS, ShortcutIcon } from "../launcher/ShortcutIcon";
+import { formatClock } from "../lib/format";
+import { glowOpacity, islandAccent } from "../island/theme";
 import type { AreaId } from "./areas";
 import "./preview.css";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
 function useClock() {
+  const twelveHour = useConfigStore((s) => s.config.clock12h);
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 15_000);
     return () => clearInterval(timer);
   }, []);
-  return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  return formatClock(now, twelveHour);
 }
 
 const Eq = () => (
@@ -108,7 +111,10 @@ function DockPreview() {
 export function Preview({ area }: { area: AreaId }) {
   const config = useConfigStore((s) => s.config);
   const clock = useClock();
-  const glow = Math.max(0.15, config.glow / 100);
+  // The stage is darker and smaller than the desktop, so the preview's glow starts a little lit and tops out at full.
+  const glow = Math.min(1, 0.15 + glowOpacity(config.glow) * 0.9);
+  // No music in Settings: "from the music" shows the brand pink, like the island with nothing playing.
+  const accent = islandAccent(config.islandColor, null);
 
   let island: React.ReactNode;
   switch (area) {
@@ -188,7 +194,11 @@ export function Preview({ area }: { area: AreaId }) {
   }
 
   return (
-    <div className={`pv${config.reduceMotion ? " still" : ""}`} style={{ "--pv-glow": glow } as React.CSSProperties} aria-hidden="true">
+    <div
+      className={`pv${config.reduceMotion ? " still" : ""}${config.glassEdge ? "" : " no-glass"}`}
+      style={{ "--pv-glow": glow, "--accent": accent.primary, "--pv-c1": accent.primary, "--pv-c2": accent.secondary } as React.CSSProperties}
+      aria-hidden="true"
+    >
       <div className="pv-glow" />
       {island}
     </div>

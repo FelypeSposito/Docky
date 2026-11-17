@@ -715,6 +715,38 @@ body[data-window="settings"] {
   color: #fff;
   background: rgba(255, 255, 255, 0.17);
 }
+/* Swatches (the island's color): the automatic one is a soft ring of the hues it can take. */
+.sa .sws {
+  display: flex;
+  gap: 8px;
+}
+.sa .sw {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--sw);
+  transition: transform 0.15s var(--ease), box-shadow 0.15s;
+}
+.sa .sw:hover {
+  transform: scale(1.12);
+}
+.sa .sw:active {
+  transform: scale(0.92);
+}
+.sa .sw.auto {
+  background: conic-gradient(from 200deg, #ff5c7a, #f5b14c, #34d399, #4c8dff, #a78bfa, #ff5c7a);
+  -webkit-mask: radial-gradient(circle, transparent 4px, #000 4.5px);
+  mask: radial-gradient(circle, transparent 4px, #000 4.5px);
+}
+.sa .sw.on {
+  box-shadow: 0 0 0 2px #050506, 0 0 0 3.5px #fff;
+}
+/* The ring is masked, so its "chosen" mark goes on a ring drawn by an outline instead of the shadow. */
+.sa .sw.auto.on {
+  box-shadow: none;
+  outline: 1.5px solid #fff;
+  outline-offset: 2px;
+}
 .sa .step button:disabled {
   opacity: 0.3;
   cursor: default;

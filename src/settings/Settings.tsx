@@ -10,7 +10,8 @@ import { ClaudeSection } from "./ClaudeSection";
 import { HotkeysGroup, NotesFolderRow, PagesSection, ScreensRow, ShelfFolders, ShortcutsEditor, WeatherCityRow } from "./Fields";
 import { CalendarSection } from "./CalendarSection";
 import { DiscordSection } from "./DiscordSection";
-import { Group, NumberStepper, Row, Segmented, Slider, Stepper, Toggle } from "./controls";
+import { ISLAND_COLORS, islandColor } from "../island/theme";
+import { Group, NumberStepper, Row, Segmented, Slider, Stepper, Swatches, Toggle } from "./controls";
 import { Preview } from "./Preview";
 import "./settings.css";
 
@@ -86,9 +87,24 @@ function AreaContent({ id }: { id: AreaId }) {
     case "aparencia":
       return (
         <>
-          <Group>
-            <Row label="Brilho ambiente" hint="A luz colorida no fundo da ilha, tirada da capa da música">
+          <Group title="Cor e brilho">
+            <Row
+              label="Cor da ilha"
+              hint={islandColor(config.islandColor) ? `${islandColor(config.islandColor)!.label}, sempre, com ou sem música` : "Da capa da música que está tocando; sem música, o rosa do Docky"}
+            >
+              <Swatches
+                label="Cor da ilha"
+                value={islandColor(config.islandColor)?.id ?? null}
+                options={ISLAND_COLORS.map((c) => ({ id: c.id, label: c.label, color: c.primary }))}
+                auto="Da música"
+                onChange={(id) => update({ islandColor: id ?? "" })}
+              />
+            </Row>
+            <Row label="Brilho ambiente" hint="A luz colorida atrás da ilha aberta">
               <Slider label="Brilho ambiente" value={config.glow} onChange={(v) => update({ glow: v })} />
+            </Row>
+            <Row label="Borda de vidro" hint="Um fio de luz na borda da ilha. Desligada, a ilha fica só preta">
+              <Toggle label="Borda de vidro" value={config.glassEdge} onChange={(v) => update({ glassEdge: v })} />
             </Row>
           </Group>
           <Group title="Olhinhos">
@@ -113,8 +129,19 @@ function AreaContent({ id }: { id: AreaId }) {
               />
             </Row>
           </Group>
-          <Group title="Ilha aberta">
-            <Row label="Data e hora no topo" hint="Desligado, a busca dos atalhos ocupa o cabeçalho inteiro">
+          <Group title="Relógio">
+            <Row label="Formato da hora" hint="Na pílula e no topo da ilha aberta">
+              <Segmented
+                label="Formato da hora"
+                value={config.clock12h ? "12" : "24"}
+                options={[
+                  { value: "24", label: "24 horas" },
+                  { value: "12", label: "12 horas" },
+                ]}
+                onChange={(v) => update({ clock12h: v === "12" })}
+              />
+            </Row>
+            <Row label="Data e hora no topo" hint="Na ilha aberta. Desligado, a busca dos atalhos ocupa o cabeçalho inteiro">
               <Toggle label="Data e hora no topo" value={config.headerClock} onChange={(v) => update({ headerClock: v })} />
             </Row>
           </Group>

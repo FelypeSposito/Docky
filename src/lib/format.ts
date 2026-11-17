@@ -3,9 +3,10 @@ const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
-/** "22:01" */
-export function formatClock(date: Date): string {
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+/** "22:01", or "10:01" on a 12-hour clock (no AM/PM: the pill is small and the day is obvious). */
+export function formatClock(date: Date, twelveHour = false): string {
+  if (!twelveHour) return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getHours() % 12 || 12}:${pad(date.getMinutes())}`;
 }
 
 /** "sex 30 out 2026" */

@@ -54,6 +54,11 @@
   mask-composite: exclude;
 }
 
+/* Settings, Aparência: the edge light can be turned off for a plain black island. */
+.notch.no-glass .island::after {
+  display: none;
+}
+
 /* Orelhas côncavas que ligam a ilha à borda da tela. */
 .ear {
   position: absolute;
@@ -76,22 +81,23 @@
   position: absolute;
   left: -15%;
   right: -15%;
-  top: 30%;
+  /* Past the default, the glow also climbs higher up the island (--glow-reach, 0 to 1). */
+  top: calc(30% - var(--glow-reach, 0) * 22%);
   bottom: -45%;
   pointer-events: none;
   opacity: 0;
-  filter: blur(26px);
+  filter: blur(26px) saturate(calc(1 + var(--glow-reach, 0) * 0.25));
   background:
     radial-gradient(closest-side at 24% 72%, var(--glow), transparent 100%),
     radial-gradient(closest-side at 80% 86%, var(--glow2), transparent 100%);
-  -webkit-mask-image: linear-gradient(transparent 0, #000 40%);
-  mask-image: linear-gradient(transparent 0, #000 40%);
+  -webkit-mask-image: linear-gradient(transparent 0, #000 calc(40% - var(--glow-reach, 0) * 18%));
+  mask-image: linear-gradient(transparent 0, #000 calc(40% - var(--glow-reach, 0) * 18%));
   transition: opacity 0.9s ease;
   animation: drift 13s ease-in-out infinite alternate;
   animation-play-state: paused;
 }
 .glow.on {
-  opacity: calc(var(--glow-strength, 0.7) * 0.62);
+  opacity: var(--glow-opacity, 0.434);
   animation-play-state: running;
 }
 @keyframes drift {
