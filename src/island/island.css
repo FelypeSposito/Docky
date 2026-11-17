@@ -940,66 +940,11 @@
   80% { translate: 2px 0; }
 }
 
-/* Página do Claude Code (blocos) */
+/* Páginas em blocos */
 .bento {
   display: grid;
   gap: 8px;
   height: 148px;
-}
-.bento.cl {
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: 56px 1fr;
-}
-.stat {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 9px 12px;
-}
-.stat b {
-  font-size: 22px;
-  font-weight: 650;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-.stat span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ink2);
-  font-size: 11px;
-}
-.clist {
-  grid-column: 1 / 4;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  padding: 6px 10px;
-}
-.crow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 34px;
-  padding: 0 4px;
-}
-.crow b {
-  min-width: 44px;
-  font-weight: 650;
-}
-.crow .tx {
-  flex: 1;
-  overflow: hidden;
-  color: var(--ink2);
-  font-size: 12px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.crow em {
-  color: var(--ink3);
-  font-size: 11.5px;
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
 }
 
 /* Fase 4: foco, notas, Shelf e agenda (blocos de vidro) */
@@ -2496,11 +2441,6 @@ button.m-top .cover {
 button.m-top:hover .cover {
   transform: scale(1.04);
 }
-button.m-top:hover .m-title {
-  text-decoration: underline;
-  text-decoration-color: rgba(255, 255, 255, 0.35);
-  text-underline-offset: 3px;
-}
 button.m-top:active .cover {
   transform: scale(0.97);
 }
@@ -2520,11 +2460,6 @@ button.m-top:active .cover {
 button.pk-song {
   padding: 0;
   text-align: left;
-}
-button.pk-song:hover b {
-  text-decoration: underline;
-  text-decoration-color: rgba(255, 255, 255, 0.35);
-  text-underline-offset: 3px;
 }
 .pk-open {
   flex: none;
@@ -2670,4 +2605,175 @@ button.pk-song:hover b {
 }
 .mx-list::-webkit-scrollbar-button {
   display: none;
+}
+
+/* Claude Code: o Clawd à esquerda, a frase e as sessões à direita */
+.cs {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: 16px;
+}
+.cs-stage {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 124px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.065);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055);
+  transition: box-shadow 0.4s ease;
+}
+/* A mesa: uma linha fina sob o teclado */
+.cs-stage::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.cs.work .cs-stage {
+  box-shadow: inset 0 0 0 1px rgba(232, 130, 90, 0.32);
+}
+.cs.wait .cs-stage {
+  box-shadow: inset 0 0 0 1px rgba(255, 200, 87, 0.4);
+}
+.cs-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 6px;
+}
+.cs-head b {
+  display: block;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.cs-head span {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--ink2);
+  font-size: 12px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.cs.wait .cs-head b {
+  color: #ffc857;
+}
+.cs-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.cs-list::-webkit-scrollbar {
+  width: 3px;
+}
+.cs-list::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.cs-list::-webkit-scrollbar-button {
+  display: none;
+}
+.cs-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+}
+.cs-row:last-child {
+  box-shadow: none;
+}
+.cs-ic {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  color: #e8825a;
+}
+.cs-row.done .cs-ic {
+  color: #3dd68c;
+}
+.cs-ping {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffc857;
+}
+.cs-ping::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #ffc857;
+  animation: cs-ping 1.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+@keyframes cs-ping {
+  from { opacity: 0.9; transform: scale(1); }
+  to { opacity: 0; transform: scale(2.4); }
+}
+.cs-row b {
+  flex: none;
+  max-width: 130px;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cs-tx {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink2);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cs-row.wait .cs-tx {
+  color: #ffc857;
+}
+.cs-row em {
+  flex: none;
+  color: var(--ink2);
+  font-size: 11.5px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+.cs-setup {
+  align-self: flex-start;
+}
+
+.reduce-motion .cs-ping::after {
+  animation: none !important;
+}
+/* Clawd: o SVG animado ocupa o palco, apoiado na mesa */
+.cs-clawd {
+  display: block;
+  flex: none;
+  /* Clawd's feet sit 4 units above the canvas bottom: pull it down onto the desk line */
+  margin-bottom: -10px;
+  image-rendering: pixelated;
+  user-select: none;
+  animation: cs-clawd-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes cs-clawd-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.reduce-motion .cs-clawd {
+  animation: none;
 }

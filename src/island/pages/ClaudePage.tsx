@@ -2,26 +2,57 @@ import { useEffect, useState } from "react";
 import { type Session } from "../../claude/sessions";
 import { useClaudeStore } from "../../claude/store";
 import { ipc } from "../../lib/ipc";
-import { EmptyState } from "../EmptyState";
+import { CheckIcon, ClaudeSpinner } from "../icons";
+import idleSvg from "../../assets/clawd/clawd-idle-living.svg";
+import waitSvg from "../../assets/clawd/clawd-notification.svg";
+import sleepSvg from "../../assets/clawd/clawd-sleeping.svg";
+import typingSvg from "../../assets/clawd/clawd-working-typing.svg";
 
-const fmt = (total: number) =>
-  `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+type Mood = "work" | "wait" | "idle" | "sleep";
 
-function SessionRow({ session, now }: { session: Session; now: number }) {
-  const running = session.state === "running";
+/**
+ * Clawd for each mood: ready-made animated SVGs from clawd-pet (MIT), see src/assets/clawd/README.md. Their canvas is
+ * much larger than Clawd (room for effects), so each is drawn at the same scale per SVG unit: `box` is the viewBox
+ * size and `dx` the shift that puts Clawd (x 0 to 15) in the middle of the stage.
+ */
+const CLAWD: Record<Mood, { src: string; label: string; box: number; dx: number }> = {
+  work: { src: typingSvg, label: "Clawd digitando", box: 45, dx: 0 },
+  wait: { src: waitSvg, label: "Clawd chamando você", box: 45, dx: 0 },
+  idle: { src: idleSvg, label: "Clawd à toa", box: 45, dx: 0 },
+  sleep: { src: sleepSvg, label: "Clawd dormindo", box: 40, dx: 2.5 },
+};
+/** Pixels per SVG unit: Clawd is 15 units wide, so 90px on the stage. */
+const UNIT = 6;
+
+const clock = (total: number) => `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+
+/** "agora", "há 4 min", "há 2 h": how long a session has been stopped. */
+const ago = (seconds: number) => (seconds < 60 ? "agora" : seconds < 3600 ? `há ${Math.floor(seconds / 60)} min` : `há ${Math.floor(seconds / 3600)} h`);
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function SessionRow({ session, now, asking }: { session: Session; now: number; asking: string | null }) {
+  const seconds = Math.max(0, Math.floor((now - session.since) / 1000));
+  const state = asking ? "wait" : session.state === "running" ? "run" : "done";
   return (
-    <div className="crow">
-      <i className={`dot ${running ? "run" : "ok"}`} />
+    <div className={`cs-row ${state}`}>
+      <span className="cs-ic">
+        {state === "wait" ? <i className="cs-ping" /> : state === "run" ? <ClaudeSpinner size={14} /> : <CheckIcon />}
+      </span>
       <b>{session.project}</b>
-      <span className="tx">{running ? "Escrevendo código" : "Parada"}</span>
-      {running && <em>{fmt(Math.max(0, Math.floor((now - session.since) / 1000)))}</em>}
+      <span className="cs-tx">{state === "wait" ? `quer usar ${asking}` : state === "run" ? "escrevendo código" : "parada"}</span>
+      <em>{state === "done" ? ago(seconds) : clock(seconds)}</em>
     </div>
   );
 }
 
+/**
+ * Claude Code at a glance: Clawd shows the mood (typing, waiting for you, idle, asleep), one sentence says
+ * what is going on, and each session sits on its own row with a live icon.
+ */
 export function ClaudePage({ active }: { active: boolean }) {
   const sessions = useClaudeStore((s) => s.sessions);
-  const waiting = useClaudeStore((s) => s.permissions.length);
+  const permissions = useClaudeStore((s) => s.permissions);
   const [now, setNow] = useState(() => performance.now());
   const [installed, setInstalled] = useState<boolean | null>(null);
 
@@ -33,50 +64,67 @@ export function ClaudePage({ active }: { active: boolean }) {
     return () => clearInterval(timer);
   }, [active]);
 
-  const list = Object.values(sessions).sort((a, b) => a.since - b.since);
-  const running = list.filter((s) => s.state === "running").length;
+  const list = Object.values(sessions).sort((a, b) => (a.state === b.state ? a.since - b.since : a.state === "running" ? -1 : 1));
+  const running = list.filter((s) => s.state === "running");
+  const askingBy = new Map(permissions.map((p) => [p.sessionId, p.toolName]));
+  const waiting = permissions[0];
 
-  if (list.length === 0) {
-    return (
-      <EmptyState
-        title={installed === false ? "Hooks do Claude Code não instalados" : "Nenhuma sessão por enquanto"}
-        text={
-          installed === false
-            ? "Instale em Configurações, em Claude Code. Depois as sessões aparecem aqui."
-            : "Quando você usar o Claude Code, as sessões aparecem aqui."
-        }
-        action={installed === false ? { label: "Abrir configurações", onClick: () => ipc.openSettings("claude") } : undefined}
-      />
-    );
+  const mood: Mood = waiting ? "wait" : running.length > 0 ? "work" : list.length > 0 ? "idle" : "sleep";
+  const stopped = list.length - running.length;
+
+  let title: string;
+  let sub: string;
+  if (waiting) {
+    title = "Esperando você";
+    sub = `${list.find((s) => s.id === waiting.sessionId)?.project ?? "Uma sessão"} quer usar ${waiting.toolName}`;
+  } else if (running.length > 0) {
+    title = "Escrevendo código";
+    sub = running.length === 1 ? `em ${running[0].project}` : `em ${plural(running.length, "projeto", "projetos")}`;
+    if (stopped > 0) sub += ` · ${plural(stopped, "parada", "paradas")}`;
+  } else if (list.length > 0) {
+    title = "Tudo pronto";
+    sub = plural(stopped, "sessão parada", "sessões paradas");
+  } else if (installed === false) {
+    title = "Falta ligar o Claude Code";
+    sub = "Instale os hooks nas Configurações para ver as sessões aqui.";
+  } else {
+    title = "Nenhuma sessão agora";
+    sub = "Quando você usar o Claude Code, ele aparece trabalhando aqui.";
   }
 
   return (
-    <div className="bento cl">
-      <div className="tile stat">
-        <b>{running}</b>
-        <span>
-          <i className="dot run" />
-          Rodando
-        </span>
+    <div className={`cs ${mood}`}>
+      <div className="cs-stage">
+        {/* Only mounted while the page is open: the animation lives inside the SVG and cannot be paused from outside. */}
+        {active && (
+          <img
+            key={mood}
+            className="cs-clawd"
+            src={CLAWD[mood].src}
+            alt={CLAWD[mood].label}
+            draggable={false}
+            style={{ width: CLAWD[mood].box * UNIT, height: CLAWD[mood].box * UNIT, translate: `${CLAWD[mood].dx * UNIT}px 0` }}
+          />
+        )}
       </div>
-      <div className="tile stat">
-        <b>{waiting}</b>
-        <span>
-          <i className="dot wait" />
-          Esperando
-        </span>
-      </div>
-      <div className="tile stat">
-        <b>{list.length - running}</b>
-        <span>
-          <i className="dot ok" />
-          Paradas
-        </span>
-      </div>
-      <div className="tile clist">
-        {list.slice(0, 3).map((s) => (
-          <SessionRow key={s.id} session={s} now={now} />
-        ))}
+      <div className="cs-main">
+        <div className="cs-head">
+          <b>{title}</b>
+          <span>{sub}</span>
+        </div>
+        {list.length > 0 ? (
+          <div className="cs-list">
+            {list.map((s) => (
+              <SessionRow key={s.id} session={s} now={now} asking={askingBy.get(s.id) ?? null} />
+            ))}
+          </div>
+        ) : (
+          installed === false && (
+            <button className="btn sm cs-setup" onClick={() => ipc.openSettings("claude")}>
+              Abrir configurações
+            </button>
+          )
+        )}
       </div>
     </div>
   );

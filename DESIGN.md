@@ -333,6 +333,11 @@ Big targets, icon over name.
 ### Alarm
 - When a timer ends the island's lit edge turns alarm red and an inner red bloom pulses four times (1.2s); a 20px red bell circle rings three times. Reduced motion keeps a static red bloom.
 
+### Claude Page Clawd
+- Clawd, Claude Code's mascot, from the open-source clawd-pet animated SVGs (MIT; the character is Anthropic's, Docky is unofficial). Four ready-made animations, unchanged, one per mood: typing (working), notification (waiting for you), idle-living (sessions open, nothing running), sleeping (no session). Files and credits in `src/assets/clawd/`.
+- Shown as an `<img>` (its own CSS stays inside the SVG) at 116px on a flat 124px stage block with a hairline desk, mounted only while the page is open. The stage's inner edge takes the mood's hue (clay working, yellow waiting).
+- Next to it, a 15px 650 sentence says what is going on, and sessions sit on hairline rows with a live icon (Claude spinner, yellow ping, green check) and tabular times.
+
 ### Eyes
 - Two white ovals (15 × 17 and 13 × 15, the right one tilted −6°) with 5.6px pupils that follow the cursor; lids are black bands driven by `--lt`/`--lb` for blink, sleep, wide and closed moods. They sit at the island's top left and the content starts after them (62px header inset; 22px when eyes are off).
 
