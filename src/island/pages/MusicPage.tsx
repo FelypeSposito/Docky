@@ -5,7 +5,7 @@ import { lineIndexAt } from "../../media/lrc";
 import { useMediaStore, usePositionMs } from "../../media/store";
 import { EmptyState } from "../EmptyState";
 import { LyricsIcon, MusicIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, RepeatIcon, ShuffleIcon, VolumeIcon } from "../icons";
-import type { RepeatMode } from "../../lib/ipc";
+import type { RepeatMode, Volume } from "../../lib/ipc";
 
 /** Repetir passa por: desligado, a lista toda, só esta faixa. */
 const NEXT_REPEAT: Record<RepeatMode, RepeatMode> = { none: "list", list: "track", track: "none" };
@@ -38,6 +38,23 @@ export function MusicPage({ active }: { active: boolean }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const position = usePositionMs(active && !!media);
+
+  // The slider here is the volume of the app that is playing (Spotify, Chrome…), not the whole PC: that one is on the
+  // Som page. Read while the page is open; null when the app has no audio session yet (then it falls back to the PC).
+  const [appVolume, setAppVolume] = useState<Volume | null>(null);
+  const holding = useRef(false);
+  const playingApp = media?.app;
+  useEffect(() => {
+    if (!active || !playingApp) return;
+    let alive = true;
+    const read = () => void ipc.mediaAppVolume().then((v) => alive && !holding.current && setAppVolume(v));
+    read();
+    const timer = setInterval(read, 1500);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [active, playingApp]);
 
   const say = useCallback((text: string) => {
     setNotice(text);
@@ -76,12 +93,31 @@ export function MusicPage({ active }: { active: boolean }) {
 
   const current = lines ? lineIndexAt(lines, position, delay) : -1;
 
-  const level = volume?.level ?? 0;
-  const muted = volume?.muted ?? false;
+  const ownVolume = appVolume !== null;
+  const level = (ownVolume ? appVolume.level : volume?.level) ?? 0;
+  const muted = (ownVolume ? appVolume.muted : volume?.muted) ?? false;
+  const setLevel = (next: number) => {
+    if (ownVolume) {
+      ipc.setMediaAppVolume(next);
+      setAppVolume({ level: next, muted: false });
+    } else {
+      ipc.setVolume(next);
+      useMediaStore.setState({ volume: { level: next, muted: false } });
+    }
+  };
+  const setMuted = (next: boolean) => {
+    if (ownVolume) {
+      ipc.setMediaAppMuted(next);
+      setAppVolume({ level, muted: next });
+    } else {
+      ipc.setMuted(next);
+      useMediaStore.setState({ volume: { level, muted: next } });
+    }
+  };
 
   return (
     <div className={`mp${showLyrics ? " lyr" : ""}`}>
-      <button className="m-top" title="Abrir o app que está tocando" onClick={() => ipc.mediaOpenApp()}>
+      <button className="m-top" aria-label={`Abrir ${media.title} no app`} onClick={() => ipc.mediaOpenApp()}>
         <span className="cover" style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : undefined}>
           {!thumbnail && <MusicIcon size={26} />}
         </span>
@@ -179,10 +215,7 @@ export function MusicPage({ active }: { active: boolean }) {
           <button
             className="ib"
             aria-label={muted ? "Ativar o som" : "Silenciar"}
-            onClick={() => {
-              ipc.setMuted(!muted);
-              useMediaStore.setState({ volume: { level, muted: !muted } });
-            }}
+            onClick={() => setMuted(!muted)}
           >
             <VolumeIcon level={level} muted={muted} />
           </button>
@@ -192,12 +225,10 @@ export function MusicPage({ active }: { active: boolean }) {
             min={0}
             max={100}
             value={Math.round(level * 100)}
-            aria-label="Volume"
-            onChange={(e) => {
-              const next = Number(e.target.value) / 100;
-              ipc.setVolume(next);
-              useMediaStore.setState({ volume: { level: next, muted: false } });
-            }}
+            aria-label={ownVolume ? `Volume do ${media.app.replace(/\.exe$/i, "")}` : "Volume"}
+            onPointerDown={() => (holding.current = true)}
+            onPointerUp={() => (holding.current = false)}
+            onChange={(e) => setLevel(Number(e.target.value) / 100)}
           />
         </div>
       </div>

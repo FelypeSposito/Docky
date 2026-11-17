@@ -305,6 +305,26 @@ export const ipc = {
     else DEV_APPS.forEach((app) => app.id === id && Object.assign(app, { volume: level, muted: false }));
   },
 
+  /** Volume só do app que está tocando (o controle da página Música); null quando ele não tem som aberto. */
+  async mediaAppVolume(): Promise<Volume | null> {
+    if (isTauri) {
+      const found = await invoke<{ volume: number; muted: boolean } | null>("media_app_volume");
+      return found && { level: found.volume, muted: found.muted };
+    }
+    const app = DEV_APPS[0];
+    return { level: app.volume, muted: app.muted };
+  },
+
+  setMediaAppVolume(level: number): void {
+    if (isTauri) void invoke("set_media_app_volume", { level });
+    else Object.assign(DEV_APPS[0], { volume: level, muted: false });
+  },
+
+  setMediaAppMuted(muted: boolean): void {
+    if (isTauri) void invoke("set_media_app_muted", { muted });
+    else Object.assign(DEV_APPS[0], { muted });
+  },
+
   setAppMuted(id: string, muted: boolean): void {
     if (isTauri) void invoke("set_app_muted", { id, muted });
     else DEV_APPS.forEach((app) => app.id === id && Object.assign(app, { muted }));

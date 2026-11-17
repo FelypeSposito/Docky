@@ -37,14 +37,14 @@ export function PeekPlayer({ active }: { active: boolean }) {
   return (
     <div className="pk pk-music">
       <div className="pk-top">
-        <button className="pk-song" title="Abrir o app que está tocando" onClick={(e) => (stop(e), ipc.mediaOpenApp())}>
+        <button className="pk-song" onClick={(e) => (stop(e), ipc.mediaOpenApp())}>
           <b>{media.title || "Sem título"}</b>
           {media.artist && <em> · {media.artist}</em>}
         </button>
         <Equalizer playing={media.playing && active} />
       </div>
       <div className="pk-row">
-        <button className="pk-open" aria-label="Abrir o app que está tocando" title="Abrir o app que está tocando" onClick={(e) => (stop(e), ipc.mediaOpenApp())}>
+        <button className="pk-open" aria-label="Abrir o app que está tocando" onClick={(e) => (stop(e), ipc.mediaOpenApp())}>
           {thumbnail ? (
             <img className="pk-cover" src={thumbnail} alt="" />
           ) : (

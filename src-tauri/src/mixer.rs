@@ -18,11 +18,15 @@ pub struct AudioApp {
     pub active: bool,
 }
 
+/// The program's file name without ".exe": "C:\…\Spotify.exe" → "Spotify".
+pub fn program_stem(path: &str) -> &str {
+    let file = path.rsplit(['\\', '/']).next().unwrap_or(path);
+    file.strip_suffix(".exe").or_else(|| file.strip_suffix(".EXE")).unwrap_or(file)
+}
+
 /// A name for a program from its path when it has no description: "C:\…\discord.exe" → "Discord".
 pub fn name_from_path(path: &str) -> String {
-    let file = path.rsplit(['\\', '/']).next().unwrap_or(path);
-    let stem = file.strip_suffix(".exe").or_else(|| file.strip_suffix(".EXE")).unwrap_or(file);
-    let mut chars = stem.chars();
+    let mut chars = program_stem(path).chars();
     match chars.next() {
         Some(first) => first.to_uppercase().chain(chars).collect(),
         None => String::new(),
@@ -135,8 +139,9 @@ mod sessions {
             if !VerQueryValueW(data.as_ptr() as *const c_void, PCWSTR(query.as_ptr()), &mut pointer, &mut len).as_bool() || len == 0 {
                 return None;
             }
-            let text = String::from_utf16_lossy(std::slice::from_raw_parts(pointer as *const u16, len as usize));
-            let text = text.trim_end_matches('\0').trim().to_string();
+            let chars = std::slice::from_raw_parts(pointer as *const u16, len as usize);
+            let end = chars.iter().position(|&c| c == 0).unwrap_or(chars.len());
+            let text = String::from_utf16_lossy(&chars[..end]).trim().to_string();
             (!text.is_empty()).then_some(text)
         }
     }
@@ -177,6 +182,42 @@ mod sessions {
             let _ = unsafe { session.volume.SetMute(muted, std::ptr::null()) };
         }
     }
+
+    /// The sessions of the program called `name` ("spotify", "chrome").
+    fn named(name: &str) -> Vec<Session> {
+        list().into_iter().filter(|s| s.id != "system" && super::program_stem(&s.id).eq_ignore_ascii_case(name)).collect()
+    }
+
+    pub fn named_volume(name: &str) -> Option<super::AppVolume> {
+        let sessions = named(name);
+        if sessions.is_empty() {
+            return None;
+        }
+        let mut volume = 0.0f32;
+        let mut muted = true;
+        for session in &sessions {
+            unsafe {
+                volume = volume.max(session.volume.GetMasterVolume().unwrap_or(1.0));
+                muted &= session.volume.GetMute().map(|m| m.as_bool()).unwrap_or(false);
+            }
+        }
+        Some(super::AppVolume { volume, muted })
+    }
+
+    pub fn set_named_volume(name: &str, level: f32) {
+        for session in named(name) {
+            unsafe {
+                let _ = session.volume.SetMasterVolume(level.clamp(0.0, 1.0), std::ptr::null());
+                let _ = session.volume.SetMute(false, std::ptr::null());
+            }
+        }
+    }
+
+    pub fn set_named_muted(name: &str, muted: bool) {
+        for session in named(name) {
+            let _ = unsafe { session.volume.SetMute(muted, std::ptr::null()) };
+        }
+    }
 }
 
 #[cfg(not(windows))]
@@ -186,6 +227,11 @@ mod sessions {
     }
     pub fn set_volume(_: &str, _: f32) {}
     pub fn set_muted(_: &str, _: bool) {}
+    pub fn named_volume(_: &str) -> Option<super::AppVolume> {
+        None
+    }
+    pub fn set_named_volume(_: &str, _: f32) {}
+    pub fn set_named_muted(_: &str, _: bool) {}
 }
 
 #[tauri::command]
@@ -201,6 +247,38 @@ pub async fn set_app_volume(id: String, level: f32) {
 #[tauri::command]
 pub async fn set_app_muted(id: String, muted: bool) {
     sessions::set_muted(&id, muted);
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppVolume {
+    pub volume: f32,
+    pub muted: bool,
+}
+
+/// The program behind the media that is playing, as a name the sessions can be matched by.
+fn playing_program() -> Option<String> {
+    crate::media::playing_app().map(|app| crate::media::app_id_name(&app))
+}
+
+/// Volume of the app that is playing (the Music page slider), or `None` when it has no audio session.
+#[tauri::command]
+pub async fn media_app_volume() -> Option<AppVolume> {
+    sessions::named_volume(&playing_program()?)
+}
+
+#[tauri::command]
+pub async fn set_media_app_volume(level: f32) {
+    if let Some(name) = playing_program() {
+        sessions::set_named_volume(&name, level);
+    }
+}
+
+#[tauri::command]
+pub async fn set_media_app_muted(muted: bool) {
+    if let Some(name) = playing_program() {
+        sessions::set_named_muted(&name, muted);
+    }
 }
 
 #[cfg(test)]

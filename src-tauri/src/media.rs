@@ -219,6 +219,11 @@ pub async fn media_seek(position_ms: u64) {
     smtc::seek(position_ms);
 }
 
+/// The AppUserModelID of the app that is playing.
+pub fn playing_app() -> Option<String> {
+    smtc::source_app()
+}
+
 /// Brings the app that is playing to the front (or opens it, when it has no window).
 #[tauri::command]
 pub async fn media_open_app() -> Result<(), String> {
