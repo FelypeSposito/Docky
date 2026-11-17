@@ -49,7 +49,7 @@ function agendaNotice({ status, error, load }: ReturnType<typeof useAgenda>): Re
     return (
       <EmptyState
         title="Conecte o Google Agenda"
-        text={status?.configured ? "Falta fazer o login." : "Veja os próximos eventos aqui. Configure em Integrações."}
+        text={status?.configured ? "Falta fazer o login." : "Veja os próximos eventos aqui. Configure em Agenda, clima e Discord."}
         action={{ label: "Abrir configurações", onClick: () => ipc.openSettings("integracoes") }}
       />
     );
@@ -175,7 +175,7 @@ function WeatherTile({ active, large = false }: { active: boolean; large?: boole
       ) : (
         <div className="wx-empty">
           <b>{!city.trim() ? "Defina a cidade" : loading ? "Buscando o clima…" : "Sem clima"}</b>
-          <small>{error ?? "Em Configurações, em Integrações."}</small>
+          <small>{error ?? "Em Configurações, em Agenda, clima e Discord."}</small>
           {!city.trim() && (
             <button className="btn sm" onClick={() => ipc.openSettings("integracoes")}>
               Configurar

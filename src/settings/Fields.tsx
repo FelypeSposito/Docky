@@ -99,6 +99,10 @@ export function ShelfFolders() {
           onChange={(v) => update({ shelfMove: v === "move" })}
         />
       </Row>
+      <Row
+        label="Lixeira"
+        hint="Fica sempre no fim da Shelf: manda os arquivos soltos para a Lixeira do Windows, de onde dá para restaurar. Sem arquivos, abre a Lixeira."
+      />
     </Group>
   );
   const folders = config.shelfFolders;

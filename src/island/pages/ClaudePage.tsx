@@ -9,11 +9,8 @@ import sadSvg from "../../assets/clawd/clawd-sad.svg";
 import waitSvg from "../../assets/clawd/clawd-notification.svg";
 import sleepSvg from "../../assets/clawd/clawd-sleeping.svg";
 import buildingSvg from "../../assets/clawd/clawd-working-building.svg";
-import delegateSvg from "../../assets/clawd/clawd-working-juggling.svg";
-import readingSvg from "../../assets/clawd/clawd-working-reviewing.svg";
-import thinkingSvg from "../../assets/clawd/clawd-working-thinking.svg";
-import toolSvg from "../../assets/clawd/clawd-working-tool-calling.svg";
-import { type WorkKind, workKind } from "../../claude/sessions";
+import { currentWork, WORK_CLAWD as WORK } from "../../claude/clawd";
+import { workKind } from "../../claude/sessions";
 
 type Mood = "work" | "wait" | "idle" | "sleep" | "celebrate" | "sad";
 
@@ -30,15 +27,6 @@ const CLAWD: Record<Mood, { src: string; label: string; box: number; dx: number 
   celebrate: { src: celebrateSvg, label: "Clawd comemorando", box: 45, dx: 0 },
   sad: { src: sadSvg, label: "Clawd triste", box: 45, dx: 0 },
 };
-/** While working, Clawd shows what Claude is doing right now (its last tool). */
-const WORK: Record<WorkKind, { src: string; label: string; doing: string }> = {
-  think: { src: thinkingSvg, label: "Clawd pensando", doing: "pensando" },
-  edit: { src: buildingSvg, label: "Clawd construindo", doing: "escrevendo código" },
-  run: { src: toolSvg, label: "Clawd rodando comandos", doing: "rodando comandos" },
-  read: { src: readingSvg, label: "Clawd lendo", doing: "lendo o projeto" },
-  delegate: { src: delegateSvg, label: "Clawd com subagentes", doing: "com subagentes" },
-};
-
 /** Pixels per SVG unit: Clawd is 15 units wide, so 90px on the stage. */
 const UNIT = 6;
 
@@ -92,7 +80,7 @@ export function ClaudePage({ active }: { active: boolean }) {
   const reacting = !waiting && reaction && now < reaction.until ? reaction.kind : null;
   const mood: Mood = reacting ?? (waiting ? "wait" : running.length > 0 ? "work" : list.length > 0 ? "idle" : "sleep");
   // What the most recent running session is doing picks Clawd's work animation.
-  const work = workKind(running.length > 0 ? running[running.length - 1].tool : null);
+  const work = currentWork(running);
   const stopped = list.length - running.length;
 
   let title: string;

@@ -500,6 +500,22 @@ export const ipc = {
     return { sent: paths.length, skipped: 0 };
   },
 
+  /** Sends files dropped on the island to the Recycle Bin (they can be restored from there). */
+  async shelfTrash(paths: string[]): Promise<{ sent: number; skipped: number }> {
+    if (isTauri) return invoke("shelf_trash", { paths });
+    return { sent: paths.length, skipped: 0 };
+  },
+
+  /** How many items the Recycle Bin holds; null when Windows cannot tell. */
+  async recycleBinCount(): Promise<number | null> {
+    if (isTauri) return invoke<number | null>("recycle_bin_count");
+    return 12;
+  },
+
+  openRecycleBin(): Promise<void> {
+    return isTauri ? invoke<void>("open_recycle_bin") : Promise.resolve();
+  },
+
   async weather(city: string): Promise<Weather> {
     if (isTauri) return invoke<Weather>("weather", { city });
     const hours = Array.from({ length: 12 }, (_, i) => ({ hour: (new Date().getHours() + i) % 24, temp: 24 + Math.round(3 * Math.sin(i / 3)), rain: i === 4 ? 70 : i === 5 ? 85 : i === 6 ? 40 : 5, code: i > 3 && i < 7 ? 61 : 2 }));

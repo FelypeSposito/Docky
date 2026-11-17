@@ -3,11 +3,20 @@
 
 use std::{
     fs,
+    os::windows::ffi::OsStrExt,
     path::{Path, PathBuf},
+    sync::Mutex,
 };
 
 use serde::Serialize;
 use tauri::State;
+use windows::{
+    Win32::UI::Shell::{
+        FO_DELETE, FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT, FOF_WANTNUKEWARNING, SHFILEOPSTRUCTW,
+        SHFileOperationW, SHQUERYRBINFO, SHQueryRecycleBinW,
+    },
+    core::PCWSTR,
+};
 
 use crate::config::ConfigState;
 
@@ -62,9 +71,104 @@ pub async fn shelf_send(state: State<'_, ConfigState>, paths: Vec<String>, folde
     Ok(result)
 }
 
+/// How many dropped paths the island remembers: enough for any drop, small enough to never grow.
+const DROPPED_LIMIT: usize = 500;
+
+/// Paths dropped on the island. Only these can go to the Recycle Bin, so the page can never trash an arbitrary path.
+static DROPPED: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
+
+/// Called for every drop on the island (Docky's own drop target and wry's).
+pub fn remember(paths: &[PathBuf]) {
+    let mut dropped = DROPPED.lock().unwrap_or_else(|e| e.into_inner());
+    for path in paths {
+        if !dropped.contains(path) {
+            dropped.push(path.clone());
+        }
+    }
+    let extra = dropped.len().saturating_sub(DROPPED_LIMIT);
+    dropped.drain(..extra);
+}
+
+fn was_dropped(path: &Path) -> bool {
+    DROPPED.lock().unwrap_or_else(|e| e.into_inner()).iter().any(|p| p == path)
+}
+
+/// The paths as SHFileOperation wants them: each one ends with a NUL and the list ends with another.
+fn double_null_list(paths: &[PathBuf]) -> Vec<u16> {
+    let mut list: Vec<u16> = Vec::new();
+    for path in paths {
+        list.extend(path.as_os_str().encode_wide());
+        list.push(0);
+    }
+    list.push(0);
+    list
+}
+
+/// Sends the dropped files (and folders) to the Recycle Bin, where they can be restored. Windows asks first when an
+/// item cannot be recycled (too big, or on a drive without a Recycle Bin) instead of deleting it for good.
+#[tauri::command]
+pub async fn shelf_trash(paths: Vec<String>) -> Result<SendResult, String> {
+    let (items, skipped): (Vec<PathBuf>, Vec<PathBuf>) =
+        paths.iter().map(PathBuf::from).partition(|p| was_dropped(p) && p.exists());
+    let mut result = SendResult { sent: 0, skipped: skipped.len() };
+    if items.is_empty() {
+        return Ok(result);
+    }
+    let from = double_null_list(&items);
+    let mut op = SHFILEOPSTRUCTW {
+        wFunc: FO_DELETE,
+        pFrom: PCWSTR(from.as_ptr()),
+        fFlags: (FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI | FOF_WANTNUKEWARNING).0 as u16,
+        ..Default::default()
+    };
+    let code = unsafe { SHFileOperationW(&mut op) };
+    if code != 0 {
+        return Err(format!("o Windows não conseguiu mandar para a Lixeira (código {code})"));
+    }
+    if op.fAnyOperationsAborted.as_bool() {
+        return Err("cancelado: nada foi para a Lixeira".into());
+    }
+    // Anything still there was not recycled (for example, the user said no to deleting it for good).
+    result.sent = items.iter().filter(|p| !p.exists()).count();
+    result.skipped += items.len() - result.sent;
+    Ok(result)
+}
+
+/// How many items the Recycle Bin holds, across every drive.
+#[tauri::command]
+pub fn recycle_bin_count() -> Option<i64> {
+    let mut info = SHQUERYRBINFO { cbSize: std::mem::size_of::<SHQUERYRBINFO>() as u32, ..Default::default() };
+    unsafe { SHQueryRecycleBinW(PCWSTR::null(), &mut info) }.ok()?;
+    Some(info.i64NumItems)
+}
+
+/// Opens the Recycle Bin in Explorer.
+#[tauri::command]
+pub fn open_recycle_bin() -> Result<(), String> {
+    std::process::Command::new("explorer.exe")
+        .arg("shell:RecycleBinFolder")
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lista_para_o_windows_termina_com_dois_nulos() {
+        let list = double_null_list(&[PathBuf::from("a"), PathBuf::from("bc")]);
+        assert_eq!(list, vec![b'a' as u16, 0, b'b' as u16, b'c' as u16, 0, 0]);
+    }
+
+    #[test]
+    fn so_vai_para_a_lixeira_o_que_foi_solto_na_ilha() {
+        let path = PathBuf::from(r"C:\docky-test\nunca-solto.txt");
+        assert!(!was_dropped(&path));
+        remember(std::slice::from_ref(&path));
+        assert!(was_dropped(&path));
+    }
 
     #[test]
     fn nome_livre_e_numerado_quando_existe() {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { ipc } from "../../lib/ipc";
 import { useShelfImages } from "../../launcher/icons";
@@ -6,14 +6,17 @@ import { ItemIcon } from "../../launcher/ShortcutIcon";
 import { folderHint, reorderFolders, usableFolderEntries } from "../../shelf/folders";
 import { fileName, useShelfStore } from "../../shelf/store";
 import { EmptyState } from "../EmptyState";
-import { FileIcon, FolderIcon, TrayIcon } from "../icons";
+import { FileIcon, FolderIcon, TrashIcon, TrayIcon } from "../icons";
 import { useIslandStore } from "../store";
 import { useGridSort } from "../useGridSort";
 
 const COLORS = ["#4c8dff", "#8b5cf6", "#ff9f43", "#34d399"];
 const MAX_FOLDERS = 4;
 
-export function ShelfPage() {
+/** "vazia", "1 item", "12 itens": what the Recycle Bin tile says under its name. */
+const binLabel = (count: number | null) => (count === null ? "" : count === 0 ? "vazia" : count === 1 ? "1 item" : `${count} itens`);
+
+export function ShelfPage({ active }: { active: boolean }) {
   const configured = useConfigStore((s) => s.config.shelfFolders);
   const folders = useMemo(() => usableFolderEntries(configured).slice(0, MAX_FOLDERS), [configured]);
   const images = useShelfImages(configured);
@@ -26,6 +29,35 @@ export function ShelfPage() {
   );
   const { paths, dragging, clear } = useShelfStore();
   const [notice, setNotice] = useState<string | null>(null);
+  const [binCount, setBinCount] = useState<number | null>(null);
+
+  // The Recycle Bin count is read when the page opens, never polled.
+  useEffect(() => {
+    if (active) void ipc.recycleBinCount().then(setBinCount);
+  }, [active]);
+
+  const flash = (text: string) => {
+    setNotice(text);
+    setTimeout(() => setNotice(null), 3500);
+  };
+
+  /** With files on the shelf, the Recycle Bin takes them; without, it opens in Explorer. */
+  const trash = async () => {
+    if (paths.length === 0) {
+      void ipc.openRecycleBin();
+      return;
+    }
+    try {
+      const result = await ipc.shelfTrash(paths);
+      const skipped = result.skipped ? ` (${result.skipped} ${result.skipped === 1 ? "ficou" : "ficaram"} de fora)` : "";
+      flash(`${result.sent === 1 ? "1 item foi" : `${result.sent} itens foram`} para a Lixeira${skipped}`);
+      clear();
+      useIslandStore.setState({ pinned: false });
+      void ipc.recycleBinCount().then(setBinCount);
+    } catch (e) {
+      flash(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   const send = async (folder: { name: string; path: string }) => {
     if (paths.length === 0) return;
@@ -33,13 +65,12 @@ export function ShelfPage() {
       const result = await ipc.shelfSend(paths, folder.path);
       const skipped = result.skipped ? ` (${result.skipped} ignorado${result.skipped > 1 ? "s" : ""}: pastas não são enviadas)` : "";
       const plural = result.sent === 1 ? "" : "s";
-      setNotice(`${result.sent} arquivo${plural} ${move ? "movido" : "enviado"}${plural} para ${folder.name}${skipped}`);
+      flash(`${result.sent} arquivo${plural} ${move ? "movido" : "enviado"}${plural} para ${folder.name}${skipped}`);
       clear();
       useIslandStore.setState({ pinned: false });
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : String(e));
+      flash(e instanceof Error ? e.message : String(e));
     }
-    setTimeout(() => setNotice(null), 3500);
   };
 
   return (
@@ -98,6 +129,20 @@ export function ShelfPage() {
           ))}
         </div>
       )}
+
+      <button
+        className={`tile fd bin${paths.length > 0 ? " armed" : ""}`}
+        title={paths.length > 0 ? "Mandar para a Lixeira (dá para restaurar depois)" : "Abrir a Lixeira"}
+        onClick={trash}
+      >
+        <span className="fi">
+          <TrashIcon size={15} stroke={1.8} />
+        </span>
+        <span className="bin-tx">
+          <b>Lixeira</b>
+          <span>{paths.length > 0 ? "enviar" : binLabel(binCount)}</span>
+        </span>
+      </button>
     </div>
   );
 }

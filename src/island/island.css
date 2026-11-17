@@ -830,6 +830,28 @@
   width: 79px;
   height: 79px;
 }
+/* Clawd in the eyes' spot (eyes turned off, Claude Code working): same place, same vertical center as the eyes. */
+.eyes-clawd {
+  position: absolute;
+  left: 15px;
+  top: 3px;
+  z-index: 7;
+  animation: eyes-clawd-in 0.35s var(--ease) both;
+}
+@keyframes eyes-clawd-in {
+  from { opacity: 0; scale: 0.4; }
+}
+/* Smaller than in the notices, so what floats over his head (the gear, the thought bubble, the juggled balls) fits:
+   a 34 x 30 px window on SVG units -4.5 to 19 across and -6 to 15 down, at 1.43 px per unit. */
+.eyes-clawd .clawd-mini {
+  width: 34px;
+}
+.eyes-clawd .clawd-mini img {
+  left: -15px;
+  top: -27px;
+  width: 64px;
+  height: 64px;
+}
 .dot {
   flex: none;
   width: 7px;
@@ -1179,7 +1201,40 @@
 }
 
 .bento.sh {
-  grid-template-columns: 182px 1fr;
+  grid-template-columns: 150px 1fr 62px;
+}
+/* Recycle Bin: a narrow tile on the right of the Shelf. Opens the bin; with files on the shelf, takes them. */
+.fd.bin {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.fd.bin .fi {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink2);
+  transition: background 0.25s, color 0.25s;
+}
+.fd.bin .bin-tx {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+}
+.fd.bin b {
+  font-size: 12px;
+}
+.fd.bin.armed {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+.fd.bin.armed:hover {
+  background: rgba(255, 92, 92, 0.16);
+}
+.fd.bin.armed:hover .fi {
+  background: rgba(255, 92, 92, 0.85);
+  color: #fff;
 }
 .drop {
   display: flex;

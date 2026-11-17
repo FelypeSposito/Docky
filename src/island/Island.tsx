@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { currentWork, WAIT_CLAWD, WORK_CLAWD } from "../claude/clawd";
 import { runningSessions } from "../claude/sessions";
 import { startClaudeSync, useClaudeStore } from "../claude/store";
 import { useConfigStore } from "../config/useConfig";
@@ -311,6 +312,10 @@ export function Island() {
   const volumeLevel = volume?.muted ? 0 : (volume?.level ?? 0);
   const eyesMood: EyesMood = mode === "ask" ? "ask" : mode === "work" ? "work" : mode === "charge" || mode === "done" || mode === "timer" ? "wide" : "normal";
   const workSeconds = useSeconds(mode === "work" ? running[0]?.since : undefined);
+  const work = currentWork(running);
+  // With the eyes turned off, Clawd takes their place while Claude Code works (or waits for you). It is an animation,
+  // so "reduce motion" keeps the spot empty.
+  const clawdInEyes = eyesPhase === "gone" && !config.reduceMotion ? (asking ? WAIT_CLAWD : running.length > 0 ? WORK_CLAWD[work].src : null) : null;
 
   const islandStyle = {
     "--glow-strength": config.glow / 100,
@@ -320,12 +325,17 @@ export function Island() {
   } as React.CSSProperties;
 
   return (
-    <div ref={notchRef} className={`notch${eyesPhase === "gone" ? " no-eyes" : ""}`} data-mode={mode}>
+    <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}`} data-mode={mode}>
       <div className="ear l" />
       <div className="ear r" />
       <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick}>
         <div className={`glow${mode === "expanded" ? " on" : ""}`} />
         {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
+        {clawdInEyes && (
+          <span className="eyes-clawd" title={asking ? "O Claude espera você" : `Claude ${WORK_CLAWD[work].doing}`}>
+            <ClawdMini key={clawdInEyes} src={clawdInEyes} show />
+          </span>
+        )}
 
         <div className={`layer${mode === "idle" ? " on" : ""}`} style={{ width: idleSize.w }}>
           <div className="strip">
@@ -392,7 +402,7 @@ export function Island() {
             <div className="c pad">
               <span className="txt">{running[0]?.project}</span>
               <span className="txt sub">
-                escrevendo código · {fmtSeconds(workSeconds)}
+                {WORK_CLAWD[work].doing} · {fmtSeconds(workSeconds)}
                 {running.length > 1 ? ` · +${running.length - 1}` : ""}
               </span>
             </div>

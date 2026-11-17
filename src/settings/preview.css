@@ -250,7 +250,7 @@
 /* Shelf e agenda */
 .pv-shelf {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr 0.7fr;
   gap: 6px;
   height: 100%;
 }
@@ -262,6 +262,9 @@
   font-size: 10.5px;
   font-weight: 600;
   text-align: center;
+}
+.pv-bin {
+  color: var(--ink2);
 }
 .pv-drop {
   padding: 0 6px;

@@ -82,7 +82,7 @@ function AreaContent({ id }: { id: AreaId }) {
             </Row>
           </Group>
           <Group title="Olhinhos">
-            <Row label="Olhinhos" hint="O mascote no canto da ilha">
+            <Row label="Olhinhos" hint={config.eyes ? "O mascote no canto da ilha" : "Desligados, o Clawd aparece no lugar deles enquanto o Claude Code trabalha"}>
               <Toggle label="Olhinhos" value={config.eyes} onChange={(v) => update({ eyes: v })} />
             </Row>
             <Row label="Seguir o cursor" hint="Se desligado, olham para a frente">

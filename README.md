@@ -85,9 +85,10 @@ para criar o ID do cliente está em Configurações → Integrações. Veja tamb
 
 ## Páginas
 
-Música (com letra sincronizada), Foco (Pomodoro e contador livre), Notas (fixar e excluir para a Lixeira), Shelf,
+Música (com letra sincronizada), Foco (Pomodoro e contador livre), Notas (fixar e excluir para a Lixeira), Shelf (pastas de destino e a Lixeira do Windows),
 Agenda (clima com chuva, sensação, umidade, vento, UV e sol), Atalhos (apps, jogos, pastas, sites e grupos, com ícone
-próprio e confirmação ao abrir), e Claude.
+próprio e confirmação ao abrir), e Claude. Com os olhinhos desligados, o Clawd aparece no lugar deles enquanto o
+Claude Code trabalha.
 
 Os ícones de atalhos e pastas da Shelf podem ser uma foto, um emoji ou um desenho da biblioteca minimalista do
 Docky (`lib:nome`, em `src/launcher/iconLibrary.tsx`). Na tela expandida dos atalhos, o botão Sugestões oferece grupos

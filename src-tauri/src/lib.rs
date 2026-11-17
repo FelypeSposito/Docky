@@ -76,6 +76,9 @@ pub fn run() {
             apps::list_apps,
             picker::pick_path,
             shelf::shelf_send,
+            shelf::shelf_trash,
+            shelf::recycle_bin_count,
+            shelf::open_recycle_bin,
             weather::weather,
             claude::claude_decide,
             claude::claude_status,
@@ -105,6 +108,12 @@ pub fn run() {
             volume::set_volume,
             volume::set_muted,
         ])
+        // wry's own drop target (when it registers): remember what was dropped, like file_drop does.
+        .on_window_event(|_, event| {
+            if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
+                shelf::remember(paths);
+            }
+        })
         .setup(|app| {
             let handle = app.handle().clone();
             app.manage(config::ConfigState::load(&handle));

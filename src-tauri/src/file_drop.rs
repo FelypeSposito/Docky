@@ -101,6 +101,7 @@ impl IDropTarget_Impl for FileDropTarget_Impl {
     fn Drop(&self, data: windows::core::Ref<'_, IDataObject>, _keys: MODIFIERKEYS_FLAGS, _pt: &POINTL, _effect: *mut DROPEFFECT) -> windows::core::Result<()> {
         if self.valid.replace(false) {
             if let Some((paths, hdrop)) = data.as_ref().and_then(|d| unsafe { files_of(d) }) {
+                crate::shelf::remember(&paths);
                 self.emit("docky://drag-drop", paths);
                 unsafe { DragFinish(hdrop) };
             }
