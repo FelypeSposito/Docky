@@ -320,13 +320,21 @@ export function Island() {
       ipc.setIslandRect(rectFor.current(next));
       if (next !== spot) useConfigStore.getState().update({ islandPosition: next });
     },
+    onHome: () => {
+      if (spot === 0.5) return;
+      // Open, it stays open while it glides away from under the mouse, so you see where it lands.
+      if (useIslandStore.getState().expanded) useIslandStore.setState({ pinned: true });
+      useConfigStore.getState().update({ islandPosition: 0.5 });
+    },
+    reduceMotion: config.reduceMotion,
   });
 
   const clock = useMemo(() => formatClock(now), [now]);
   const date = useMemo(() => formatDate(now, false), [now]);
 
   const onIslandClick = (e: React.MouseEvent) => {
-    if (drag.justDragged()) return;
+    // The second click of a double click (back to the center) must not undo what the first one did.
+    if (drag.justDragged() || e.detail > 1) return;
     if ((e.target as HTMLElement).closest("button, input, .track, [role=button]")) return;
     useIslandStore.getState().togglePin();
   };
@@ -358,7 +366,7 @@ export function Island() {
     <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}`} data-mode={mode}>
       <div className="ear l" />
       <div className="ear r" />
-      <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick} onPointerDown={drag.onPointerDown}>
+      <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick} onPointerDown={drag.onPointerDown} onDoubleClick={drag.onDoubleClick}>
         <div className={`glow${mode === "expanded" ? " on" : ""}`} />
         {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
         {clawdInEyes && (

@@ -165,6 +165,8 @@ pub struct Config {
     pub weather_unit: String,
     /// Shelf: mover os arquivos para o destino (apaga o original) em vez de copiar.
     pub shelf_move: bool,
+    /// Shelf: the Recycle Bin tile next to the folders.
+    pub shelf_trash: bool,
     /// Client ID do Google Cloud para o Google Agenda (o segredo fica no Gerenciador de Credenciais).
     pub google_client_id: String,
     /// Client ID of the person's own Discord app (Developer Portal); the secret stays in the Credential Manager.
@@ -242,6 +244,7 @@ impl Default for Config {
             hidden_pages: Vec::new(),
             weather_unit: "c".into(),
             shelf_move: false,
+            shelf_trash: true,
             shortcuts: Vec::new(),
             page_order: Vec::new(),
             pinned_notes: Vec::new(),

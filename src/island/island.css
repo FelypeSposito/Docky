@@ -21,16 +21,11 @@
   width: 246px;
   height: 36px;
   pointer-events: none;
-  transition: left 0.55s var(--ease), transform 0.55s var(--ease);
-}
-.notch.moving {
-  transition: none;
+  /* The glide to a new spot stretches it a little (useIslandDrag): from the top, like it hangs from the edge. */
+  transform-origin: 50% 0;
 }
 .notch.moving .island {
   cursor: grabbing;
-}
-.reduce-motion .notch {
-  transition: none;
 }
 
 .island {
@@ -1215,6 +1210,9 @@
 
 .bento.sh {
   grid-template-columns: 150px 1fr 62px;
+}
+.bento.sh.no-bin {
+  grid-template-columns: 182px 1fr;
 }
 /* Recycle Bin: a narrow tile on the right of the Shelf. Opens the bin; with files on the shelf, takes them. */
 .fd.bin {

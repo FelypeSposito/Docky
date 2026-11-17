@@ -155,7 +155,7 @@ export function Preview({ area }: { area: AreaId }) {
                 {name}
               </span>
             ))}
-            <span className="pv-folder pv-bin">Lixeira</span>
+            {config.shelfTrash && <span className="pv-folder pv-bin">Lixeira</span>}
           </div>
         </Open>
       );

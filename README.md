@@ -91,7 +91,8 @@ próprio e confirmação ao abrir), e Claude. Com os olhinhos desligados, o Claw
 Claude Code trabalha.
 
 A ilha fica no centro do topo ou em qualquer ponto dele, até encostada num canto: arraste pela pílula (ou pelo
-cabeçalho, com ela aberta) ou escolha em Configurações, Aparência.
+cabeçalho, com ela aberta) ou escolha em Configurações, Aparência. Duplo clique numa parte vazia a traz de volta ao
+centro.
 
 Os ícones de atalhos e pastas da Shelf podem ser uma foto, um emoji ou um desenho da biblioteca minimalista do
 Docky (`lib:nome`, em `src/launcher/iconLibrary.tsx`). Na tela expandida dos atalhos, o botão Sugestões oferece grupos

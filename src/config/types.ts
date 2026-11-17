@@ -61,6 +61,8 @@ export interface Config {
   hiddenPages: string[];
   weatherUnit: "c" | "f";
   shelfMove: boolean;
+  /** Shelf: the Recycle Bin tile next to the folders. */
+  shelfTrash: boolean;
   shortcuts: Shortcut[];
   pageOrder: string[];
   /** Notas fixadas no topo da lista (nomes de arquivo). */
@@ -130,6 +132,7 @@ export const DEFAULT_CONFIG: Config = {
   hiddenPages: [],
   weatherUnit: "c",
   shelfMove: false,
+  shelfTrash: true,
   shortcuts: [],
   pageOrder: [],
   pinnedNotes: [],
