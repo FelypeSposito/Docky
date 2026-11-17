@@ -81,6 +81,9 @@ function AreaContent({ id }: { id: AreaId }) {
             <Row label={t("Chamada na pílula")} hint={t("Enquanto um app usa o microfone: o tempo da chamada e um botão para mutar")}>
               <Toggle label={t("Chamada na pílula")} value={config.callPill} onChange={(v) => update({ callPill: v })} />
             </Row>
+            <Row label="Deixar espaço para a ilha" hint="Janelas maximizadas, como a do navegador, começam abaixo da pílula">
+              <Toggle label="Deixar espaço para a ilha" value={config.reserveSpace} onChange={(v) => update({ reserveSpace: v })} />
+            </Row>
           </Group>
           <Group title={t("Copiados")}>
             <Row

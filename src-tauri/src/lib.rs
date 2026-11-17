@@ -26,6 +26,7 @@ mod notes;
 mod pointer;
 mod power;
 mod reminders;
+mod reserve;
 mod settings_window;
 mod shell_icon;
 mod shelf;
@@ -172,6 +173,12 @@ pub fn run() {
             fullscreen::spawn(handle);
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|_app, event| {
+            // Devolve a faixa do topo antes de sair (se o Docky travar, o Windows devolve sozinho).
+            if let tauri::RunEvent::Exit = event {
+                reserve::release();
+            }
+        });
 }

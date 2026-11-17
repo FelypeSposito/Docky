@@ -8,7 +8,7 @@ use std::{
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, LogicalSize, Manager, Monitor, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
-use crate::config::ConfigState;
+use crate::{config::ConfigState, reserve};
 
 /// A janela é um painel transparente que cobre a faixa de cima da tela, de ponta a ponta; a ilha em si é desenhada
 /// pelo frontend, centralizada ou arrastada para um dos lados. Cabe a ilha na versão maior das páginas (640 x 400
@@ -153,6 +153,7 @@ pub fn reconcile(app: &AppHandle) -> tauri::Result<()> {
     let wanted = app.state::<ConfigState>().get().screens;
 
     let mut keep: HashSet<String> = HashSet::new();
+    let mut strips = Vec::new();
     for (n, index) in pick_screens(&ids, primary.as_deref(), &wanted).into_iter().enumerate() {
         let label = if n == 0 { MAIN_LABEL.to_string() } else { format!("island-{}", n + 1) };
         let window = match app.get_webview_window(&label) {
@@ -160,8 +161,10 @@ pub fn reconcile(app: &AppHandle) -> tauri::Result<()> {
             None => create(app, &label)?,
         };
         place_on(&window, &monitors[index])?;
+        strips.push(reserve::Strip::of_monitor(&monitors[index]));
         keep.insert(label);
     }
+    reserve::set_screens(strips);
     for window in windows(app) {
         if !keep.contains(window.label()) {
             let _ = window.close();
@@ -211,12 +214,19 @@ pub fn set_fullscreen(app: &AppHandle, value: bool) {
     }
 }
 
+/// A pessoa escondeu a ilha pela bandeja (não conta o esconder automático da tela cheia).
+pub fn user_hidden(app: &AppHandle) -> bool {
+    app.state::<Visibility>().user_hidden.load(Ordering::SeqCst)
+}
+
 fn apply(app: &AppHandle) {
     let state = app.state::<Visibility>();
     let hidden = state.user_hidden.load(Ordering::SeqCst) || state.fullscreen.load(Ordering::SeqCst);
     for window in windows(app) {
         let _ = if hidden { window.hide() } else { window.show() };
     }
+    // A faixa reservada no topo acompanha as telas da ilha e o esconder pela bandeja.
+    reserve::sync(app);
 }
 
 #[cfg(test)]
