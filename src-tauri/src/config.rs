@@ -130,6 +130,8 @@ pub struct Config {
     pub clock_12h: bool,
     /// Keeps the last texts you copied (in memory only) for the Copiados page.
     pub clipboard_history: bool,
+    /// The welcome card was seen (or closed). Off only on a brand-new install: see `ConfigState::load`.
+    pub onboarded: bool,
     pub reduce_motion: bool,
     /// Mostra a linha atual da letra na pílula quando a ilha está recolhida.
     pub lyric_pill: bool,
@@ -233,6 +235,7 @@ impl Default for Config {
             glass_edge: true,
             clock_12h: false,
             clipboard_history: true,
+            onboarded: false,
             reduce_motion: false,
             lyric_pill: true,
             lyric_delay_ms: 0,
@@ -280,6 +283,11 @@ impl Default for Config {
     }
 }
 
+/// A config saved before the welcome card existed: someone who already used Docky, who never needs the card.
+pub fn saved_before_welcome(saved: Option<&str>) -> bool {
+    saved.is_some_and(|text| !text.contains("\"onboarded\""))
+}
+
 pub struct ConfigState {
     path: PathBuf,
     current: Mutex<Config>,
@@ -293,10 +301,11 @@ impl ConfigState {
             .expect("não foi possível resolver a pasta de configuração");
         let _ = fs::create_dir_all(&dir);
         let path = dir.join("config.json");
-        let mut current: Config = fs::read_to_string(&path)
-            .ok()
-            .and_then(|text| serde_json::from_str(&text).ok())
-            .unwrap_or_default();
+        let text = fs::read_to_string(&path).ok();
+        let mut current: Config = text.as_deref().and_then(|text| serde_json::from_str(text).ok()).unwrap_or_default();
+        if saved_before_welcome(text.as_deref()) {
+            current.onboarded = true;
+        }
         normalize(&mut current);
         Self { path, current: Mutex::new(current) }
     }
@@ -382,7 +391,15 @@ pub fn set_config(
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, ShelfFolder, Shortcut, ShortcutSection, clean_path, normalize, normalize_paths, normalize_shortcuts};
+    use super::{Config, ShelfFolder, Shortcut, ShortcutSection, clean_path, normalize, normalize_paths, normalize_shortcuts, saved_before_welcome};
+
+    #[test]
+    fn so_quem_instala_agora_ve_as_boas_vindas() {
+        assert!(!saved_before_welcome(None));
+        assert!(saved_before_welcome(Some(r#"{"eyes":true,"glow":70}"#)));
+        assert!(!saved_before_welcome(Some(r#"{"eyes":true,"onboarded":false}"#)));
+        assert!(Config::default().hidden_pages.contains(&"cal".to_string()));
+    }
 
     #[test]
     fn tira_as_aspas_do_copiar_como_caminho() {

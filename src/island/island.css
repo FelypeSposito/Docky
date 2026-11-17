@@ -255,6 +255,72 @@
   background: #1fd15a;
   color: #04230f;
 }
+/* The welcome card (first run): over the page and the dock, under the header. */
+.welcome {
+  position: absolute;
+  inset: 48px 34px 14px 34px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #000;
+}
+.wl-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.wl-head b {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.wl-head span {
+  color: var(--ink2);
+  font-size: 12px;
+}
+.wl-tips {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  min-height: 0;
+}
+.wl-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 11px;
+}
+.wl-tip b {
+  margin-top: auto;
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.wl-tip > span:last-child {
+  color: var(--ink2);
+  font-size: 11px;
+  line-height: 1.3;
+}
+.wl-k {
+  align-self: flex-start;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 18%, transparent);
+  color: var(--accent, #ff5c7a);
+  font: 650 10.5px "Inter Variable", Inter, sans-serif;
+  letter-spacing: 0.02em;
+}
+.wl-act {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.wl-act .nbtn {
+  flex: none;
+  padding: 6px 14px;
+}
+
 /* Headphones' charge: a small battery filled to the percent, in the accent (red when low). */
 .bt-bat {
   position: relative;

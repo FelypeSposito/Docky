@@ -23,6 +23,7 @@ import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { glowOpacity, glowReach, islandAccent } from "./theme";
 import { useIslandDrag } from "./useIslandDrag";
+import { Welcome } from "./Welcome";
 import { visiblePages } from "./pageOrder";
 import { useIslandStore } from "./store";
 import celebrateSvg from "../assets/clawd/clawd-celebrating.svg";
@@ -287,6 +288,14 @@ export function Island() {
       }),
     [],
   );
+
+  // First run: the island on the main screen opens itself once, on the welcome card.
+  const loaded = useConfigStore((s) => s.loaded);
+  useEffect(() => {
+    if (!loaded || config.onboarded || document.body.dataset.window !== "island") return;
+    const timer = setTimeout(() => useIslandStore.setState({ expanded: true, pinned: true, peek: false }), 1200);
+    return () => clearTimeout(timer);
+  }, [loaded, config.onboarded]);
 
   // Esc recolhe e solta a ilha fixada.
   useEffect(() => {
@@ -616,6 +625,7 @@ export function Island() {
           </div>
 
           <ExpandedContent pageId={ActivePage.id} large={largeOn} active={mode === "expanded"} />
+          {loaded && !config.onboarded && <Welcome />}
         </div>
       </div>
     </div>

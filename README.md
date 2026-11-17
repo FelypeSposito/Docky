@@ -124,6 +124,9 @@ janelas e faria uma ilha abrir e fechar a outra. Apps, links, notas e configura�
 Com a letra da música ativa e o Claude Code trabalhando, a letra continua e um selo animado do Claude aparece no
 canto da pílula; sem letra, a faixa "Claude trabalhando" aparece como antes.
 
+Na primeira vez que o Docky abre, a ilha se abre sozinha com um cartão de boas-vindas: como ela abre, as teclas que
+funcionam de qualquer lugar e onde criar atalhos.
+
 ## Licença
 
 MIT: veja [LICENSE](LICENSE). As animações do Clawd vêm do clawd-pet, também MIT (`src/assets/clawd/LICENSE`).

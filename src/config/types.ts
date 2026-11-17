@@ -35,6 +35,8 @@ export interface Config {
   clock12h: boolean;
   /** Keeps the last texts you copied (in memory only) for the Copiados page. */
   clipboardHistory: boolean;
+  /** The welcome card was seen (or closed); off only on a brand-new install. */
+  onboarded: boolean;
   reduceMotion: boolean;
   lyricPill: boolean;
   lyricDelayMs: number;
@@ -121,6 +123,7 @@ export const DEFAULT_CONFIG: Config = {
   glassEdge: true,
   clock12h: false,
   clipboardHistory: true,
+  onboarded: false,
   reduceMotion: false,
   lyricPill: true,
   lyricDelayMs: 0,
