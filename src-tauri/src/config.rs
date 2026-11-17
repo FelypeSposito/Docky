@@ -134,6 +134,8 @@ pub struct Config {
     pub onboarded: bool,
     /// Asks GitHub, twice a day, whether a newer Docky was released (Settings, Geral, Sobre).
     pub check_updates: bool,
+    /// Interface language: "auto" (follow Windows), "pt" or "en".
+    pub language: String,
     pub reduce_motion: bool,
     /// Mostra a linha atual da letra na pílula quando a ilha está recolhida.
     pub lyric_pill: bool,
@@ -239,6 +241,7 @@ impl Default for Config {
             clipboard_history: true,
             onboarded: false,
             check_updates: true,
+            language: "auto".into(),
             reduce_motion: false,
             lyric_pill: true,
             lyric_delay_ms: 0,
@@ -380,6 +383,9 @@ pub fn set_config(
     state.save(&config).map_err(|e| e.to_string())?;
     *state.current.lock().unwrap() = config.clone();
     app.emit("config-changed", &config).map_err(|e| e.to_string())?;
+    if previous.language != config.language {
+        crate::tray::relabel(&app, &config.language);
+    }
     // Atalho novo sem ícone: busca o ícone dele em segundo plano.
     crate::icons::schedule(&app);
     if previous.screens != config.screens {

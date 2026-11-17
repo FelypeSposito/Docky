@@ -3,6 +3,7 @@ import type { Shortcut } from "../config/types";
 import { membersOf, newId, toggleMember } from "./model";
 import { type AppEntry, addAppToGroup, suggestedApps, useInstalledApps, whySuggested } from "./suggestions";
 import "./iconPicker.css";
+import { t } from "../i18n";
 
 interface GroupEditorProps {
   group: Shortcut;
@@ -31,19 +32,19 @@ export function GroupEditor({ group, shortcuts, onChange, onDone }: GroupEditorP
   const rename = () => name.trim() !== group.name && save({ ...group, name: name.trim() });
 
   return (
-    <div className="ip ge" role="dialog" aria-label={`Itens de ${group.name || "grupo"}`}>
+    <div className="ip ge" role="dialog" aria-label={t("Itens de {name}", { name: group.name || t("grupo") })}>
       <div className="ip-head">
         <input
           className="ge-name"
           value={name}
-          placeholder="Nome do grupo"
-          aria-label="Nome do grupo"
+          placeholder={t("Nome do grupo")}
+          aria-label={t("Nome do grupo")}
           autoFocus={!group.name}
           onChange={(e) => setName(e.target.value)}
           onBlur={rename}
           onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
         />
-        <input className="ge-search" value={query} placeholder="Buscar atalho ou app…" aria-label="Buscar atalho ou app" onChange={(e) => setQuery(e.target.value)} />
+        <input className="ge-search" value={query} placeholder={t("Buscar atalho ou app…")} aria-label={t("Buscar atalho ou app")} onChange={(e) => setQuery(e.target.value)} />
         <button
           className="ip-btn primary"
           onClick={() => {
@@ -51,16 +52,16 @@ export function GroupEditor({ group, shortcuts, onChange, onDone }: GroupEditorP
             onDone();
           }}
         >
-          Pronto
+          {t("Pronto")}
         </button>
       </div>
 
       <div className="ge-sec">
-        <h4>No grupo · abrem juntos, na ordem em que foram adicionados</h4>
+        <h4>{t("No grupo · abrem juntos, na ordem em que foram adicionados")}</h4>
         <div className="ge-chips">
-          {inside.length === 0 && <span className="ge-note">Nada ainda. Escolha abaixo.</span>}
+          {inside.length === 0 && <span className="ge-note">{t("Nada ainda. Escolha abaixo.")}</span>}
           {inside.map((s) => (
-            <button key={s.id} className="on" title="Tirar do grupo" onClick={() => save(toggleMember(group, s.id))}>
+            <button key={s.id} className="on" title={t("Tirar do grupo")} onClick={() => save(toggleMember(group, s.id))}>
               {s.name || "sem nome"} <i>✕</i>
             </button>
           ))}
@@ -69,7 +70,7 @@ export function GroupEditor({ group, shortcuts, onChange, onDone }: GroupEditorP
 
       {others.length > 0 && (
         <div className="ge-sec">
-          <h4>Seus atalhos</h4>
+          <h4>{t("Seus atalhos")}</h4>
           <div className="ge-chips">
             {others.map((s) => (
               <button key={s.id} onClick={() => save(toggleMember(group, s.id))}>
@@ -82,7 +83,7 @@ export function GroupEditor({ group, shortcuts, onChange, onDone }: GroupEditorP
 
       {installed.length > 0 && (
         <div className="ge-sec">
-          <h4>Apps instalados</h4>
+          <h4>{t("Apps instalados")}</h4>
           <div className="ge-chips">
             {installed.map((entry: AppEntry) => (
               <button key={entry.target} className="app" title={whySuggested(entry)} onClick={() => onChange(addAppToGroup(shortcuts, group.id, entry, newId))}>

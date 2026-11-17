@@ -14,6 +14,7 @@ import buildingSvg from "../../assets/clawd/clawd-working-building.svg";
 import { currentWork, WORK_CLAWD as WORK } from "../../claude/clawd";
 import { restAt } from "../../claude/rest";
 import { describeTurn, workKind } from "../../claude/sessions";
+import { t } from "../../i18n";
 
 type Mood = "work" | "wait" | "idle" | "sleep" | "coffee" | "gaming" | "celebrate" | "sad";
 
@@ -38,9 +39,11 @@ const UNIT = 6;
 const clock = (total: number) => `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 
 /** "agora", "há 4 min", "há 2 h": how long a session has been stopped. */
-const ago = (seconds: number) => (seconds < 60 ? "agora" : seconds < 3600 ? `há ${Math.floor(seconds / 60)} min` : `há ${Math.floor(seconds / 3600)} h`);
+const ago = (seconds: number) =>
+  seconds < 60 ? t("agora") : seconds < 3600 ? t("há {n} min", { n: Math.floor(seconds / 60) }) : t("há {n} h", { n: Math.floor(seconds / 3600) });
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** "1 projeto" / "3 projetos", in the interface's language ("{n}" is the count). */
+const plural = (n: number, one: string, many: string) => t(n === 1 ? `1 ${one}` : `{n} ${many}`, { n });
 
 function SessionRow({ session, now, asking }: { session: Session; now: number; asking: string | null }) {
   const seconds = Math.max(0, Math.floor((now - session.since) / 1000));
@@ -52,7 +55,13 @@ function SessionRow({ session, now, asking }: { session: Session; now: number; a
       </span>
       <b>{session.project}</b>
       <span className="cs-tx">
-        {state === "wait" ? `quer usar ${asking}` : state === "run" ? WORK[workKind(session.tool)].doing : session.last ? describeTurn(session.last) : "parada"}
+        {state === "wait"
+          ? t("quer usar {tool}", { tool: asking ?? "" })
+          : state === "run"
+            ? t(WORK[workKind(session.tool)].doing)
+            : session.last
+              ? describeTurn(session.last)
+              : t("parada")}
       </span>
       <em>{state === "done" ? ago(seconds) : clock(seconds)}</em>
     </div>
@@ -94,34 +103,35 @@ export function ClaudePage({ active }: { active: boolean }) {
   let title: string;
   let sub: string;
   if (reacting === "celebrate") {
-    title = "Terminou!";
+    title = t("Terminou!");
     // The session that just stopped is the one that went idle last.
     const finished = list.filter((s) => s.state === "idle" && s.last).sort((a, b) => b.since - a.since)[0];
     sub =
       running.length > 0
-        ? `Ainda escrevendo em ${plural(running.length, "projeto", "projetos")}`
+        ? t("Ainda escrevendo em {what}", { what: plural(running.length, "projeto", "projetos") })
         : finished?.last
           ? `${finished.project}: ${describeTurn(finished.last)}`
-          : "Pode conferir o resultado.";
+          : t("Pode conferir o resultado.");
   } else if (reacting === "sad") {
-    title = "Permissão negada";
-    sub = "Tudo bem, o Claude não vai fazer isso.";
+    title = t("Permissão negada");
+    sub = t("Tudo bem, o Claude não vai fazer isso.");
   } else if (waiting) {
-    title = "Esperando você";
-    sub = `${list.find((s) => s.id === waiting.sessionId)?.project ?? "Uma sessão"} quer usar ${waiting.toolName}`;
+    title = t("Esperando você");
+    sub = t("{project} quer usar {tool}", { project: list.find((s) => s.id === waiting.sessionId)?.project ?? t("Uma sessão"), tool: waiting.toolName });
   } else if (running.length > 0) {
-    title = WORK[work].doing.charAt(0).toUpperCase() + WORK[work].doing.slice(1);
-    sub = running.length === 1 ? `em ${running[0].project}` : `em ${plural(running.length, "projeto", "projetos")}`;
+    const doing = t(WORK[work].doing);
+    title = doing.charAt(0).toUpperCase() + doing.slice(1);
+    sub = t("em {what}", { what: running.length === 1 ? running[0].project : plural(running.length, "projeto", "projetos") });
     if (stopped > 0) sub += ` · ${plural(stopped, "parada", "paradas")}`;
   } else if (list.length > 0) {
-    title = "Tudo pronto";
+    title = t("Tudo pronto");
     sub = plural(stopped, "sessão parada", "sessões paradas");
   } else if (installed === false) {
-    title = "Falta ligar o Claude Code";
-    sub = "Instale os hooks nas Configurações para ver as sessões aqui.";
+    title = t("Falta ligar o Claude Code");
+    sub = t("Instale os hooks nas Configurações para ver as sessões aqui.");
   } else {
-    title = "Nenhuma sessão agora";
-    sub = "Quando você usar o Claude Code, ele aparece trabalhando aqui.";
+    title = t("Nenhuma sessão agora");
+    sub = t("Quando você usar o Claude Code, ele aparece trabalhando aqui.");
   }
 
   return (
@@ -133,7 +143,7 @@ export function ClaudePage({ active }: { active: boolean }) {
             key={mood === "work" ? `work-${work}` : mood}
             className="cs-clawd"
             src={mood === "work" ? WORK[work].src : CLAWD[mood].src}
-            alt={mood === "work" ? WORK[work].label : CLAWD[mood].label}
+            alt={t(mood === "work" ? WORK[work].label : CLAWD[mood].label)}
             draggable={false}
             style={{ width: CLAWD[mood].box * UNIT, height: CLAWD[mood].box * UNIT, translate: `${CLAWD[mood].dx * UNIT}px 0` }}
           />
@@ -153,7 +163,7 @@ export function ClaudePage({ active }: { active: boolean }) {
         ) : (
           installed === false && (
             <button className="btn sm cs-setup" onClick={() => ipc.openSettings("claude")}>
-              Abrir configurações
+              {t("Abrir configurações")}
             </button>
           )
         )}

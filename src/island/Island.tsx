@@ -38,6 +38,7 @@ import { inDiscordCall } from "./activity";
 import type { DiscordState } from "../lib/ipc";
 import "./island.css";
 import "./quick/quick.css";
+import { t } from "../i18n";
 
 const CHARGE_NOTICE_MS = 3400;
 /** Páginas com campo próprio no cabeçalho (a busca dos Atalhos, a nota rápida); as outras ganham a busca geral. */
@@ -117,7 +118,7 @@ function TimerChip({ mode, left, total }: { mode: TimerMode; left: number; total
   const length = 2 * Math.PI * r;
   const rest = total > 0 ? Math.min(1, Math.max(0, left / total)) : 0;
   return (
-    <span className={`tchip ${mode}`} title={`${LABELS[mode]}: faltam ${timerClock(left)}`}>
+    <span className={`tchip ${mode}`} title={t("{mode}: faltam {left}", { mode: t(LABELS[mode]), left: timerClock(left) })}>
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
         <circle className="bg" cx="8" cy="8" r={r} />
         <circle className="fg" cx="8" cy="8" r={r} strokeDasharray={length} strokeDashoffset={length * (1 - rest)} />
@@ -140,17 +141,17 @@ function CallChip({ app, since, muted, discord }: { app: string; since: number |
   const time = since !== null ? <b>{formatElapsed((now - since) / 1000)}</b> : null;
   if (inDiscordCall(discord)) {
     return (
-      <span className={`cchip dcchip${discord.muted || discord.deafened ? " muted" : ""}`} title={`No Discord: ${discord.channel}`}>
+      <span className={`cchip dcchip${discord.muted || discord.deafened ? " muted" : ""}`} title={t("No Discord: {channel}", { channel: discord.channel ?? "" })}>
         <DiscordButtons discord={discord} size="sm" />
         {time}
       </span>
     );
   }
   return (
-    <span className={`cchip${muted ? " muted" : ""}`} title={`Em chamada no ${app}`}>
+    <span className={`cchip${muted ? " muted" : ""}`} title={t("Em chamada no {app}", { app })}>
       <button
         className="cchip-mic"
-        aria-label={muted ? "Ativar o microfone" : "Mutar o microfone"}
+        aria-label={t(muted ? "Ativar o microfone" : "Mutar o microfone")}
         aria-pressed={muted}
         onClick={() => useActivityStore.getState().toggleMic()}
       >
@@ -384,7 +385,7 @@ export function Island() {
         <div className={`glow${mode === "expanded" ? " on" : ""}`} />
         {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
         {clawdInEyes && (
-          <span className="eyes-clawd" title={asking ? "O Claude espera você" : `Claude ${WORK_CLAWD[work].doing}`}>
+          <span className="eyes-clawd" title={asking ? t("O Claude espera você") : `Claude ${t(WORK_CLAWD[work].doing)}`}>
             <ClawdMini key={clawdInEyes} src={clawdInEyes} show />
           </span>
         )}
@@ -412,7 +413,7 @@ export function Island() {
             {mode === "lyric" && (lyricActive ? <PillLyric text={lineText} /> : <PillSong title={media?.title ?? ""} artist={media?.artist ?? ""} />)}
             <div className="r">
               {claudeBadge(mode, claude) && (
-                <span className="cw-badge" title={`Claude trabalhando em ${running[0]?.project ?? "um projeto"}`}>
+                <span className="cw-badge" title={t("Claude trabalhando em {project}", { project: running[0]?.project ?? t("um projeto") })}>
                   <ClaudeSpinner />
                 </span>
               )}
@@ -424,7 +425,7 @@ export function Island() {
         <div className={`layer${mode === "charge" ? " on" : ""}`} style={{ width: SIZES.charge.w }}>
           <div className="strip">
             <div className="c pad">
-              <span className="txt">Carregando</span>
+              <span className="txt">{t("Carregando")}</span>
               {showBattery && <span className="txt sub">{power?.percent}%</span>}
             </div>
             <div className="r">
@@ -454,7 +455,7 @@ export function Island() {
             <div className="c pad">
               <span className="txt">{running[0]?.project}</span>
               <span className="txt sub">
-                {WORK_CLAWD[work].doing} · {fmtSeconds(workSeconds)}
+                {t(WORK_CLAWD[work].doing)} · {fmtSeconds(workSeconds)}
                 {running.length > 1 ? ` · +${running.length - 1}` : ""}
               </span>
             </div>
@@ -467,8 +468,8 @@ export function Island() {
         <div className={`layer alarm${mode === "timer" ? " on" : ""}`} style={{ width: SIZES.timer.w }}>
           <div className="strip">
             <div className="c pad">
-              <span className="txt">{timerFinished === "focus" ? "Foco concluído" : timerFinished === "custom" ? "Contador acabou" : "Pausa acabou"}</span>
-              <span className="txt sub">{timerFinished === "custom" ? "Tempo esgotado" : timerFinished === "focus" ? "Hora da pausa" : "Hora de focar"}</span>
+              <span className="txt">{t(timerFinished === "focus" ? "Foco concluído" : timerFinished === "custom" ? "Contador acabou" : "Pausa acabou")}</span>
+              <span className="txt sub">{t(timerFinished === "custom" ? "Tempo esgotado" : timerFinished === "focus" ? "Hora da pausa" : "Hora de focar")}</span>
             </div>
             <div className="r">
               {alarmClawd ? (
@@ -490,10 +491,10 @@ export function Island() {
                   <span className="txt done-p" title={finishedSession.project}>
                     {finishedSession.project}
                   </span>
-                  <span className="txt sub">terminou{finishedSession.last ? ` · ${describeTurn(finishedSession.last)}` : ""}</span>
+                  <span className="txt sub">{t("terminou")}{finishedSession.last ? ` · ${describeTurn(finishedSession.last)}` : ""}</span>
                 </>
               ) : (
-                <span className="txt">Claude terminou</span>
+                <span className="txt">{t("Claude terminou")}</span>
               )}
             </div>
             <div className="r">
@@ -507,7 +508,7 @@ export function Island() {
           <div className="strip">
             <div className="c pad">
               <span className="txt">{game?.app}</span>
-              <span className="txt sub">{game ? (game.video ? `${formatMinutes(game.minutes)} em tela cheia` : `jogou ${formatMinutes(game.minutes)}`) : ""}</span>
+              <span className="txt sub">{game ? (game.video ? t("{time} em tela cheia", { time: formatMinutes(game.minutes) }) : t("jogou {time}", { time: formatMinutes(game.minutes) })) : ""}</span>
             </div>
             <div className="r">{!game?.video && <ClawdMini src={gamingSvg} show={mode === "game"} />}</div>
           </div>
@@ -519,7 +520,7 @@ export function Island() {
               <span className="txt" title={reminder?.text}>
                 {reminder?.text}
               </span>
-              <span className="txt sub">lembrete</span>
+              <span className="txt sub">{t("lembrete")}</span>
             </div>
             <div className="r">
               <ClawdMini src={WAIT_CLAWD} show={mode === "reminder"} />
@@ -533,7 +534,7 @@ export function Island() {
               <span className="txt" title={headset?.name}>
                 {headset?.name}
               </span>
-              <span className={`txt sub${headset?.low ? " bt-low" : ""}`}>{headset ? (headset.low ? `bateria baixa · ${headset.percent}%` : `${headset.percent}%`) : ""}</span>
+              <span className={`txt sub${headset?.low ? " bt-low" : ""}`}>{headset ? (headset.low ? t("bateria baixa · {n}%", { n: headset.percent }) : `${headset.percent}%`) : ""}</span>
             </div>
             <div className="r">
               {/* The headphones' charge as a small battery: red at 20% or less. */}
@@ -547,14 +548,14 @@ export function Island() {
         <div className={`layer${mode === "download" ? " on" : ""}`} style={{ width: SIZES.download.w }}>
           <div className="strip">
             <div className="c pad dl-done">
-              <span className="txt">Download concluído</span>
+              <span className="txt">{t("Download concluído")}</span>
               <span className="txt sub" title={finishedDownload?.name}>
                 {finishedDownload?.name}
               </span>
             </div>
             <div className="r">
               <button className="pill-btn" onClick={() => finishedDownload && ipc.revealDownload(finishedDownload.path)}>
-                Mostrar
+                {t("Mostrar")}
               </button>
             </div>
           </div>
@@ -577,22 +578,22 @@ export function Island() {
             <>
               <div className="ask-top">
                 <span className="dot wait" />
-                Claude Code pede permissão
+                {t("Claude Code pede permissão")}
                 {permissions.length > 1 ? ` · +${permissions.length - 1}` : ""}
               </div>
               <div className="ask-meta">
                 <span className="chip">{asking.toolName}</span>
-                <span>projeto {asking.project}</span>
+                <span>{t("projeto {project}", { project: asking.project })}</span>
               </div>
               <div className="ask-cmd mono" title={asking.summary}>
                 {asking.summary}
               </div>
               <div className="ask-btns">
                 <button className="btn-deny" onClick={() => useClaudeStore.getState().decide(asking.id, false)}>
-                  Negar
+                  {t("Negar")}
                 </button>
                 <button id="docky-allow" className="btn-allow" onClick={() => useClaudeStore.getState().decide(asking.id, true)}>
-                  Permitir
+                  {t("Permitir")}
                 </button>
               </div>
             </>
@@ -628,8 +629,8 @@ export function Island() {
               {canExpand && (
                 <button
                   className="xbtn"
-                  aria-label={largeOn ? "Voltar ao tamanho normal" : "Expandir esta página"}
-                  title={largeOn ? "Voltar ao tamanho normal" : "Expandir"}
+                  aria-label={t(largeOn ? "Voltar ao tamanho normal" : "Expandir esta página")}
+                  title={t(largeOn ? "Voltar ao tamanho normal" : "Expandir")}
                   onClick={() => useIslandStore.getState().toggleLarge()}
                 >
                   {largeOn ? <ShrinkIcon /> : <ExpandIcon />}

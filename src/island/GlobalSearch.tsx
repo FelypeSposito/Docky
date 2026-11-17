@@ -16,6 +16,7 @@ import { visiblePages } from "./pageOrder";
 import { PAGES } from "./pages/registry";
 import { type Candidate, noteTitle, rank } from "./search";
 import { useIslandStore } from "./store";
+import { t } from "../i18n";
 
 interface Item extends Candidate {
   icon: ReactNode;
@@ -84,7 +85,9 @@ export function GlobalSearch({ active }: { active: boolean }) {
     list.push({
       id: "a:timer",
       kind: "action",
-      title: timer.running ? `Pausar o ${LABELS[timer.mode]}` : `Iniciar ${LABELS[timer.mode] === "Foco" ? "o Foco" : LABELS[timer.mode]} (${Math.round(timer.total / 60)} min)`,
+      title: timer.running
+        ? t("Pausar: {mode}", { mode: t(LABELS[timer.mode]) })
+        : t("Iniciar: {mode} ({min} min)", { mode: t(LABELS[timer.mode]), min: Math.round(timer.total / 60) }),
       keywords: "foco pomodoro timer contador pausa",
       icon: <TimerIcon size={15} />,
       run: () => {
@@ -96,7 +99,7 @@ export function GlobalSearch({ active }: { active: boolean }) {
       list.push({
         id: "a:play",
         kind: "action",
-        title: playing ? "Pausar a música" : "Tocar a música",
+        title: t(playing ? "Pausar a música" : "Tocar a música"),
         keywords: "musica play pause tocar parar",
         icon: playing ? <PauseIcon size={14} /> : <PlayIcon size={14} />,
         run: () => {
@@ -107,7 +110,7 @@ export function GlobalSearch({ active }: { active: boolean }) {
       list.push({
         id: "a:next",
         kind: "action",
-        title: "Próxima música",
+        title: t("Próxima música"),
         keywords: "musica pular avancar faixa",
         icon: <NextIcon size={14} />,
         run: () => {
@@ -119,7 +122,7 @@ export function GlobalSearch({ active }: { active: boolean }) {
     list.push({
       id: "a:settings",
       kind: "action",
-      title: "Abrir as Configurações",
+      title: t("Abrir as Configurações"),
       keywords: "ajustes opcoes preferencias config",
       icon: <GearIcon size={15} />,
       run: () => {
@@ -131,7 +134,7 @@ export function GlobalSearch({ active }: { active: boolean }) {
       list.push({
         id: `p:${id}`,
         kind: "page",
-        title: label,
+        title: t(label),
         icon: <Icon size={15} />,
         run: () => {
           useIslandStore.getState().setPage(id);
@@ -164,7 +167,7 @@ export function GlobalSearch({ active }: { active: boolean }) {
       found.unshift({
         id: "a:site",
         kind: "action",
-        title: `Criar atalho para ${siteHost(link)}`,
+        title: t("Criar atalho para {site}", { site: siteHost(link) }),
         icon: <GlobeIcon size={15} />,
         run: () => {
           addSiteShortcut(link);
@@ -177,7 +180,7 @@ export function GlobalSearch({ active }: { active: boolean }) {
       found.push({
         id: "a:note",
         kind: "action",
-        title: `Salvar como nota: “${query.trim()}”`,
+        title: t("Salvar como nota: “{text}”", { text: query.trim() }),
         icon: <NoteIcon size={15} />,
         run: () => {
           ipc.notesSave(stamp(new Date()), query.trim()).then(() => setNotes([])).catch(() => {});
@@ -195,8 +198,8 @@ export function GlobalSearch({ active }: { active: boolean }) {
       <HeaderField
         icon={<SearchIcon />}
         value={query}
-        label="Buscar no Docky"
-        placeholder="Buscar no Docky"
+        label={t("Buscar no Docky")}
+        placeholder={t("Buscar no Docky")}
         onChange={(value) => {
           setQuery(value);
           setSelected(0);
@@ -212,9 +215,9 @@ export function GlobalSearch({ active }: { active: boolean }) {
         typeToFocus
       />
       {searching && (
-        <div className="gs" role="listbox" aria-label="Resultados da busca">
+        <div className="gs" role="listbox" aria-label={t("Resultados da busca")}>
           {results.length === 0 ? (
-            <p className="gs-none">Nada com “{query.trim()}”.</p>
+            <p className="gs-none">{t("Nada com “{text}”.", { text: query.trim() })}</p>
           ) : (
             results.map((item, i) => (
               <button
@@ -228,9 +231,9 @@ export function GlobalSearch({ active }: { active: boolean }) {
                 <span className={`gs-ic ${item.kind}`}>{item.icon}</span>
                 <span className="gs-t">
                   <b>{item.title}</b>
-                  {confirming === item.id ? <em className="ask">Enter de novo para abrir</em> : item.detail && <em>{item.detail}</em>}
+                  {confirming === item.id ? <em className="ask">{t("Enter de novo para abrir")}</em> : item.detail && <em>{item.detail}</em>}
                 </span>
-                <i>{KIND_LABEL[item.kind]}</i>
+                <i>{t(KIND_LABEL[item.kind])}</i>
               </button>
             ))
           )}

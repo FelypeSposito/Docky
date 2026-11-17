@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ipc } from "../../lib/ipc";
 import { FolderIcon } from "../icons";
+import { t } from "../../i18n";
 
 /** Os controles dos ajustes rápidos: os mesmos da janela de configurações, no visual da ilha. */
 
@@ -16,8 +17,8 @@ export function QRow({ label, hint, children }: { label: string; hint?: string; 
   return (
     <div className="qs-row">
       <div className="qs-l">
-        <b>{label}</b>
-        {hint && <span>{hint}</span>}
+        <b>{t(label)}</b>
+        {hint && <span>{t(hint)}</span>}
       </div>
       <div className="qs-c">{children}</div>
     </div>
@@ -107,7 +108,7 @@ export function QPath({
   return (
     <span className="qs-path">
       <QText value={value} placeholder={placeholder} label={label} width={width} onCommit={onCommit} />
-      <QIconButton label={kind === "folder" ? "Escolher a pasta" : "Escolher no computador"} onClick={() => void ipc.pickPath(kind).then((path) => path && onCommit(path))}>
+      <QIconButton label={t(kind === "folder" ? "Escolher a pasta" : "Escolher no computador")} onClick={() => void ipc.pickPath(kind).then((path) => path && onCommit(path))}>
         <FolderIcon />
       </QIconButton>
     </span>

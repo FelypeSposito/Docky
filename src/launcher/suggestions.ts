@@ -4,6 +4,7 @@ import type { Shortcut } from "../config/types";
 import { useConfigStore } from "../config/useConfig";
 import { ipc } from "../lib/ipc";
 import { cleanTarget } from "./model";
+import { t } from "../i18n";
 
 /** De onde veio um app instalado: o Menu Iniciar (e a Loja), a biblioteca da Steam ou a da Epic Games. */
 export type AppKind = "app" | "steam" | "epic";
@@ -92,7 +93,7 @@ export function resolveTemplate(template: GroupTemplate, shortcuts: Shortcut[], 
     seen.add(key);
     return r;
   });
-  const group = shortcuts.find((s) => s.group && s.name.trim().toLowerCase() === template.name.toLowerCase());
+  const group = shortcuts.find((s) => s.group && isTemplateName(s.name, template.name));
   return {
     apps: unique,
     found: unique.filter((r) => r.shortcutId || r.app).length,
@@ -127,14 +128,14 @@ export function buildGroup(template: GroupTemplate, shortcuts: Shortcut[], apps:
       members.push(created.id);
     }
   }
-  const group: Shortcut = { id: makeId(), name: template.name, target: "", icon: template.icon, group: true, members };
+  const group: Shortcut = { id: makeId(), name: t(template.name), target: "", icon: template.icon, group: true, members };
   return [...shortcuts, ...added, group];
 }
 
 /** Põe no grupo que já existe os apps do modelo que ainda não estavam nele (criando os atalhos que faltam). */
 export function completeGroup(template: GroupTemplate, shortcuts: Shortcut[], apps: AppEntry[], makeId: () => string): Shortcut[] {
   const resolved = resolveTemplate(template, shortcuts, apps);
-  const group = shortcuts.find((s) => s.group && s.name.trim().toLowerCase() === template.name.toLowerCase());
+  const group = shortcuts.find((s) => s.group && isTemplateName(s.name, template.name));
   if (!group || resolved.missing === 0) return shortcuts;
   const added: Shortcut[] = [];
   const members = [...group.members];
@@ -163,6 +164,12 @@ export function addAppToGroup(shortcuts: Shortcut[], groupId: string, entry: App
 }
 
 const kindOf = (entry: AppEntry): AppKind => entry.kind ?? "app";
+
+/** A group made from a template, under its Portuguese name or the one it got in the interface's language. */
+const isTemplateName = (name: string, templateName: string) => {
+  const given = name.trim().toLowerCase();
+  return given === templateName.toLowerCase() || given === t(templateName).toLowerCase();
+};
 
 /** Os apps mais usados que ainda não são atalhos (só os que têm algum sinal de uso, ou os primeiros por nome). Jogos ficam de fora. */
 export function suggestedApps(apps: AppEntry[], shortcuts: Shortcut[], limit = 10): AppEntry[] {

@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /** A busca geral do Docky: acha atalhos, páginas, notas e ações a partir do que foi digitado no cabeçalho. */
 
 export type ResultKind = "action" | "shortcut" | "page" | "note";
@@ -47,5 +48,5 @@ export function rank<T extends Candidate>(candidates: T[], query: string, limit 
 /** O título de uma nota: a primeira linha com texto, sem marcação de título do Markdown. */
 export function noteTitle(text: string): string {
   const line = text.split("\n").find((l) => l.trim() !== "") ?? "";
-  return line.replace(/^#+\s*/, "").trim() || "Nota sem texto";
+  return line.replace(/^#+\s*/, "").trim() || t("Nota sem texto");
 }

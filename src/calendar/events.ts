@@ -1,4 +1,5 @@
 import { formatClock } from "../lib/format";
+import { t } from "../i18n";
 
 export interface CalEvent {
   id: string;
@@ -48,7 +49,7 @@ export function groupByDay(events: CalEvent[], now: number): DayGroup[] {
     .map(([day, list]) => {
       const date = new Date(day);
       const days = Math.round((day - today) / (24 * HOUR));
-      const label = days === 0 ? "Hoje" : days === 1 ? "Amanhã" : `${WEEKDAYS[date.getDay()]}, ${String(date.getDate()).padStart(2, "0")} ${MONTHS[date.getMonth()]}`;
+      const label = days === 0 ? t("Hoje") : days === 1 ? t("Amanhã") : `${t(WEEKDAYS[date.getDay()])}, ${String(date.getDate()).padStart(2, "0")} ${t(MONTHS[date.getMonth()])}`;
       return { label, events: list };
     });
 }
@@ -61,20 +62,20 @@ export function timeRange(event: CalEvent): string {
 
 /** Quando o evento começa, em poucas palavras: "agora", "em 12 min", "em 2 h", "hoje · 15:30", "amanhã · 09:00". */
 export function untilLabel(event: CalEvent, now: number): string {
-  if (event.allDay) return "dia todo";
-  if (event.startMs <= now) return "agora";
+  if (event.allDay) return t("dia todo");
+  if (event.startMs <= now) return t("agora");
 
   const diff = event.startMs - now;
-  if (diff < HOUR) return `em ${Math.max(1, Math.ceil(diff / MINUTE))} min`;
+  if (diff < HOUR) return t("em {n} min", { n: Math.max(1, Math.ceil(diff / MINUTE)) });
   if (diff < 6 * HOUR) {
     const hours = Math.floor(diff / HOUR);
     const minutes = Math.round((diff % HOUR) / MINUTE);
-    return minutes === 0 || minutes === 60 ? `em ${hours + (minutes === 60 ? 1 : 0)} h` : `em ${hours} h ${minutes} min`;
+    return minutes === 0 || minutes === 60 ? t("em {n} h", { n: hours + (minutes === 60 ? 1 : 0) }) : t("em {h} h {m} min", { h: hours, m: minutes });
   }
 
   const start = new Date(event.startMs);
   const days = Math.round((dayStart(start) - dayStart(new Date(now))) / (24 * HOUR));
-  const when = days === 0 ? "hoje" : days === 1 ? "amanhã" : `${String(start.getDate()).padStart(2, "0")} ${MONTHS[start.getMonth()]}`;
+  const when = days === 0 ? t("hoje") : days === 1 ? t("amanhã") : `${String(start.getDate()).padStart(2, "0")} ${t(MONTHS[start.getMonth()])}`;
   return `${when} · ${formatClock(start)}`;
 }
 

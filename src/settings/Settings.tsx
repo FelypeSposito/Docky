@@ -14,6 +14,7 @@ import { ISLAND_COLORS, islandColor } from "../island/theme";
 import { Group, NumberStepper, Row, Segmented, Slider, Stepper, Swatches, Toggle } from "./controls";
 import { Preview } from "./Preview";
 import "./settings.css";
+import { t } from "../i18n";
 
 /** Where the project lives: releases, issues and ideas. */
 const REPO_URL = "https://github.com/FelypeSposito/Docky";
@@ -50,30 +51,44 @@ function AreaContent({ id }: { id: AreaId }) {
     case "geral":
       return (
         <>
-          <Group title="Ao ligar">
-            <Row label="Iniciar com o Windows" hint="Abre o Docky quando você entra no PC">
-              <Toggle label="Iniciar com o Windows" value={config.startWithWindows} onChange={(v) => update({ startWithWindows: v })} />
+          <Group title="Idioma">
+            <Row label="Idioma da interface" hint="Automático segue o idioma do Windows">
+              <Segmented
+                label="Idioma da interface"
+                value={config.language === "pt" || config.language === "en" ? config.language : "auto"}
+                options={[
+                  { value: "auto", label: "Automático" },
+                  { value: "pt", label: "Português" },
+                  { value: "en", label: "English" },
+                ]}
+                onChange={(v) => update({ language: v })}
+              />
+            </Row>
+          </Group>
+          <Group title={t("Ao ligar")}>
+            <Row label={t("Iniciar com o Windows")} hint={t("Abre o Docky quando você entra no PC")}>
+              <Toggle label={t("Iniciar com o Windows")} value={config.startWithWindows} onChange={(v) => update({ startWithWindows: v })} />
             </Row>
             <ScreensRow />
           </Group>
-          <Group title="Comportamento">
-            <Row label="Abrir ao passar o mouse" hint="Desligado, passar o mouse mostra o player (com música) ou um resumo, e a ilha abre com clique ou Ctrl+Alt+D">
-              <Toggle label="Abrir ao passar o mouse" value={config.hoverOpen} onChange={(v) => update({ hoverOpen: v })} />
+          <Group title={t("Comportamento")}>
+            <Row label={t("Abrir ao passar o mouse")} hint={t("Desligado, passar o mouse mostra o player (com música) ou um resumo, e a ilha abre com clique ou Ctrl+Alt+D")}>
+              <Toggle label={t("Abrir ao passar o mouse")} value={config.hoverOpen} onChange={(v) => update({ hoverOpen: v })} />
             </Row>
-            <Row label="Esconder em tela cheia" hint="Jogos, vídeos e apresentações">
-              <Toggle label="Esconder em tela cheia" value={config.hideInFullscreen} onChange={(v) => update({ hideInFullscreen: v })} />
+            <Row label={t("Esconder em tela cheia")} hint={t("Jogos, vídeos e apresentações")}>
+              <Toggle label={t("Esconder em tela cheia")} value={config.hideInFullscreen} onChange={(v) => update({ hideInFullscreen: v })} />
             </Row>
-            <Row label="Chamada na pílula" hint="Enquanto um app usa o microfone: o tempo da chamada e um botão para mutar">
-              <Toggle label="Chamada na pílula" value={config.callPill} onChange={(v) => update({ callPill: v })} />
+            <Row label={t("Chamada na pílula")} hint={t("Enquanto um app usa o microfone: o tempo da chamada e um botão para mutar")}>
+              <Toggle label={t("Chamada na pílula")} value={config.callPill} onChange={(v) => update({ callPill: v })} />
             </Row>
           </Group>
-          <Group title="Copiados">
+          <Group title={t("Copiados")}>
             <Row
-              label="Histórico do que você copia"
-              hint="Os últimos 10 textos, só na memória: somem quando o Docky fecha. Senhas copiadas de gerenciadores ficam de fora"
+              label={t("Histórico do que você copia")}
+              hint={t("Os últimos 10 textos, só na memória: somem quando o Docky fecha. Senhas copiadas de gerenciadores ficam de fora")}
             >
               <Toggle
-                label="Histórico do que você copia"
+                label={t("Histórico do que você copia")}
                 value={config.clipboardHistory}
                 onChange={(v) => {
                   update({ clipboardHistory: v });
@@ -82,48 +97,48 @@ function AreaContent({ id }: { id: AreaId }) {
               />
             </Row>
           </Group>
-          <Group title="Avisos curtos">
-            <Row label="Aviso do carregador" hint="Quando você liga o carregador">
-              <Toggle label="Aviso do carregador" value={config.noticeCharge} onChange={(v) => update({ noticeCharge: v })} />
+          <Group title={t("Avisos curtos")}>
+            <Row label={t("Aviso do carregador")} hint={t("Quando você liga o carregador")}>
+              <Toggle label={t("Aviso do carregador")} value={config.noticeCharge} onChange={(v) => update({ noticeCharge: v })} />
             </Row>
-            <Row label="Aviso de volume" hint="A barra de volume quando ele muda">
-              <Toggle label="Aviso de volume" value={config.noticeVolume} onChange={(v) => update({ noticeVolume: v })} />
+            <Row label={t("Aviso de volume")} hint={t("A barra de volume quando ele muda")}>
+              <Toggle label={t("Aviso de volume")} value={config.noticeVolume} onChange={(v) => update({ noticeVolume: v })} />
             </Row>
-            <Row label="Aviso do Foco" hint="Quando um foco ou uma pausa termina">
-              <Toggle label="Aviso do Foco" value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
+            <Row label={t("Aviso do Foco")} hint={t("Quando um foco ou uma pausa termina")}>
+              <Toggle label={t("Aviso do Foco")} value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
             </Row>
-            <Row label="Resumo do jogo" hint="Quando você sai de um jogo em tela cheia: quanto tempo jogou">
-              <Toggle label="Resumo do jogo" value={config.noticeGame} onChange={(v) => update({ noticeGame: v })} />
+            <Row label={t("Resumo do jogo")} hint={t("Quando você sai de um jogo em tela cheia: quanto tempo jogou")}>
+              <Toggle label={t("Resumo do jogo")} value={config.noticeGame} onChange={(v) => update({ noticeGame: v })} />
             </Row>
-            <Row label="Bateria do fone" hint="Quando um fone Bluetooth conecta, a carga dele; e um aviso quando ela fica em 20% (se o fone informa a carga ao Windows)">
-              <Toggle label="Bateria do fone" value={config.noticeBluetooth} onChange={(v) => update({ noticeBluetooth: v })} />
+            <Row label={t("Bateria do fone")} hint={t("Quando um fone Bluetooth conecta, a carga dele; e um aviso quando ela fica em 20% (se o fone informa a carga ao Windows)")}>
+              <Toggle label={t("Bateria do fone")} value={config.noticeBluetooth} onChange={(v) => update({ noticeBluetooth: v })} />
             </Row>
-            <Row label="Download concluído" hint="Quando um download do navegador termina, com um botão para mostrar o arquivo">
-              <Toggle label="Download concluído" value={config.noticeDownload} onChange={(v) => update({ noticeDownload: v })} />
+            <Row label={t("Download concluído")} hint={t("Quando um download do navegador termina, com um botão para mostrar o arquivo")}>
+              <Toggle label={t("Download concluído")} value={config.noticeDownload} onChange={(v) => update({ noticeDownload: v })} />
             </Row>
           </Group>
           <HotkeysGroup />
-          <Group title="Sobre">
+          <Group title={t("Sobre")}>
             <Row
               label={`Docky ${__APP_VERSION__}`}
-              hint={newer ? `A versão ${newer.version} saiu: baixe o instalador e rode por cima, suas configurações ficam` : "Código aberto: veja as novidades, relate um problema ou sugira uma ideia"}
+              hint={newer ? t("A versão {v} saiu: baixe o instalador e rode por cima, suas configurações ficam", { v: newer.version }) : "Código aberto: veja as novidades, relate um problema ou sugira uma ideia"}
             >
               {newer ? (
                 <button className="btn primary" onClick={() => ipc.openUrl(newer.url)}>
-                  Baixar a {newer.version}
+                  {t("Baixar a {v}", { v: newer.version })}
                 </button>
               ) : (
                 <button className="btn" onClick={() => ipc.openUrl(REPO_URL)}>
-                  Abrir no GitHub
+                  {t("Abrir no GitHub")}
                 </button>
               )}
             </Row>
-            <Row label="Procurar atualizações" hint="Duas vezes por dia, o Docky olha no GitHub se saiu versão nova. Nada sobre você é enviado">
-              <Toggle label="Procurar atualizações" value={config.checkUpdates} onChange={(v) => update({ checkUpdates: v })} />
+            <Row label={t("Procurar atualizações")} hint={t("Duas vezes por dia, o Docky olha no GitHub se saiu versão nova. Nada sobre você é enviado")}>
+              <Toggle label={t("Procurar atualizações")} value={config.checkUpdates} onChange={(v) => update({ checkUpdates: v })} />
             </Row>
-            <Row label="Registros" hint="Um arquivo com os erros do Docky, só no seu computador. Anexe ao relatar um problema">
+            <Row label={t("Registros")} hint={t("Um arquivo com os erros do Docky, só no seu computador. Anexe ao relatar um problema")}>
               <button className="btn" onClick={() => void ipc.openLogs()}>
-                Abrir a pasta
+                {t("Abrir a pasta")}
               </button>
             </Row>
           </Group>
@@ -132,38 +147,38 @@ function AreaContent({ id }: { id: AreaId }) {
     case "aparencia":
       return (
         <>
-          <Group title="Cor e brilho">
+          <Group title={t("Cor e brilho")}>
             <Row
-              label="Cor da ilha"
-              hint={islandColor(config.islandColor) ? `${islandColor(config.islandColor)!.label}, sempre, com ou sem música` : "Da capa da música que está tocando; sem música, o rosa do Docky"}
+              label={t("Cor da ilha")}
+              hint={islandColor(config.islandColor) ? t("{color}, sempre, com ou sem música", { color: t(islandColor(config.islandColor)!.label) }) : "Da capa da música que está tocando; sem música, o rosa do Docky"}
             >
               <Swatches
-                label="Cor da ilha"
+                label={t("Cor da ilha")}
                 value={islandColor(config.islandColor)?.id ?? null}
                 options={ISLAND_COLORS.map((c) => ({ id: c.id, label: c.label, color: c.primary }))}
-                auto="Da música"
+                auto={t("Da música")}
                 onChange={(id) => update({ islandColor: id ?? "" })}
               />
             </Row>
-            <Row label="Brilho ambiente" hint="A luz colorida atrás da ilha aberta">
-              <Slider label="Brilho ambiente" value={config.glow} onChange={(v) => update({ glow: v })} />
+            <Row label={t("Brilho ambiente")} hint={t("A luz colorida atrás da ilha aberta")}>
+              <Slider label={t("Brilho ambiente")} value={config.glow} onChange={(v) => update({ glow: v })} />
             </Row>
-            <Row label="Borda de vidro" hint="Um fio de luz na borda da ilha. Desligada, a ilha fica só preta">
-              <Toggle label="Borda de vidro" value={config.glassEdge} onChange={(v) => update({ glassEdge: v })} />
-            </Row>
-          </Group>
-          <Group title="Olhinhos">
-            <Row label="Olhinhos" hint={config.eyes ? "O mascote no canto da ilha" : "Desligados, o Clawd aparece no lugar deles enquanto o Claude Code trabalha"}>
-              <Toggle label="Olhinhos" value={config.eyes} onChange={(v) => update({ eyes: v })} />
-            </Row>
-            <Row label="Seguir o cursor" hint="Se desligado, olham para a frente">
-              <Toggle label="Seguir o cursor" value={config.followCursor} onChange={(v) => update({ followCursor: v })} />
+            <Row label={t("Borda de vidro")} hint={t("Um fio de luz na borda da ilha. Desligada, a ilha fica só preta")}>
+              <Toggle label={t("Borda de vidro")} value={config.glassEdge} onChange={(v) => update({ glassEdge: v })} />
             </Row>
           </Group>
-          <Group title="Posição">
-            <Row label="Lugar no topo" hint="Ou arraste a ilha para os lados, pela pílula ou pelo cabeçalho quando aberta">
+          <Group title={t("Olhinhos")}>
+            <Row label={t("Olhinhos")} hint={t(config.eyes ? "O mascote no canto da ilha" : "Desligados, o Clawd aparece no lugar deles enquanto o Claude Code trabalha")}>
+              <Toggle label={t("Olhinhos")} value={config.eyes} onChange={(v) => update({ eyes: v })} />
+            </Row>
+            <Row label={t("Seguir o cursor")} hint={t("Se desligado, olham para a frente")}>
+              <Toggle label={t("Seguir o cursor")} value={config.followCursor} onChange={(v) => update({ followCursor: v })} />
+            </Row>
+          </Group>
+          <Group title={t("Posição")}>
+            <Row label={t("Lugar no topo")} hint={t("Ou arraste a ilha para os lados, pela pílula ou pelo cabeçalho quando aberta")}>
               <Segmented
-                label="Lugar no topo"
+                label={t("Lugar no topo")}
                 value={config.islandPosition === 0 ? "left" : config.islandPosition === 1 ? "right" : config.islandPosition === 0.5 ? "center" : "custom"}
                 options={[
                   { value: "left", label: "Esquerda" },
@@ -174,10 +189,10 @@ function AreaContent({ id }: { id: AreaId }) {
               />
             </Row>
           </Group>
-          <Group title="Relógio">
-            <Row label="Formato da hora" hint="Na pílula e no topo da ilha aberta">
+          <Group title={t("Relógio")}>
+            <Row label={t("Formato da hora")} hint={t("Na pílula e no topo da ilha aberta")}>
               <Segmented
-                label="Formato da hora"
+                label={t("Formato da hora")}
                 value={config.clock12h ? "12" : "24"}
                 options={[
                   { value: "24", label: "24 horas" },
@@ -186,13 +201,13 @@ function AreaContent({ id }: { id: AreaId }) {
                 onChange={(v) => update({ clock12h: v === "12" })}
               />
             </Row>
-            <Row label="Data e hora no topo" hint="Na ilha aberta. Desligado, a busca dos atalhos ocupa o cabeçalho inteiro">
-              <Toggle label="Data e hora no topo" value={config.headerClock} onChange={(v) => update({ headerClock: v })} />
+            <Row label={t("Data e hora no topo")} hint={t("Na ilha aberta. Desligado, a busca dos atalhos ocupa o cabeçalho inteiro")}>
+              <Toggle label={t("Data e hora no topo")} value={config.headerClock} onChange={(v) => update({ headerClock: v })} />
             </Row>
           </Group>
-          <Group title="Movimento">
-            <Row label="Reduzir movimento" hint="Troca molas e desfoque por fades curtos">
-              <Toggle label="Reduzir movimento" value={config.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
+          <Group title={t("Movimento")}>
+            <Row label={t("Reduzir movimento")} hint={t("Troca molas e desfoque por fades curtos")}>
+              <Toggle label={t("Reduzir movimento")} value={config.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
             </Row>
           </Group>
         </>
@@ -203,12 +218,12 @@ function AreaContent({ id }: { id: AreaId }) {
       return (
         <>
           <Group>
-            <Row label="Letra na pílula" hint="Mostra a linha atual com a ilha recolhida">
-              <Toggle label="Letra na pílula" value={config.lyricPill} onChange={(v) => update({ lyricPill: v })} />
+            <Row label={t("Letra na pílula")} hint={t("Mostra a linha atual com a ilha recolhida")}>
+              <Toggle label={t("Letra na pílula")} value={config.lyricPill} onChange={(v) => update({ lyricPill: v })} />
             </Row>
-            <Row label="Atraso da letra" hint="Se a letra vem adiantada, diminua; se vem atrasada, aumente">
+            <Row label={t("Atraso da letra")} hint={t("Se a letra vem adiantada, diminua; se vem atrasada, aumente")}>
               <Stepper
-                label="Atraso da letra"
+                label={t("Atraso da letra")}
                 value={config.lyricDelayMs / 1000}
                 unit="s"
                 step={0.5}
@@ -218,12 +233,12 @@ function AreaContent({ id }: { id: AreaId }) {
               />
             </Row>
           </Group>
-          <Group title="De onde vem">
-            <Row label="Fonte das letras" hint="Letras sincronizadas, sem chave. Se o LRCLIB não tiver, o NetEase (bom em música brasileira) é a reserva">
-              <span className="badge">LRCLIB + NetEase</span>
+          <Group title={t("De onde vem")}>
+            <Row label={t("Fonte das letras")} hint={t("Letras sincronizadas, sem chave. Se o LRCLIB não tiver, o NetEase (bom em música brasileira) é a reserva")}>
+              <span className="badge">{t("LRCLIB + NetEase")}</span>
             </Row>
-            <Row label="Players" hint="Qualquer app com controle de mídia do Windows">
-              <span className="badge">Spotify · Navegador · Outros</span>
+            <Row label={t("Players")} hint={t("Qualquer app com controle de mídia do Windows")}>
+              <span className="badge">{t("Spotify · Navegador · Outros")}</span>
             </Row>
           </Group>
         </>
@@ -231,27 +246,27 @@ function AreaContent({ id }: { id: AreaId }) {
     case "foco":
       return (
         <>
-          <Group title="Pomodoro">
-            <Row label="Foco" hint="Quanto dura cada sessão de foco">
-              <NumberStepper label="Foco" value={config.focusMinutes} unit="min" min={1} max={120} step={5} onChange={(v) => update({ focusMinutes: v })} />
+          <Group title={t("Pomodoro")}>
+            <Row label={t("Foco")} hint={t("Quanto dura cada sessão de foco")}>
+              <NumberStepper label={t("Foco")} value={config.focusMinutes} unit="min" min={1} max={120} step={5} onChange={(v) => update({ focusMinutes: v })} />
             </Row>
-            <Row label="Pausa curta">
-              <NumberStepper label="Pausa curta" value={config.shortBreakMinutes} unit="min" min={1} max={60} onChange={(v) => update({ shortBreakMinutes: v })} />
+            <Row label={t("Pausa curta")}>
+              <NumberStepper label={t("Pausa curta")} value={config.shortBreakMinutes} unit="min" min={1} max={60} onChange={(v) => update({ shortBreakMinutes: v })} />
             </Row>
-            <Row label="Pausa longa" hint="Vem depois do último foco do ciclo">
-              <NumberStepper label="Pausa longa" value={config.longBreakMinutes} unit="min" min={1} max={90} step={5} onChange={(v) => update({ longBreakMinutes: v })} />
+            <Row label={t("Pausa longa")} hint={t("Vem depois do último foco do ciclo")}>
+              <NumberStepper label={t("Pausa longa")} value={config.longBreakMinutes} unit="min" min={1} max={90} step={5} onChange={(v) => update({ longBreakMinutes: v })} />
             </Row>
-            <Row label="Focos por ciclo" hint="Depois deles, a pausa é a longa">
-              <NumberStepper label="Focos por ciclo" value={config.focusPerSet} unit="focos" min={1} max={8} onChange={(v) => update({ focusPerSet: v })} />
+            <Row label={t("Focos por ciclo")} hint={t("Depois deles, a pausa é a longa")}>
+              <NumberStepper label={t("Focos por ciclo")} value={config.focusPerSet} unit="focos" min={1} max={8} onChange={(v) => update({ focusPerSet: v })} />
             </Row>
-            <Row label="Aviso ao terminar" hint="Um aviso curto na ilha quando o tempo acaba">
-              <Toggle label="Aviso ao terminar" value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
+            <Row label={t("Aviso ao terminar")} hint={t("Um aviso curto na ilha quando o tempo acaba")}>
+              <Toggle label={t("Aviso ao terminar")} value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
             </Row>
-            <Row label="Som ao terminar" hint="Um toque suave quando o foco, a pausa ou o contador acaba">
-              <Toggle label="Som ao terminar" value={config.timerSound} onChange={(v) => update({ timerSound: v })} />
+            <Row label={t("Som ao terminar")} hint={t("Um toque suave quando o foco, a pausa ou o contador acaba")}>
+              <Toggle label={t("Som ao terminar")} value={config.timerSound} onChange={(v) => update({ timerSound: v })} />
             </Row>
           </Group>
-          <Group title="Notas">
+          <Group title={t("Notas")}>
             <NotesFolderRow />
           </Group>
         </>
@@ -263,11 +278,11 @@ function AreaContent({ id }: { id: AreaId }) {
     case "integracoes":
       return (
         <>
-          <Group title="Clima">
+          <Group title={t("Clima")}>
             <WeatherCityRow />
-            <Row label="Unidade" hint="Como a temperatura aparece na Agenda">
+            <Row label={t("Unidade")} hint={t("Como a temperatura aparece na Agenda")}>
               <Segmented
-                label="Unidade"
+                label={t("Unidade")}
                 value={config.weatherUnit}
                 options={[
                   { value: "c", label: "°C" },
@@ -302,8 +317,8 @@ function SearchBox({ onPick }: { onPick: (hit: SearchHit) => void }) {
         <SearchIcon />
         <input
           value={query}
-          placeholder="Buscar uma opção"
-          aria-label="Buscar uma opção"
+          placeholder={t("Buscar uma opção")}
+          aria-label={t("Buscar uma opção")}
           role="combobox"
           aria-expanded={hits.length > 0}
           aria-controls="sa-hits"
@@ -325,12 +340,12 @@ function SearchBox({ onPick }: { onPick: (hit: SearchHit) => void }) {
       </label>
       {query.trim() !== "" && (
         <ul className="sa-hits" id="sa-hits" role="listbox">
-          {hits.length === 0 && <li className="none">Nada com esse nome</li>}
+          {hits.length === 0 && <li className="none">{t("Nada com esse nome")}</li>}
           {hits.map((hit, i) => (
             <li key={`${hit.area.id}-${hit.option ?? ""}`} role="option" aria-selected={i === active}>
               <button className={i === active ? "on" : ""} onMouseEnter={() => setActive(i)} onClick={() => pick(hit)}>
-                <b>{hit.option ?? hit.area.label}</b>
-                <span>{hit.option ? hit.area.label : "Área"}</span>
+                <b>{t(hit.option ?? hit.area.label)}</b>
+                <span>{t(hit.option ? hit.area.label : "Área")}</span>
               </button>
             </li>
           ))}
@@ -374,7 +389,7 @@ export function Settings() {
   useEffect(() => {
     if (!target) return;
     const main = mainRef.current;
-    const row = main ? Array.from(main.querySelectorAll<HTMLElement>("[data-label]")).find((el) => el.dataset.label === target) : undefined;
+    const row = main ? Array.from(main.querySelectorAll<HTMLElement>("[data-label]")).find((el) => el.dataset.label === t(target)) : undefined;
     setTarget(null);
     if (!main || !row) return;
     const top = row.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop - main.clientHeight / 3;
@@ -393,7 +408,7 @@ export function Settings() {
           <span className="sa-eyes">
             <Eyes mood="normal" follow shake={0} />
           </span>
-          <b data-tauri-drag-region>Configurações</b>
+          <b data-tauri-drag-region>{t("Configurações")}</b>
         </div>
         <SearchBox
           onPick={(hit) => {
@@ -401,16 +416,16 @@ export function Settings() {
             setTarget(hit.option);
           }}
         />
-        <nav className="sa-nav" aria-label="Áreas">
+        <nav className="sa-nav" aria-label={t("Áreas")}>
           {GROUPS.map((group) => (
             <div key={group || "main"} className="sa-navg">
-              {group && <h2>{group}</h2>}
+              {group && <h2>{t(group)}</h2>}
               {AREAS.filter((a) => a.group === group).map((a) => {
                 const Icon = ICONS[a.id];
                 return (
                   <button key={a.id} className={a.id === current ? "on" : ""} aria-current={a.id === current ? "page" : undefined} onClick={() => go(a.id)}>
                     <Icon size={16} />
-                    <span>{a.label}</span>
+                    <span>{t(a.label)}</span>
                   </button>
                 );
               })}
@@ -422,12 +437,12 @@ export function Settings() {
       <div className="sa-pane">
         <div className="sa-strip" data-tauri-drag-region>
           <div className="sa-wc">
-            <button aria-label="Minimizar" onClick={() => ipc.windowControl("minimize")}>
+            <button aria-label={t("Minimizar")} onClick={() => ipc.windowControl("minimize")}>
               <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                 <path d="M2 6h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               </svg>
             </button>
-            <button className="close" aria-label="Fechar" onClick={() => ipc.windowControl("close")}>
+            <button className="close" aria-label={t("Fechar")} onClick={() => ipc.windowControl("close")}>
               <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                 <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               </svg>
@@ -437,8 +452,8 @@ export function Settings() {
         <main className="sa-main" ref={mainRef}>
           <Preview area={current} />
           <header className="sa-head">
-            <h1>{area.label}</h1>
-            <p>{area.lead}</p>
+            <h1>{t(area.label)}</h1>
+            <p>{t(area.lead)}</p>
           </header>
           <div className="sa-body" key={current}>
             <AreaContent id={current} />

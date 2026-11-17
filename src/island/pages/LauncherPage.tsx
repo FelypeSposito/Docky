@@ -36,6 +36,7 @@ import { ArrowDownIcon, EyeIcon, EyeOffIcon, GripIcon, ListIcon, PencilIcon, Pin
 import { QButton, QIconButton, QPath, QText } from "../quick/controls";
 import { Suggestions } from "../quick/Suggestions";
 import { useIslandStore } from "../store";
+import { t } from "../../i18n";
 
 const MAX_TILES = ISLAND_SLOTS;
 
@@ -80,10 +81,10 @@ function Confirm({ text, onCancel, onOk }: { text: string; onCancel: () => void;
       <b>{text}</b>
       <div>
         <button className="nbtn" onClick={onCancel}>
-          Cancelar
+          {t("Cancelar")}
         </button>
         <button className="nbtn go" autoFocus onClick={onOk}>
-          Abrir
+          {t("Abrir")}
         </button>
       </div>
     </div>
@@ -119,8 +120,8 @@ export function LauncherPage({ active }: { active: boolean }) {
       <HeaderField
         icon={<SearchIcon />}
         value={query}
-        label="Buscar atalho"
-        placeholder={all.length > MAX_TILES ? `Buscar entre ${all.length} atalhos` : "Buscar atalho"}
+        label={t("Buscar atalho")}
+        placeholder={all.length > MAX_TILES ? t("Buscar entre {n} atalhos", { n: all.length }) : t("Buscar atalho")}
         onChange={setQuery}
         onEnter={() => (matches[0] ? ask(matches[0].index) : addLink())}
         typeToFocus
@@ -130,7 +131,7 @@ export function LauncherPage({ active }: { active: boolean }) {
   if (all.length === 0) {
     return (
       <EmptyState
-        title="Cadastre seus atalhos"
+        title={t("Cadastre seus atalhos")}
         text="Apps, jogos, pastas e sites que você abre sempre. Crie pelo botão de expandir ou em Configurações."
         action={{ label: "Abrir configurações", onClick: () => ipc.openSettings("atalhos") }}
       />
@@ -161,9 +162,9 @@ export function LauncherPage({ active }: { active: boolean }) {
       <div className="lc-none">
         {search}
         <b>{siteHost(link)}</b>
-        <span>Enter cria um atalho para este site, com o ícone dele.</span>
+        <span>{t("Enter cria um atalho para este site, com o ícone dele.")}</span>
         <button className="lc-more2" onClick={addLink}>
-          Criar atalho
+          {t("Criar atalho")}
         </button>
       </div>
     );
@@ -172,10 +173,10 @@ export function LauncherPage({ active }: { active: boolean }) {
     return (
       <div className="lc-none">
         {search}
-        <b>Nenhum atalho com “{query.trim()}”</b>
-        <span>Confira o nome ou crie um novo.</span>
+        <b>{t("Nenhum atalho com “{text}”", { text: query.trim() })}</b>
+        <span>{t("Confira o nome ou crie um novo.")}</span>
         <button className="lc-more2" onClick={() => useIslandStore.getState().toggleLarge()}>
-          Criar na tela expandida
+          {t("Criar na tela expandida")}
         </button>
       </div>
     );
@@ -189,18 +190,18 @@ export function LauncherPage({ active }: { active: boolean }) {
           <button
             key={item.id || index}
             className={`lt2${i === 0 ? (searching ? " first match" : " first") : ""}`}
-            title={item.group ? `Grupo: ${confirmationText(item, shortcuts)}` : item.target}
+            title={item.group ? t("Grupo: {apps}", { apps: confirmationText(item, shortcuts) }) : item.target}
             onClick={() => ask(index)}
           >
             <Tile shortcut={item} index={index} image={images[index]} shortcuts={shortcuts} />
-            <b>{item.name || "Sem nome"}</b>
+            <b>{item.name || t("Sem nome")}</b>
           </button>
         ))}
       </div>
       {more > 0 && (
-        <button className="lc-more2" onClick={() => useIslandStore.getState().toggleLarge()} title="Ver todos os atalhos na tela expandida">
-          {searching ? `+${more} ${more === 1 ? "resultado" : "resultados"}` : `+${more} atalhos`}
-          {!searching && scheduled ? <span> · agora: {scheduled.name}</span> : !searching && sectionNames.length > 0 && <span> · {sectionNames.join(", ")}</span>}
+        <button className="lc-more2" onClick={() => useIslandStore.getState().toggleLarge()} title={t("Ver todos os atalhos na tela expandida")}>
+          {searching ? t(more === 1 ? "+1 resultado" : "+{n} resultados", { n: more }) : t("+{n} atalhos", { n: more })}
+          {!searching && scheduled ? <span> · {t("agora: {name}", { name: scheduled.name })}</span> : !searching && sectionNames.length > 0 && <span> · {sectionNames.join(", ")}</span>}
         </button>
       )}
     </div>
@@ -257,17 +258,17 @@ function EditRow({
       ref={sortable.rowRef(id)}
       style={{ order: sortable.position.get(id) }}
     >
-      <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, id)}>
+      <span className="handle" role="presentation" title={t("Arraste para mudar a ordem")} onPointerDown={(e) => sortable.down(e, id)}>
         <GripIcon />
       </span>
-      <button className="le-ico" title="Escolher o ícone" aria-label={`Escolher o ícone de ${shortcut.name || "atalho"}`} onClick={pickIcon}>
+      <button className="le-ico" title={t("Escolher o ícone")} aria-label={t("Escolher o ícone de {name}", { name: shortcut.name || t("atalho") })} onClick={pickIcon}>
         <Tile shortcut={shortcut} index={index} image={image} shortcuts={shortcuts} />
       </button>
       <QText
-        label="Nome do atalho"
+        label={t("Nome do atalho")}
         width={shortcut.group ? 150 : 116}
         value={shortcut.name}
-        placeholder={shortcut.group ? "Nome do grupo" : "Nome"}
+        placeholder={t(shortcut.group ? "Nome do grupo" : "Nome")}
         autoFocus={autoFocus}
         onCommit={(v) => change({ name: v })}
       />
@@ -276,11 +277,11 @@ function EditRow({
           {memberSummary(shortcut, shortcuts)}
         </span>
       ) : (
-        <QPath label="Destino do atalho" kind="app" width={sections && sections.length > 0 ? 92 : 190} value={shortcut.target} placeholder="App, pasta ou https://…" onCommit={(v) => change({ target: cleanTarget(v) })} />
+        <QPath label={t("Destino do atalho")} kind="app" width={sections && sections.length > 0 ? 92 : 190} value={shortcut.target} placeholder={t("App, pasta ou https://…")} onCommit={(v) => change({ target: cleanTarget(v) })} />
       )}
       {sections && sections.length > 0 && onSection && (
-        <select className="le-secsel" aria-label={`Seção de ${shortcut.name || "atalho"}`} value={sectionId ?? ""} onChange={(e) => onSection(e.target.value || null)}>
-          <option value="">Sem seção</option>
+        <select className="le-secsel" aria-label={t("Seção de {name}", { name: shortcut.name || t("atalho") })} value={sectionId ?? ""} onChange={(e) => onSection(e.target.value || null)}>
+          <option value="">{t("Sem seção")}</option>
           {sections.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -289,29 +290,29 @@ function EditRow({
         </select>
       )}
       {shortcut.group && (
-        <QIconButton label="Itens do grupo" onClick={editItems}>
+        <QIconButton label={t("Itens do grupo")} onClick={editItems}>
           <ListIcon />
         </QIconButton>
       )}
       {onToggleIsland && !sure && (
-        <QIconButton label={inIsland ? "Aparece na ilha: clique para tirar" : "Mostrar na ilha (entre os 8 primeiros)"} active={!!inIsland} onClick={onToggleIsland}>
+        <QIconButton label={t(inIsland ? "Aparece na ilha: clique para tirar" : "Mostrar na ilha (entre os 8 primeiros)")} active={!!inIsland} onClick={onToggleIsland}>
           <PinIcon />
         </QIconButton>
       )}
       {!sure && (shortcut.hidden || canHide) && (
-        <QIconButton label={shortcut.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!shortcut.hidden} onClick={toggleHidden}>
+        <QIconButton label={t(shortcut.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)")} active={!!shortcut.hidden} onClick={toggleHidden}>
           {shortcut.hidden ? <EyeOffIcon /> : <EyeIcon />}
         </QIconButton>
       )}
       {sure ? (
         <span className="le-sure">
-          <QButton onClick={() => setSure(false)}>Não</QButton>
+          <QButton onClick={() => setSure(false)}>{t("Não")}</QButton>
           <QButton tone="danger" onClick={remove}>
-            Excluir
+            {t("Excluir")}
           </QButton>
         </span>
       ) : (
-        <QIconButton label="Excluir" tone="danger" onClick={() => setSure(true)}>
+        <QIconButton label={t("Excluir")} tone="danger" onClick={() => setSure(true)}>
           <TrashIcon />
         </QIconButton>
       )}
@@ -393,8 +394,8 @@ function SectionView({
           </button>
         )}
         {onAdd && (
-          <button className="lsec-add" onClick={onAdd} aria-label={`Novo atalho em ${title}`} title={`Novo atalho em ${title}`}>
-            + Atalho
+          <button className="lsec-add" onClick={onAdd} aria-label={t("Novo atalho em {name}", { name: title })} title={t("Novo atalho em {name}", { name: title })}>
+            {t("+ Atalho")}
           </button>
         )}
       </div>
@@ -436,7 +437,7 @@ function FilterRow({ chips, active, onSelect }: { chips: FilterChip[]; active: s
     (rowRef.current?.children[next] as HTMLElement | undefined)?.focus({ preventScroll: true });
   };
   return (
-    <div className="lcx-chips" role="toolbar" aria-label="Ir para a seção" ref={rowRef} onKeyDown={onKeyDown}>
+    <div className="lcx-chips" role="toolbar" aria-label={t("Ir para a seção")} ref={rowRef} onKeyDown={onKeyDown}>
       {chips.map((chip, i) => (
         <button key={chip.key} className="lcx-chip" aria-pressed={i === activeIndex} tabIndex={i === activeIndex ? 0 : -1} onClick={() => onSelect(chip.key)}>
           <span>{chip.label}</span>
@@ -602,7 +603,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
       ref={sorter.tileRef(item.id)}
       className={`tile lt${sorter.dragId === item.id ? " drag" : ""}`}
       style={{ order: sorter.position.get(item.id) }}
-      title={item.group ? `Grupo: ${confirmationText(item, shortcuts)}` : item.target}
+      title={item.group ? t("Grupo: {apps}", { apps: confirmationText(item, shortcuts) }) : item.target}
       onClick={() => ask(index)}
       onPointerDown={(e) => sorter.down(e, item.id)}
       onDragStart={(e) => e.preventDefault()}
@@ -673,8 +674,8 @@ export function LauncherLarge({ active }: { active: boolean }) {
         <HeaderField
           icon={<SearchIcon />}
           value={query}
-          label="Buscar atalho"
-          placeholder={`Buscar entre ${shortcuts.length} atalhos`}
+          label={t("Buscar atalho")}
+          placeholder={t("Buscar entre {n} atalhos", { n: shortcuts.length })}
           onChange={setQuery}
           onEnter={() => matches[0] && ask(matches[0].index)}
           typeToFocus
@@ -683,47 +684,47 @@ export function LauncherLarge({ active }: { active: boolean }) {
       <div className="lcx-top">
         {editing ? (
           <>
-            <QButton onClick={() => setSuggesting(true)} title="Grupos prontos e apps que você mais usa">
-              ✦ Sugestões
+            <QButton onClick={() => setSuggesting(true)} title={t("Grupos prontos e apps que você mais usa")}>
+              {t("✦ Sugestões")}
             </QButton>
-            <span className="qs-note">Os com o pino rosa aparecem na ilha. Arraste pela alça para ordenar.</span>
+            <span className="qs-note">{t("Os com o pino rosa aparecem na ilha. Arraste pela alça para ordenar.")}</span>
           </>
         ) : !searching && chips.length > 0 ? (
           <FilterRow chips={chips} active={current} onSelect={selectFilter} />
         ) : (
-          <span className="lcx-fill">{searching ? `${matches.length} ${matches.length === 1 ? "resultado" : "resultados"}` : ""}</span>
+          <span className="lcx-fill">{searching ? t(matches.length === 1 ? "1 resultado" : "{n} resultados", { n: matches.length }) : ""}</span>
         )}
         <button className={`lcx-edit${editing ? " on" : ""}`} onClick={toggleEditing} aria-pressed={editing}>
           <PencilIcon size={13} />
-          {editing ? "Pronto" : "Editar"}
+          {t(editing ? "Pronto" : "Editar")}
         </button>
       </div>
 
       {editing ? (
         <div className="tile lcx-list" ref={listRef}>
           <div className="lcx-sec">
-            <h3>Atalhos</h3>
+            <h3>{t("Atalhos")}</h3>
             {unsorted > 0 && (
-              <QButton onClick={organize} title="Separa os atalhos em seções prontas (Jogos, Comunicação, Utilitários…). Dá para mudar a seção de cada um aqui.">
-                Organizar em seções
+              <QButton onClick={organize} title={t("Separa os atalhos em seções prontas (Jogos, Comunicação, Utilitários…). Dá para mudar a seção de cada um aqui.")}>
+                {t("Organizar em seções")}
               </QButton>
             )}
             {hideable > 0 && (
-              <QButton onClick={() => set(hideGrouped(shortcuts))} title="Esconde da lista os atalhos que já estão em algum grupo">
-                Ocultar os de grupos ({hideable})
+              <QButton onClick={() => set(hideGrouped(shortcuts))} title={t("Esconde da lista os atalhos que já estão em algum grupo")}>
+                {t("Ocultar os de grupos ({n})", { n: hideable })}
               </QButton>
             )}
             <QButton tone="primary" disabled={shortcuts.length >= 60} onClick={addItem}>
-              + Atalho
+              {t("+ Atalho")}
             </QButton>
           </div>
           <div className="sc sortable">
-            {plain.length === 0 && <p className="qs-note">Nenhum atalho ainda.</p>}
+            {plain.length === 0 && <p className="qs-note">{t("Nenhum atalho ainda.")}</p>}
             {plain.map((entry) => row(entry, sortItems))}
           </div>
           {plain.length > 0 && (
             <button className="lcx-add" disabled={shortcuts.length >= 60} onClick={addItem}>
-              + Atalho
+              {t("+ Atalho")}
             </button>
           )}
 
@@ -737,14 +738,14 @@ export function LauncherLarge({ active }: { active: boolean }) {
             </h3>
             {groupsOpen && (
               <QButton disabled={shortcuts.length >= 60} onClick={addGroup}>
-                + Grupo
+                {t("+ Grupo")}
               </QButton>
             )}
           </div>
           )}
           {groupsOpen && groups.length > 0 && (
             <div className="sc sortable">
-              {groups.length === 0 && <p className="qs-note">Nenhum grupo ainda. Um grupo abre vários atalhos de uma vez.</p>}
+              {groups.length === 0 && <p className="qs-note">{t("Nenhum grupo ainda. Um grupo abre vários atalhos de uma vez.")}</p>}
               {groups.map((entry) => row(entry, sortGroups))}
             </div>
           )}
@@ -756,7 +757,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
           <div className="lcx-scroll" ref={scrollRef}>
             {error && <div className="tile lc-empty lcx-err">{error}</div>}
             {matches.length === 0 && !error && (
-              <div className="tile lc-empty">{shortcuts.length === 0 ? "Nenhum atalho ainda. Toque em Editar para criar." : "Nenhum atalho com esse nome."}</div>
+              <div className="tile lc-empty">{t(shortcuts.length === 0 ? "Nenhum atalho ainda. Toque em Editar para criar." : "Nenhum atalho com esse nome.")}</div>
             )}
             {searching ? (
               <SearchResults entries={[...shownItems, ...shownGroups]} renderTile={tile} />
@@ -767,7 +768,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
                   <SectionView
                     key="groups"
                     id="groups"
-                    title="Grupos"
+                    title={t("Grupos")}
                     collapsed={!filtered && groupsClosed}
                     fixed={filtered}
                     onToggle={toggleGroups}

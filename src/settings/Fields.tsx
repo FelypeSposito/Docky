@@ -18,6 +18,7 @@ import { AppSuggestions } from "./AppSuggestions";
 import { SectionSelect, SectionsGroup } from "./SectionsGroup";
 import { usePanelScroll } from "./usePanelScroll";
 import { useSortable } from "./useSortable";
+import { t } from "../i18n";
 
 interface TextFieldProps {
   value: string;
@@ -60,15 +61,15 @@ export function TextField({ value, placeholder, label, width = 240, type = "text
 export function NotesFolderRow() {
   const { config, update } = useConfigStore();
   return (
-    <Row label="Pasta das notas" hint="As notas rápidas viram arquivos .md nesta pasta (por exemplo, a Inbox do Obsidian)">
+    <Row label={t("Pasta das notas")} hint={t("As notas rápidas viram arquivos .md nesta pasta (por exemplo, a Inbox do Obsidian)")}>
       <TextField
-        label="Pasta das notas"
+        label={t("Pasta das notas")}
         width={300}
         value={config.notesFolder}
-        placeholder="C:\Users\você\Documentos\brain\Inbox"
+        placeholder={t("C:\\Users\\você\\Documentos\\brain\\Inbox")}
         onCommit={(v) => update({ notesFolder: cleanTarget(v) })}
       />
-      <IconButton label="Escolher a pasta" onClick={() => void ipc.pickPath("folder").then((path) => path && update({ notesFolder: path }))}>
+      <IconButton label={t("Escolher a pasta")} onClick={() => void ipc.pickPath("folder").then((path) => path && update({ notesFolder: path }))}>
         <FolderIcon />
       </IconButton>
     </Row>
@@ -78,8 +79,8 @@ export function NotesFolderRow() {
 export function WeatherCityRow() {
   const { config, update } = useConfigStore();
   return (
-    <Row label="Cidade do clima" hint="Open-Meteo, gratuito e sem chave">
-      <TextField label="Cidade do clima" value={config.weatherCity} placeholder="Digite a cidade" onCommit={(v) => update({ weatherCity: v })} />
+    <Row label={t("Cidade do clima")} hint={t("Open-Meteo, gratuito e sem chave")}>
+      <TextField label={t("Cidade do clima")} value={config.weatherCity} placeholder={t("Digite a cidade")} onCommit={(v) => update({ weatherCity: v })} />
     </Row>
   );
 }
@@ -88,9 +89,9 @@ export function ShelfFolders() {
   const { config, update } = useConfigStore();
   const moveMode = (
     <Group>
-      <Row label="Ao enviar" hint={config.shelfMove ? "O arquivo vai para o destino e é apagado de onde estava" : "O arquivo é copiado e o original continua onde estava"}>
+      <Row label={t("Ao enviar")} hint={t(config.shelfMove ? "O arquivo vai para o destino e é apagado de onde estava" : "O arquivo é copiado e o original continua onde estava")}>
         <Segmented
-          label="Ao enviar"
+          label={t("Ao enviar")}
           value={config.shelfMove ? "move" : "copy"}
           options={[
             { value: "copy", label: "Copiar" },
@@ -99,8 +100,8 @@ export function ShelfFolders() {
           onChange={(v) => update({ shelfMove: v === "move" })}
         />
       </Row>
-      <Row label="Lixeira" hint="Um bloco no fim da Shelf: manda os arquivos soltos para a Lixeira do Windows, de onde dá para restaurar. Sem arquivos, abre a Lixeira.">
-        <Toggle label="Lixeira" value={config.shelfTrash} onChange={(v) => update({ shelfTrash: v })} />
+      <Row label={t("Lixeira")} hint={t("Um bloco no fim da Shelf: manda os arquivos soltos para a Lixeira do Windows, de onde dá para restaurar. Sem arquivos, abre a Lixeira.")}>
+        <Toggle label={t("Lixeira")} value={config.shelfTrash} onChange={(v) => update({ shelfTrash: v })} />
       </Row>
     </Group>
   );
@@ -129,34 +130,34 @@ export function ShelfFolders() {
         )}
       </div>
       <Group>
-        {folders.length === 0 && <Row label="Nenhuma pasta ainda" hint="Adicione as pastas para onde os arquivos soltos na ilha serão copiados" />}
+        {folders.length === 0 && <Row label={t("Nenhuma pasta ainda")} hint={t("Adicione as pastas para onde os arquivos soltos na ilha serão copiados")} />}
         {folders.map((folder, i) => (
           <div className="row folder-row" key={i}>
-            <button className="sico" aria-label={`Escolher o ícone de ${folder.name || "pasta"}`} title="Escolher o ícone" onClick={() => setPicking(i)}>
+            <button className="sico" aria-label={t("Escolher o ícone de {name}", { name: folder.name || t("pasta") })} title={t("Escolher o ícone")} onClick={() => setPicking(i)}>
               <ItemIcon icon={folder.icon ?? ""} image={images[i]} color={SHORTCUT_COLORS[i % SHORTCUT_COLORS.length]} className="li" empty={<FolderIcon size={14} />} />
             </button>
-            <TextField label="Nome da pasta" width={110} value={folder.name} placeholder="Nome" onCommit={(v) => change(i, { name: v })} />
-            <TextField label="Caminho da pasta" width={230} value={folder.path} placeholder="C:\Users\você\Google Drive\Faculdade" onCommit={(v) => change(i, { path: cleanTarget(v) })} />
+            <TextField label={t("Nome da pasta")} width={110} value={folder.name} placeholder={t("Nome")} onCommit={(v) => change(i, { name: v })} />
+            <TextField label={t("Caminho da pasta")} width={230} value={folder.path} placeholder={t("C:\\Users\\você\\Google Drive\\Faculdade")} onCommit={(v) => change(i, { path: cleanTarget(v) })} />
             <IconButton
-              label="Escolher a pasta"
+              label={t("Escolher a pasta")}
               onClick={() => void ipc.pickPath("folder").then((path) => path && change(i, { path, name: folder.name || path.split(/[\\/]/).filter(Boolean).pop() || "" }))}
             >
               <FolderIcon />
             </IconButton>
-            <IconButton label="Remover a pasta" danger onClick={() => set(folders.filter((_, k) => k !== i))}>
+            <IconButton label={t("Remover a pasta")} danger onClick={() => set(folders.filter((_, k) => k !== i))}>
               <TrashIcon />
             </IconButton>
           </div>
         ))}
-        <Row label="Adicionar pasta" hint="Os arquivos são copiados; os originais ficam onde estão. A pasta precisa existir">
+        <Row label={t("Adicionar pasta")} hint={t("Os arquivos são copiados; os originais ficam onde estão. A pasta precisa existir")}>
           <button className="btn primary" disabled={folders.length >= 4} onClick={() => set([...folders, { name: "", path: "", icon: "" }])}>
-            Adicionar
+            {t("Adicionar")}
           </button>
         </Row>
       </Group>
       {moveMode}
       {folders.some((f) => !f.name.trim() || !f.path.trim()) && (
-        <p className="hint">Preencha o nome e o caminho; pastas incompletas não aparecem na ilha.</p>
+        <p className="hint">{t("Preencha o nome e o caminho; pastas incompletas não aparecem na ilha.")}</p>
       )}
     </>
   );
@@ -170,7 +171,8 @@ const HOTKEYS: [string, string[]][] = [
 ];
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** "1 ícone encontrado" / "3 ícones encontrados", in the interface's language ("{n}" is the count). */
+const plural = (n: number, one: string, many: string) => t(n === 1 ? `1 ${one}` : `{n} ${many}`, { n });
 
 /** As teclas globais do Docky (ficam em Geral). */
 export function HotkeysGroup() {
@@ -181,7 +183,7 @@ export function HotkeysGroup() {
   }, []);
   return (
     <>
-      <Group title="Teclas">
+      <Group title={t("Teclas")}>
         {HOTKEYS.map(([label, keys]) => {
           const busy = taken.includes(keys.join("+"));
           return (
@@ -195,7 +197,7 @@ export function HotkeysGroup() {
           );
         })}
       </Group>
-      <p className="hint">Se outro programa já usa uma dessas teclas, ela fica de fora e as outras continuam funcionando.</p>
+      <p className="hint">{t("Se outro programa já usa uma dessas teclas, ela fica de fora e as outras continuam funcionando.")}</p>
     </>
   );
 }
@@ -247,36 +249,36 @@ function AutoIconsGroup() {
   const choose = (path: string) =>
     ipc
       .setIconsFolder(cleanTarget(path))
-      .then((copied) => setNote(copied > 0 ? `${plural(copied, "imagem levada", "imagens levadas")} para a pasta nova` : null))
+      .then((copied) => setNote(copied > 0 ? t("{what} para a pasta nova", { what: plural(copied, "imagem levada", "imagens levadas") }) : null))
       .catch((e) => setNote(errorText(e)));
   const fetchNow = () => {
     setBusy(true);
     setNote(null);
     ipc
       .fetchMissingIcons()
-      .then((found) => setNote(found > 0 ? plural(found, "ícone encontrado", "ícones encontrados") : "Nenhum ícone novo encontrado"))
+      .then((found) => setNote(found > 0 ? plural(found, "ícone encontrado", "ícones encontrados") : t("Nenhum ícone novo encontrado")))
       .catch((e) => setNote(errorText(e)))
       .finally(() => setBusy(false));
   };
 
   return (
     <Group>
-      <Row label="Ícones automáticos" hint="Um atalho novo sem ícone ganha o do app: o Docky procura a imagem na internet uma vez e guarda na pasta abaixo. Só o nome do app ou o endereço do site é enviado.">
-        <Toggle label="Ícones automáticos" value={config.autoIcons} onChange={(v) => update({ autoIcons: v })} />
+      <Row label={t("Ícones automáticos")} hint={t("Um atalho novo sem ícone ganha o do app: o Docky procura a imagem na internet uma vez e guarda na pasta abaixo. Só o nome do app ou o endereço do site é enviado.")}>
+        <Toggle label={t("Ícones automáticos")} value={config.autoIcons} onChange={(v) => update({ autoIcons: v })} />
       </Row>
-      <Row label="Pasta dos ícones" hint="Pode mudar de lugar: as imagens vão junto e os atalhos continuam achando.">
-        <TextField label="Pasta dos ícones" width={250} value={folder} placeholder="C:\Users\você\Documents\Docky\icons" onCommit={choose} />
-        <IconButton label="Escolher a pasta" onClick={() => void ipc.pickPath("folder").then((path) => (path ? choose(path) : undefined))}>
+      <Row label={t("Pasta dos ícones")} hint={t("Pode mudar de lugar: as imagens vão junto e os atalhos continuam achando.")}>
+        <TextField label={t("Pasta dos ícones")} width={250} value={folder} placeholder={t("C:\\Users\\você\\Documents\\Docky\\icons")} onCommit={choose} />
+        <IconButton label={t("Escolher a pasta")} onClick={() => void ipc.pickPath("folder").then((path) => (path ? choose(path) : undefined))}>
           <FolderIcon />
         </IconButton>
         <button className="btn" onClick={() => void ipc.openIconsFolder().catch((e) => setNote(errorText(e)))}>
-          Abrir
+          {t("Abrir")}
         </button>
       </Row>
-      <Row label="Ícones que faltam" hint={missing === 0 ? "Todos os atalhos têm ícone" : `${plural(missing, "atalho sem ícone", "atalhos sem ícone")}`}>
+      <Row label={t("Ícones que faltam")} hint={missing === 0 ? "Todos os atalhos têm ícone" : plural(missing, "atalho sem ícone", "atalhos sem ícone")}>
         {note && <span className="hint">{note}</span>}
         <button className="btn primary" disabled={busy || missing === 0} onClick={fetchNow}>
-          {busy ? "Procurando…" : "Buscar agora"}
+          {t(busy ? "Procurando…" : "Buscar agora")}
         </button>
       </Row>
     </Group>
@@ -348,17 +350,17 @@ export function ShortcutsEditor() {
       ref={sortable.rowRef(item.id)}
       style={{ order: sortable.position.get(item.id) }}
     >
-      <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, item.id)}>
+      <span className="handle" role="presentation" title={t("Arraste para mudar a ordem")} onPointerDown={(e) => sortable.down(e, item.id)}>
         <GripIcon />
       </span>
-      <button className="sico" aria-label={`Escolher o ícone de ${item.name || "atalho"}`} title="Escolher o ícone" onClick={() => setPicking(item.id)}>
+      <button className="sico" aria-label={t("Escolher o ícone de {name}", { name: item.name || t("atalho") })} title={t("Escolher o ícone")} onClick={() => setPicking(item.id)}>
         <ShortcutIcon shortcut={item} image={images[index]} color={SHORTCUT_COLORS[index % SHORTCUT_COLORS.length]} className="li" />
       </button>
       <TextField
-        label="Nome do atalho"
+        label={t("Nome do atalho")}
         width={item.group ? 170 : 128}
         value={item.name}
-        placeholder={item.group ? "Nome do grupo" : "Nome"}
+        placeholder={t(item.group ? "Nome do grupo" : "Nome")}
         autoFocus={item.id === fresh}
         onCommit={(v) => change(item.id, { name: v })}
       />
@@ -367,36 +369,36 @@ export function ShortcutsEditor() {
           <span className="summary" title={memberSummary(item, items, 99)}>
             {memberSummary(item, items)}
           </span>
-          <IconButton label="Itens do grupo" onClick={() => setEditingGroup(item.id)}>
+          <IconButton label={t("Itens do grupo")} onClick={() => setEditingGroup(item.id)}>
             <ListIcon />
           </IconButton>
         </>
       ) : (
         <>
           <TextField
-            label="Destino do atalho"
+            label={t("Destino do atalho")}
             width={config.shortcutSections.length > 0 ? 128 : 180}
             value={item.target}
-            placeholder="C:\Apps\app.exe, uma pasta ou https://…"
+            placeholder={t("C:\\Apps\\app.exe, uma pasta ou https://…")}
             onCommit={(v) => change(item.id, { target: cleanTarget(v) })}
           />
-          <IconButton label="Escolher um programa, atalho ou arquivo" onClick={() => pickApp(item.id)}>
+          <IconButton label={t("Escolher um programa, atalho ou arquivo")} onClick={() => pickApp(item.id)}>
             <FolderIcon />
           </IconButton>
           <SectionSelect shortcutId={item.id} name={item.name} />
         </>
       )}
       {!item.group && (
-        <IconButton label={onIsland.has(item.id) ? "Aparece na ilha: clique para tirar" : "Mostrar na ilha (entre os 8 primeiros)"} active={onIsland.has(item.id)} onClick={() => set(toggleIsland(items, item.id))}>
+        <IconButton label={t(onIsland.has(item.id) ? "Aparece na ilha: clique para tirar" : "Mostrar na ilha (entre os 8 primeiros)")} active={onIsland.has(item.id)} onClick={() => set(toggleIsland(items, item.id))}>
           <PinIcon />
         </IconButton>
       )}
       {(item.hidden || grouped.has(item.id)) && (
-        <IconButton label={item.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)"} active={!!item.hidden} onClick={() => set(setHidden(items, item.id, !item.hidden))}>
+        <IconButton label={t(item.hidden ? "Mostrar na lista" : "Ocultar da lista (continua funcionando nos grupos)")} active={!!item.hidden} onClick={() => set(setHidden(items, item.id, !item.hidden))}>
           {item.hidden ? <EyeOffIcon /> : <EyeIcon />}
         </IconButton>
       )}
-      <IconButton label="Remover" danger onClick={() => set(removeShortcut(items, index))}>
+      <IconButton label={t("Remover")} danger onClick={() => set(removeShortcut(items, index))}>
         <TrashIcon />
       </IconButton>
     </div>
@@ -428,7 +430,7 @@ export function ShortcutsEditor() {
         )}
       </div>
 
-      <div className="subtabs" role="tablist" aria-label="Partes dos atalhos">
+      <div className="subtabs" role="tablist" aria-label={t("Partes dos atalhos")}>
         {(
           [
             ["lista", "Atalhos", plain.length],
@@ -438,7 +440,7 @@ export function ShortcutsEditor() {
           ] as [ShortcutsTab, string, number | null][]
         ).map(([id, label, count]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "on" : ""} onClick={() => openTab(id)}>
-            {label}
+            {t(label)}
             {count !== null && <i>{count}</i>}
           </button>
         ))}
@@ -449,32 +451,32 @@ export function ShortcutsEditor() {
       {config.scanApps && <AppSuggestions />}
 
       <Group>
-        <Row label="Atalhos" hint="Os 8 primeiros aparecem na ilha (o pino rosa marca quais); os outros ficam na tela expandida. Clique no pino ou arraste para mudar">
+        <Row label={t("Atalhos")} hint={t("Os 8 primeiros aparecem na ilha (o pino rosa marca quais); os outros ficam na tela expandida. Clique no pino ou arraste para mudar")}>
           {hideable > 0 && (
-            <button className="btn" onClick={() => set(hideGrouped(items))} title="Esconde da lista os atalhos que já estão em algum grupo">
-              Ocultar os de grupos ({hideable})
+            <button className="btn" onClick={() => set(hideGrouped(items))} title={t("Esconde da lista os atalhos que já estão em algum grupo")}>
+              {t("Ocultar os de grupos ({n})", { n: hideable })}
             </button>
           )}
           <button className="btn primary" disabled={items.length >= 60} onClick={addItem}>
-            + Atalho
+            {t("+ Atalho")}
           </button>
         </Row>
-        {plain.length === 0 && <Row label="Nenhum atalho ainda" />}
+        {plain.length === 0 && <Row label={t("Nenhum atalho ainda")} />}
         <div className="sortable" ref={itemsRef}>
           {plain.map((entry) => row(entry, sortItems))}
         </div>
         {plain.length > 0 && (
           <div className="row add-row">
             <button className="btn" disabled={items.length >= 60} onClick={addItem}>
-              + Atalho
+              {t("+ Atalho")}
             </button>
           </div>
         )}
-        <Row label="Confirmar antes de abrir" hint="Apps, jogos e grupos pedem confirmação antes de abrir">
-          <Toggle label="Confirmar antes de abrir" value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
+        <Row label={t("Confirmar antes de abrir")} hint={t("Apps, jogos e grupos pedem confirmação antes de abrir")}>
+          <Toggle label={t("Confirmar antes de abrir")} value={config.confirmApps} onChange={(v) => update({ confirmApps: v })} />
         </Row>
-        <Row label="Trazer para a frente se já estiver aberto" hint="Clicar num app aberto mostra a janela dele, em vez de abrir outra (como na barra de tarefas)">
-          <Toggle label="Trazer para a frente se já estiver aberto" value={config.focusOpenApps} onChange={(v) => update({ focusOpenApps: v })} />
+        <Row label={t("Trazer para a frente se já estiver aberto")} hint={t("Clicar num app aberto mostra a janela dele, em vez de abrir outra (como na barra de tarefas)")}>
+          <Toggle label={t("Trazer para a frente se já estiver aberto")} value={config.focusOpenApps} onChange={(v) => update({ focusOpenApps: v })} />
         </Row>
       </Group>
       {!config.scanApps && <AppSuggestions />}
@@ -485,15 +487,15 @@ export function ShortcutsEditor() {
 
       {tab === "grupos" && (
         <Group>
-          <Row label="Grupos" hint={groups.length > 0 ? `${plural(groups.length, "grupo", "grupos")}. Cada um abre vários atalhos de uma vez` : "Um grupo abre vários atalhos de uma vez"}>
+          <Row label={t("Grupos")} hint={groups.length > 0 ? `${plural(groups.length, "grupo", "grupos")}. Cada um abre vários atalhos de uma vez` : "Um grupo abre vários atalhos de uma vez"}>
             <button className="btn" onClick={() => setSuggesting((v) => !v)} aria-pressed={suggesting}>
-              Sugestões
+              {t("Sugestões")}
             </button>
             <button className="btn primary" disabled={items.length >= 60} onClick={addGroup}>
-              + Grupo
+              {t("+ Grupo")}
             </button>
           </Row>
-          {groups.length === 0 && <Row label="Nenhum grupo ainda" hint="Crie um, ou veja as sugestões (Trabalho, Jogos, Estudos…)" />}
+          {groups.length === 0 && <Row label={t("Nenhum grupo ainda")} hint={t("Crie um, ou veja as sugestões (Trabalho, Jogos, Estudos…)")} />}
           <div className="sortable">{groups.map((entry) => row(entry, sortGroups))}</div>
         </Group>
       )}
@@ -528,34 +530,34 @@ export function PagesSection() {
             ref={sortable.rowRef(id)}
             style={{ order: sortable.position.get(id) }}
           >
-            <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, id)}>
+            <span className="handle" role="presentation" title={t("Arraste para mudar a ordem")} onPointerDown={(e) => sortable.down(e, id)}>
               <GripIcon />
             </span>
             <span className="pg-ic">
               <Icon size={16} />
             </span>
-            <span className="pg-name">{label}</span>
+            <span className="pg-name">{t(label)}</span>
             <div className="pg-move">
-              <button aria-label={`Subir ${label}`} disabled={i === 0} onClick={() => move(i, i - 1)}>
+              <button aria-label={t("Subir {page}", { page: t(label) })} disabled={i === 0} onClick={() => move(i, i - 1)}>
                 <ArrowUpIcon />
               </button>
-              <button aria-label={`Descer ${label}`} disabled={i === ordered.length - 1} onClick={() => move(i, i + 1)}>
+              <button aria-label={t("Descer {page}", { page: t(label) })} disabled={i === ordered.length - 1} onClick={() => move(i, i + 1)}>
                 <ArrowDownIcon />
               </button>
             </div>
-            <Toggle label={`Mostrar ${label} no dock`} value={!hidden.includes(id)} onChange={() => toggleHidden(id)} />
+            <Toggle label={t("Mostrar {page} no dock", { page: t(label) })} value={!hidden.includes(id)} onChange={() => toggleHidden(id)} />
           </div>
         ))}
         </div>
       </Group>
       <Group>
-        <Row label="Voltar à ordem original">
+        <Row label={t("Voltar à ordem original")}>
           <button className="btn" disabled={config.pageOrder.length === 0} onClick={() => update({ pageOrder: [] })}>
-            Restaurar
+            {t("Restaurar")}
           </button>
         </Row>
       </Group>
-      <p className="hint">Arraste pela alça para mudar a ordem e use o interruptor para esconder uma página do dock. No dock da ilha, segure um ícone por um instante e arraste.</p>
+      <p className="hint">{t("Arraste pela alça para mudar a ordem e use o interruptor para esconder uma página do dock. No dock da ilha, segure um ícone por um instante e arraste.")}</p>
     </>
   );
 }
@@ -591,13 +593,13 @@ export function ScreensRow() {
       {monitors.map((monitor, i) => (
         <Row
           key={monitor.id}
-          label={`Tela ${i + 1}${monitor.primary ? " (principal)" : ""}`}
-          hint={`${monitor.width} × ${monitor.height}${i === 0 ? ". Escolha em quais telas a ilha aparece" : ""}`}
+          label={t(monitor.primary ? "Tela {n} (principal)" : "Tela {n}", { n: i + 1 })}
+          hint={`${monitor.width} × ${monitor.height}${i === 0 ? `. ${t("Escolha em quais telas a ilha aparece")}` : ""}`}
         >
-          <Toggle label={`Mostrar a ilha na tela ${i + 1}`} value={active.has(monitor.id)} onChange={() => toggle(monitor.id)} />
+          <Toggle label={t("Mostrar a ilha na tela {n}", { n: i + 1 })} value={active.has(monitor.id)} onChange={() => toggle(monitor.id)} />
         </Row>
       ))}
-      {monitors.length === 0 && <Row label="Telas" hint="Procurando as telas conectadas…" />}
+      {monitors.length === 0 && <Row label={t("Telas")} hint={t("Procurando as telas conectadas…")} />}
     </>
   );
 }
@@ -613,18 +615,18 @@ function SuggestionsGroup({ onClose }: { onClose: () => void }) {
   return (
     <>
       <Group>
-        <Row label="Grupos prontos" hint="Um clique cria o grupo e os atalhos que faltam, com os apps que você tem instalados">
+        <Row label={t("Grupos prontos")} hint={t("Um clique cria o grupo e os atalhos que faltam, com os apps que você tem instalados")}>
           <button className="btn primary" onClick={onClose}>
-            Pronto
+            {t("Pronto")}
           </button>
         </Row>
         {TEMPLATES.map((template) => {
           const resolved = resolveTemplate(template, shortcuts, apps);
           const ready = resolved.found >= MIN_GROUP && !resolved.exists;
           const completable = resolved.exists && resolved.missing > 0;
-          const names = resolved.apps.map((item) => (item.shortcutId || item.app ? item.label : `${item.label} (não achei)`)).join(", ");
+          const names = resolved.apps.map((item) => (item.shortcutId || item.app ? t(item.label) : t("{app} (não achei)", { app: t(item.label) }))).join(", ");
           return (
-            <Row key={template.id} label={template.name} hint={`${template.blurb}: ${names}`}>
+            <Row key={template.id} label={template.name} hint={`${t(template.blurb)}: ${names}`}>
               <button
                 className={`btn${ready || completable ? " primary" : ""}`}
                 disabled={!ready && !completable}
@@ -637,12 +639,12 @@ function SuggestionsGroup({ onClose }: { onClose: () => void }) {
         })}
       </Group>
       <Group>
-        <Row label="Apps que você mais usa" hint="Do Menu Iniciar e da Área de Trabalho, pelos fixados na barra, abertos agora e o histórico do Windows" />
-        {loading && apps.length === 0 && <Row label="Procurando os apps instalados…" />}
+        <Row label={t("Apps que você mais usa")} hint={t("Do Menu Iniciar e da Área de Trabalho, pelos fixados na barra, abertos agora e o histórico do Windows")} />
+        {loading && apps.length === 0 && <Row label={t("Procurando os apps instalados…")} />}
         {top.map((entry) => (
           <Row key={entry.target} label={entry.name} hint={whySuggested(entry)}>
             <button className="btn" onClick={() => update({ shortcuts: addApp(shortcuts, entry, newId) })}>
-              Adicionar
+              {t("Adicionar")}
             </button>
           </Row>
         ))}

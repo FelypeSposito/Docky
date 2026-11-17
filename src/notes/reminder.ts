@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * Quick reminders typed in the note field: "15 min tirar a pizza", "em 2h ligar pro banco", "1h30 reunião",
  * "às 18h buscar as crianças", "as 9:30 dentista". Without one of these at the start, the text is a plain note.
@@ -12,12 +13,14 @@ const MINUTE = 60_000;
 /** Reminders go at most a day ahead: further than that belongs in a calendar. */
 const MAX_AHEAD = 24 * 60 * MINUTE;
 
-/** "em 15 min", "15min", "15 minutos" */
-const IN_MINUTES = /^(?:em\s+)?(\d{1,4})\s*(?:min|mins|minuto|minutos|m)(?=\s|$)\s*(.*)$/i;
-/** "em 2h", "2 horas", "1h30", "1h 30min" */
-const IN_HOURS = /^(?:em\s+)?(\d{1,2})\s*(?:h|hr|hrs|hora|horas)(?:\s*(\d{1,2})\s*(?:min|m)?)?(?=\s|$)\s*(.*)$/i;
-/** "às 18h", "as 18:30", "às 9h15" */
-const AT_TIME = /^(?:às|as|à|a)\s+(\d{1,2})(?:\s*(?:h|:)\s*(\d{2})?)?(?:\s*h)?(?=\s|$)\s*(.*)$/i;
+/** "em 15 min", "15min", "15 minutos" (and "in 15 minutes") */
+const IN_MINUTES = /^(?:em\s+|in\s+)?(\d{1,4})\s*(?:min|mins|minuto|minutos|minute|minutes|m)(?=\s|$)\s*(.*)$/i;
+/** "em 2h", "2 horas", "1h30", "1h 30min" (and "in 2 hours") */
+const IN_HOURS = /^(?:em\s+|in\s+)?(\d{1,2})\s*(?:h|hr|hrs|hora|horas|hour|hours)(?:\s*(\d{1,2})\s*(?:min|m)?)?(?=\s|$)\s*(.*)$/i;
+/** "às 18h", "as 18:30", "às 9h15" (and "at 18:30") */
+const AT_TIME = /^(?:às|as|à|a|at)\s+(\d{1,2})(?:\s*(?:h|:)\s*(\d{2})?)?(?:\s*h)?(?=\s|$)\s*(.*)$/i;
+/** "at 6pm", "at 9:30 am" */
+const AT_AMPM = /^at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)(?=\s|$)\s*(.*)$/i;
 
 /** The reminder in `input`, or null when it is just a note (or the time makes no sense). */
 export function parseReminder(input: string, now: Date = new Date()): ReminderDraft | null {
@@ -27,8 +30,18 @@ export function parseReminder(input: string, now: Date = new Date()): ReminderDr
 
   const minutes = value.match(IN_MINUTES);
   const hours = value.match(IN_HOURS);
-  const clock = value.match(AT_TIME);
-  if (minutes) {
+  const ampm = value.match(AT_AMPM);
+  const clock = ampm ? null : value.match(AT_TIME);
+  if (ampm) {
+    const h12 = Number(ampm[1]);
+    const m = Number(ampm[2] ?? 0);
+    if (h12 < 1 || h12 > 12 || m > 59) return null;
+    const when = new Date(now);
+    when.setHours((h12 % 12) + (ampm[3].toLowerCase() === "pm" ? 12 : 0), m, 0, 0);
+    if (when.getTime() <= now.getTime()) when.setDate(when.getDate() + 1);
+    at = when.getTime();
+    text = ampm[4];
+  } else if (minutes) {
     at = now.getTime() + Number(minutes[1]) * MINUTE;
     text = minutes[2];
   } else if (hours) {
@@ -58,5 +71,5 @@ export function formatWhen(at: number, now: Date = new Date(), twelveHour = fals
   const when = new Date(at);
   const h = twelveHour ? when.getHours() % 12 || 12 : when.getHours();
   const time = `${twelveHour ? h : pad(h)}:${pad(when.getMinutes())}`;
-  return when.toDateString() === now.toDateString() ? time : `amanhã ${time}`;
+  return when.toDateString() === now.toDateString() ? time : t("amanhã {time}", { time });
 }

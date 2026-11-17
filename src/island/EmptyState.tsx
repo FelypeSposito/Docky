@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 interface EmptyStateProps {
   title: string;
   text: string;
@@ -11,11 +12,11 @@ interface EmptyStateProps {
 export function EmptyState({ title, text, action }: EmptyStateProps) {
   return (
     <div className="tile empty">
-      <b>{title}</b>
-      <span>{text}</span>
+      <b>{t(title)}</b>
+      <span>{t(text)}</span>
       {action && (
         <button className="btn sm" onClick={action.onClick}>
-          {action.label}
+          {t(action.label)}
         </button>
       )}
     </div>

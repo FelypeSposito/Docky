@@ -6,6 +6,7 @@ import { useMediaStore, usePositionMs } from "../../media/store";
 import { EmptyState } from "../EmptyState";
 import { LyricsIcon, MusicIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, RepeatIcon, ShuffleIcon, VolumeIcon } from "../icons";
 import type { RepeatMode, Volume } from "../../lib/ipc";
+import { t } from "../../i18n";
 
 /** Repetir passa por: desligado, a lista toda, só esta faixa. */
 const NEXT_REPEAT: Record<RepeatMode, RepeatMode> = { none: "list", list: "track", track: "none" };
@@ -21,7 +22,7 @@ const LYRIC_ROW = 24;
 const NOTICE_MS = 4000;
 
 const lyricsNotice = (status: "loading" | "found" | "none" | "error") =>
-  status === "loading" ? "Buscando a letra…" : status === "error" ? "Não consegui buscar a letra agora" : "Não encontrei a letra desta música";
+  t(status === "loading" ? "Buscando a letra…" : status === "error" ? "Não consegui buscar a letra agora" : "Não encontrei a letra desta música");
 
 export function MusicPage({ active }: { active: boolean }) {
   const media = useMediaStore((s) => s.media);
@@ -72,7 +73,7 @@ export function MusicPage({ active }: { active: boolean }) {
 
   if (!media) {
     return (
-      <EmptyState title="Nada tocando agora" text="Toque algo no Spotify ou no navegador para controlar por aqui." />
+      <EmptyState title={t("Nada tocando agora")} text="Toque algo no Spotify ou no navegador para controlar por aqui." />
     );
   }
 
@@ -117,7 +118,7 @@ export function MusicPage({ active }: { active: boolean }) {
 
   return (
     <div className={`mp${showLyrics ? " lyr" : ""}`}>
-      <button className="m-top" aria-label={`Abrir ${media.title} no app`} onClick={() => ipc.mediaOpenApp()}>
+      <button className="m-top" aria-label={t("Abrir {title} no app", { title: media.title })} onClick={() => ipc.mediaOpenApp()}>
         <span className="cover" style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : undefined}>
           {!thumbnail && <MusicIcon size={26} />}
         </span>
@@ -166,7 +167,7 @@ export function MusicPage({ active }: { active: boolean }) {
       <div className="m-ctrl">
         <button
           className={`ib${showLyrics ? " on" : ""}${lines ? "" : " dim"}`}
-          aria-label="Letra"
+          aria-label={t("Letra")}
           title={lines ? "Mostrar a letra" : lyricsNotice(lyricsStatus)}
           onClick={() => (lines ? setShowLyrics((v) => !v) : say(lyricsNotice(lyricsStatus)))}
         >
@@ -175,9 +176,9 @@ export function MusicPage({ active }: { active: boolean }) {
         <div className="mid">
           <button
             className={`ib sm${media.shuffle ? " on" : ""}`}
-            aria-label="Aleatório"
+            aria-label={t("Aleatório")}
             aria-pressed={!!media.shuffle}
-            title={media.shuffle === null ? OUTSIDE : media.shuffle ? "Aleatório: ligado" : "Aleatório: desligado"}
+            title={t(media.shuffle === null ? OUTSIDE : media.shuffle ? "Aleatório: ligado" : "Aleatório: desligado")}
             disabled={media.shuffle === null}
             onClick={() => {
               const next = !media.shuffle;
@@ -187,19 +188,19 @@ export function MusicPage({ active }: { active: boolean }) {
           >
             <ShuffleIcon />
           </button>
-          <button className="ib big" aria-label="Anterior" onClick={() => ipc.mediaControl("previous")}>
+          <button className="ib big" aria-label={t("Anterior")} onClick={() => ipc.mediaControl("previous")}>
             <PrevIcon />
           </button>
-          <button className="ib big" aria-label={media.playing ? "Pausar" : "Tocar"} onClick={() => ipc.mediaControl("toggle")}>
+          <button className="ib big" aria-label={t(media.playing ? "Pausar" : "Tocar")} onClick={() => ipc.mediaControl("toggle")}>
             {media.playing ? <PauseIcon /> : <PlayIcon />}
           </button>
-          <button className="ib big" aria-label="Próxima" onClick={() => ipc.mediaControl("next")}>
+          <button className="ib big" aria-label={t("Próxima")} onClick={() => ipc.mediaControl("next")}>
             <NextIcon />
           </button>
           <button
             className={`ib sm${media.repeat && media.repeat !== "none" ? " on" : ""}`}
-            aria-label="Repetir"
-            title={media.repeat === null ? OUTSIDE : REPEAT_LABEL[media.repeat]}
+            aria-label={t("Repetir")}
+            title={t(media.repeat === null ? OUTSIDE : REPEAT_LABEL[media.repeat])}
             disabled={media.repeat === null}
             onClick={() => {
               if (!media.repeat) return;
@@ -214,7 +215,7 @@ export function MusicPage({ active }: { active: boolean }) {
         <div className="vol">
           <button
             className="ib"
-            aria-label={muted ? "Ativar o som" : "Silenciar"}
+            aria-label={t(muted ? "Ativar o som" : "Silenciar")}
             onClick={() => setMuted(!muted)}
           >
             <VolumeIcon level={level} muted={muted} />
@@ -225,7 +226,7 @@ export function MusicPage({ active }: { active: boolean }) {
             min={0}
             max={100}
             value={Math.round(level * 100)}
-            aria-label={ownVolume ? `Volume do ${media.app.replace(/\.exe$/i, "")}` : "Volume"}
+            aria-label={ownVolume ? t("Volume de {app}", { app: media.app.replace(/\.exe$/i, "") }) : "Volume"}
             onPointerDown={() => (holding.current = true)}
             onPointerUp={() => (holding.current = false)}
             onChange={(e) => setLevel(Number(e.target.value) / 100)}

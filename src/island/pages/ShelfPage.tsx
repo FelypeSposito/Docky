@@ -13,6 +13,7 @@ import { EmptyState } from "../EmptyState";
 import { FileIcon, FolderIcon, TrashIcon, TrayIcon } from "../icons";
 import { useIslandStore } from "../store";
 import { useGridSort } from "../useGridSort";
+import { t } from "../../i18n";
 
 const COLORS = ["#4c8dff", "#8b5cf6", "#ff9f43", "#34d399"];
 const MAX_FOLDERS = 4;
@@ -65,12 +66,8 @@ export function ShelfPage({ active }: { active: boolean }) {
     }
     try {
       const result = await ipc.shelfTrash(paths);
-      const skipped = result.skipped
-        ? ` (${result.skipped} ${result.skipped === 1 ? "ficou" : "ficaram"} de fora)`
-        : "";
-      flash(
-        `${result.sent === 1 ? "1 item foi" : `${result.sent} itens foram`} para a Lixeira${skipped}`,
-      );
+      const skipped = result.skipped ? ` (${t(result.skipped === 1 ? "1 ficou de fora" : "{n} ficaram de fora", { n: result.skipped })})` : "";
+      flash(`${t(result.sent === 1 ? "1 item foi para a Lixeira" : "{n} itens foram para a Lixeira", { n: result.sent })}${skipped}`);
       clear();
       useIslandStore.setState({ pinned: false });
       void ipc.recycleBinCount().then(setBinCount);
@@ -84,12 +81,11 @@ export function ShelfPage({ active }: { active: boolean }) {
     try {
       const result = await ipc.shelfSend(paths, folder.path);
       const skipped = result.skipped
-        ? ` (${result.skipped} ignorado${result.skipped > 1 ? "s" : ""}: pastas não são enviadas)`
+        ? ` (${t(result.skipped === 1 ? "1 ignorado: pastas não são enviadas" : "{n} ignorados: pastas não são enviadas", { n: result.skipped })})`
         : "";
-      const plural = result.sent === 1 ? "" : "s";
-      flash(
-        `${result.sent} arquivo${plural} ${move ? "movido" : "enviado"}${plural} para ${folder.name}${skipped}`,
-      );
+      const one = result.sent === 1;
+      const what = move ? (one ? "1 arquivo movido para {folder}" : "{n} arquivos movidos para {folder}") : one ? "1 arquivo enviado para {folder}" : "{n} arquivos enviados para {folder}";
+      flash(`${t(what, { n: result.sent, folder: folder.name })}${skipped}`);
       clear();
       useIslandStore.setState({ pinned: false });
     } catch (e) {
@@ -116,15 +112,15 @@ export function ShelfPage({ active }: { active: boolean }) {
               <span className="file">+{paths.length - 3} arquivos</span>
             )}
             <button className="link" onClick={clear}>
-              Limpar
+              {t("Limpar")}
             </button>
           </div>
         ) : (
           <div className="dz">
             <TrayIcon size={28} stroke={1.5} />
             <div>
-              <b>Solte arquivos aqui</b>
-              <span>ou arraste para a ilha</span>
+              <b>{t("Solte arquivos aqui")}</b>
+              <span>{t("ou arraste para a ilha")}</span>
             </div>
           </div>
         )}
@@ -132,7 +128,7 @@ export function ShelfPage({ active }: { active: boolean }) {
 
       {folders.length === 0 ? (
         <EmptyState
-          title="Falta cadastrar as pastas"
+          title={t("Falta cadastrar as pastas")}
           text="Escolha os destinos em Configurações, em Shelf."
           action={{
             label: "Abrir configurações",
@@ -168,18 +164,14 @@ export function ShelfPage({ active }: { active: boolean }) {
       {binOn && (
         <button
           className={`tile fd bin${paths.length > 0 ? " armed" : ""}`}
-          title={
-            paths.length > 0
-              ? "Mandar para a Lixeira (dá para restaurar depois)"
-              : "Abrir a Lixeira"
-          }
+          title={t(paths.length > 0 ? "Mandar para a Lixeira (dá para restaurar depois)" : "Abrir a Lixeira")}
           onClick={trash}
         >
           <span className="fi">
             <TrashIcon size={15} stroke={1.8} />
           </span>
           <span className="bin-tx">
-            <b>Lixeira</b>
+            <b>{t("Lixeira")}</b>
             <span>{paths.length > 0 ? "enviar" : binLabel(binCount)}</span>
           </span>
         </button>

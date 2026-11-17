@@ -26,6 +26,14 @@ describe("parseReminder", () => {
     expect(new Date(tomorrow!.at).getMinutes()).toBe(30);
   });
 
+  it("entende o mesmo em inglês", () => {
+    expect(minutesFromNow(parseReminder("in 15 minutes take the pizza out", now))).toBe(15);
+    expect(minutesFromNow(parseReminder("in 2 hours call the bank", now))).toBe(120);
+    expect(new Date(parseReminder("at 7pm pick up the kids", now)!.at).getHours()).toBe(19);
+    expect(new Date(parseReminder("at 9:30 am dentist", now)!.at).getDate()).toBe(18);
+    expect(parseReminder("at 13pm nope", now)).toBeNull();
+  });
+
   it("sem tempo no começo, ou sem texto, é só uma nota", () => {
     expect(parseReminder("comprar pão", now)).toBeNull();
     expect(parseReminder("15 min", now)).toBeNull();

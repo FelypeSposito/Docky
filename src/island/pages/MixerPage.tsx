@@ -4,6 +4,7 @@ import { useMediaStore } from "../../media/store";
 import { inDiscordCall, useActivityStore } from "../activity";
 import { DiscordCall } from "../DiscordCall";
 import { VolumeIcon } from "../icons";
+import { t } from "../../i18n";
 
 const POLL_MS = 1500;
 /** Mexer no volume chama o Windows; com o controle arrastando, manda no máximo a cada 40 ms e o valor final. */
@@ -86,8 +87,8 @@ export function MixerPage({ active }: { active: boolean }) {
         <div className="mx-row master">
           <button
             className="mx-mute"
-            aria-label={muted ? "Ativar o som" : "Silenciar tudo"}
-            title={muted ? "Ativar o som" : "Silenciar tudo"}
+            aria-label={t(muted ? "Ativar o som" : "Silenciar tudo")}
+            title={t(muted ? "Ativar o som" : "Silenciar tudo")}
             onClick={() => {
               ipc.setMuted(!muted);
               useMediaStore.setState({ volume: { level, muted: !muted } });
@@ -95,14 +96,14 @@ export function MixerPage({ active }: { active: boolean }) {
           >
             <VolumeIcon level={level} muted={muted} size={17} />
           </button>
-          <span className="mx-name">Volume geral</span>
+          <span className="mx-name">{t("Volume geral")}</span>
           <input
             className="vol-slider mx-slider"
             type="range"
             min={0}
             max={100}
             value={Math.round(level * 100)}
-            aria-label="Volume geral"
+            aria-label={t("Volume geral")}
             style={{ "--v": `${level * 100}%` } as React.CSSProperties}
             onChange={(e) => {
               const next = Number(e.target.value) / 100;
@@ -113,7 +114,7 @@ export function MixerPage({ active }: { active: boolean }) {
           <span className="mx-pct">{muted ? "—" : percent(level)}</span>
         </div>
         {apps !== null && apps.length === 0 && (
-          <div className="mx-empty">Nenhum app abriu o som agora</div>
+          <div className="mx-empty">{t("Nenhum app abriu o som agora")}</div>
         )}
         {(apps ?? []).map((app) => (
           <div
@@ -124,10 +125,10 @@ export function MixerPage({ active }: { active: boolean }) {
               className="mx-mute app"
               aria-label={
                 app.muted
-                  ? `Ativar o som de ${app.name}`
-                  : `Silenciar ${app.name}`
+                  ? t("Ativar o som de {app}", { app: t(app.name) })
+                  : t("Silenciar {app}", { app: t(app.name) })
               }
-              title={app.muted ? "Ativar o som" : "Silenciar"}
+              title={t(app.muted ? "Ativar o som" : "Silenciar")}
               onClick={() => {
                 ipc.setAppMuted(app.id, !app.muted);
                 change(app.id, { muted: !app.muted });
@@ -144,9 +145,9 @@ export function MixerPage({ active }: { active: boolean }) {
                 </span>
               )}
             </button>
-            <span className="mx-name" title={app.name}>
-              {app.name}
-              {app.active && <i className="mx-dot" title="Tocando agora" />}
+            <span className="mx-name" title={t(app.name)}>
+              {t(app.name)}
+              {app.active && <i className="mx-dot" title={t("Tocando agora")} />}
             </span>
             <input
               className="vol-slider mx-slider"
@@ -154,7 +155,7 @@ export function MixerPage({ active }: { active: boolean }) {
               min={0}
               max={100}
               value={Math.round(app.volume * 100)}
-              aria-label={`Volume de ${app.name}`}
+              aria-label={t("Volume de {app}", { app: t(app.name) })}
               style={{ "--v": `${app.volume * 100}%` } as React.CSSProperties}
               onPointerDown={() => (dragging.current = app.id)}
               onPointerUp={() => (dragging.current = null)}

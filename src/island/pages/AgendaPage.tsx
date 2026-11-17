@@ -7,6 +7,7 @@ import { useWeatherStore } from "../../weather/store";
 import { rainNote, uvLabel } from "../../weather/summary";
 import { EmptyState } from "../EmptyState";
 import { WeatherIcon } from "../icons";
+import { t } from "../../i18n";
 
 const DESCRIPTIONS: [number, string][] = [
   [0, "Céu limpo"],
@@ -21,7 +22,7 @@ const DESCRIPTIONS: [number, string][] = [
   [99, "Tempestade"],
 ];
 
-const describe = (code: number) => (DESCRIPTIONS.find(([max]) => code <= max) ?? [0, "—"])[1];
+const describe = (code: number) => t((DESCRIPTIONS.find(([max]) => code <= max) ?? [0, "—"])[1]);
 const degrees = (value: number, unit: "c" | "f" = "c") => `${Math.round(unit === "f" ? (value * 9) / 5 + 32 : value)}°`;
 
 /** Eventos do Google Agenda: busca ao abrir a página e conta o tempo para os "em 12 min" andarem. */
@@ -43,13 +44,13 @@ function useAgenda(active: boolean) {
 /** O aviso que substitui a lista quando ela não pode aparecer (erro ou Google ainda não conectado). */
 function agendaNotice({ status, error, load }: ReturnType<typeof useAgenda>): ReactNode | null {
   if (error) {
-    return <EmptyState title="Não consegui ler a agenda" text={error} action={{ label: "Tentar de novo", onClick: () => void load(true) }} />;
+    return <EmptyState title={t("Não consegui ler a agenda")} text={error} action={{ label: "Tentar de novo", onClick: () => void load(true) }} />;
   }
   if (!status?.connected) {
     return (
       <EmptyState
-        title="Conecte o Google Agenda"
-        text={status?.configured ? "Falta fazer o login." : "Veja os próximos eventos aqui. Configure em Agenda, clima e Discord."}
+        title={t("Conecte o Google Agenda")}
+        text={t(status?.configured ? "Falta fazer o login." : "Veja os próximos eventos aqui. Configure em Agenda, clima e Discord.")}
         action={{ label: "Abrir configurações", onClick: () => ipc.openSettings("integracoes") }}
       />
     );
@@ -64,7 +65,7 @@ function Events({ active }: { active: boolean }) {
   if (notice) return notice;
 
   const list = upcoming(agenda.events, agenda.now).slice(0, 3);
-  if (list.length === 0) return <EmptyState title="Agenda livre" text="Nenhum evento nas próximas 36 horas." />;
+  if (list.length === 0) return <EmptyState title={t("Agenda livre")} text="Nenhum evento nas próximas 36 horas." />;
 
   const { now } = agenda;
   const [next, ...rest] = list;
@@ -80,7 +81,7 @@ function Events({ active }: { active: boolean }) {
         </div>
         {next.meetUrl && (
           <button className="go" onClick={() => void ipc.openUrl(next.meetUrl!)}>
-            Entrar
+            {t("Entrar")}
           </button>
         )}
       </div>
@@ -102,7 +103,7 @@ function EventsLarge({ active }: { active: boolean }) {
 
   const { now } = agenda;
   const groups = groupByDay(upcoming(agenda.events, now), now);
-  if (groups.length === 0) return <EmptyState title="Agenda livre" text="Nenhum evento nas próximas 36 horas." />;
+  if (groups.length === 0) return <EmptyState title={t("Agenda livre")} text="Nenhum evento nas próximas 36 horas." />;
 
   return (
     <div className="tile calx">
@@ -118,7 +119,7 @@ function EventsLarge({ active }: { active: boolean }) {
               </div>
               {event.meetUrl && (
                 <button className="go" onClick={() => void ipc.openUrl(event.meetUrl!)}>
-                  Entrar
+                  {t("Entrar")}
                 </button>
               )}
             </div>
@@ -154,7 +155,7 @@ function WeatherTile({ active, large = false }: { active: boolean; large?: boole
             <small>
               {describe(weather.code)}
               <br />
-              Máx {degrees(weather.max, unit)} · Mín {degrees(weather.min, unit)}
+              {t("Máx {max} · Mín {min}", { max: degrees(weather.max, unit), min: degrees(weather.min, unit) })}
               {!large && (
                 <>
                   <br />
@@ -175,10 +176,10 @@ function WeatherTile({ active, large = false }: { active: boolean; large?: boole
       ) : (
         <div className="wx-empty">
           <b>{!city.trim() ? "Defina a cidade" : loading ? "Buscando o clima…" : "Sem clima"}</b>
-          <small>{error ?? "Em Configurações, em Agenda, clima e Discord."}</small>
+          <small>{error ?? t("Em Configurações, em Agenda, clima e Discord.")}</small>
           {!city.trim() && (
             <button className="btn sm" onClick={() => ipc.openSettings("integracoes")}>
-              Configurar
+              {t("Configurar")}
             </button>
           )}
         </div>
@@ -203,16 +204,16 @@ function WeatherDetails({ weather, unit }: { weather: Weather; unit: "c" | "f" }
       <dl className="wx-facts">
         {facts.map(([label, value]) => (
           <div key={label}>
-            <dt>{label}</dt>
+            <dt>{t(label)}</dt>
             <dd>{value}</dd>
           </div>
         ))}
       </dl>
       <div className="wx-rain">
         <span className="wx-rain-note">{rainNote(weather)}</span>
-        <div className="wx-bars" role="img" aria-label="Chance de chuva nas próximas 12 horas">
+        <div className="wx-bars" role="img" aria-label={t("Chance de chuva nas próximas 12 horas")}>
           {weather.hours.map((h, i) => (
-            <div key={i} className="wx-bar" title={`${h.hour}h · ${Math.round(h.rain)}% de chuva · ${degrees(h.temp, unit)}`}>
+            <div key={i} className="wx-bar" title={t("{h}h · {n}% de chuva · {temp}", { h: h.hour, n: Math.round(h.rain), temp: degrees(h.temp, unit) })}>
               <i style={{ height: `${Math.max(6, h.rain)}%` }} className={h.rain >= 40 ? "wet" : ""} />
               <em>{i % 3 === 0 ? `${h.hour}h` : ""}</em>
             </div>

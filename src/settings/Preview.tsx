@@ -11,6 +11,7 @@ import { formatClock } from "../lib/format";
 import { glowOpacity, islandAccent } from "../island/theme";
 import type { AreaId } from "./areas";
 import "./preview.css";
+import { t } from "../i18n";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -84,7 +85,7 @@ function ShortcutsPreview() {
             <b>{item.name || "Sem nome"}</b>
           </span>
         ))}
-        {items.length === 0 && <span className="pv-empty">Os atalhos que você criar aparecem aqui</span>}
+        {items.length === 0 && <span className="pv-empty">{t("Os atalhos que você criar aparecem aqui")}</span>}
       </div>
     </Open>
   );
@@ -97,9 +98,9 @@ function DockPreview() {
     <Open width={340} height={70}>
       <div className="pv-dock">
         {pages.map(({ id, label, Icon }, i) => (
-          <span key={id} className={i === 0 ? "on" : ""} title={label}>
+          <span key={id} className={i === 0 ? "on" : ""} title={t(label)}>
             <Icon size={14} />
-            {i === 0 && <b>{label}</b>}
+            {i === 0 && <b>{t(label)}</b>}
           </span>
         ))}
       </div>
@@ -127,7 +128,7 @@ export function Preview({ area }: { area: AreaId }) {
     case "musica":
       island = config.lyricPill ? (
         <Pill width={330} right={<Eq />}>
-          <span className="pv-lyric">E o mundo lá fora gira devagar</span>
+          <span className="pv-lyric">{t("E o mundo lá fora gira devagar")}</span>
         </Pill>
       ) : (
         <Pill width={250} right={<Eq />}>
@@ -138,7 +139,7 @@ export function Preview({ area }: { area: AreaId }) {
     case "foco":
       island = (
         <Pill width={250} right={<span className="pv-ring" />}>
-          <span className="pv-sub">Foco</span>
+          <span className="pv-sub">{t("Foco")}</span>
           <b className="pv-num">{pad(config.focusMinutes)}:00</b>
         </Pill>
       );
@@ -147,7 +148,7 @@ export function Preview({ area }: { area: AreaId }) {
       island = (
         <Pill width={330} right={<span className="pv-spin" />}>
           <b>docky</b>
-          <span className="pv-sub">escrevendo código · 02:35</span>
+          <span className="pv-sub">{t("escrevendo código · 02:35")}</span>
         </Pill>
       );
       break;
@@ -155,13 +156,13 @@ export function Preview({ area }: { area: AreaId }) {
       island = (
         <Open width={360} height={96}>
           <div className="pv-shelf">
-            <span className="pv-drop">Solte arquivos aqui</span>
+            <span className="pv-drop">{t("Solte arquivos aqui")}</span>
             {(config.shelfFolders.length > 0 ? config.shelfFolders.slice(0, 3).map((f) => f.name || "Pasta") : ["Documentos"]).map((name, i) => (
               <span key={`${name}-${i}`} className="pv-folder">
                 {name}
               </span>
             ))}
-            {config.shelfTrash && <span className="pv-folder pv-bin">Lixeira</span>}
+            {config.shelfTrash && <span className="pv-folder pv-bin">{t("Lixeira")}</span>}
           </div>
         </Open>
       );
@@ -177,8 +178,8 @@ export function Preview({ area }: { area: AreaId }) {
             <div className="pv-event">
               <i />
               <span>
-                <b>Reunião de time</b>
-                <span className="pv-sub">10:00 · Google Meet</span>
+                <b>{t("Reunião de time")}</b>
+                <span className="pv-sub">{t("10:00 · Google Meet")}</span>
               </span>
             </div>
           </div>

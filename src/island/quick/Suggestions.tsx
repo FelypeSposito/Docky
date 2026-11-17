@@ -15,6 +15,7 @@ import {
   whySuggested,
 } from "../../launcher/suggestions";
 import { QButton, QPanel, QRow, QTitle } from "./controls";
+import { t } from "../../i18n";
 
 /** Sugestões de grupos e de apps para virar atalho, na tela maior dos atalhos (modo Editar). */
 export function Suggestions({ onClose }: { onClose: () => void }) {
@@ -34,21 +35,21 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
   return (
     <QPanel>
       <div className="qs-line sg-head">
-        <b>Sugestões</b>
-        <span className="qs-note">Grupos prontos e os apps e jogos que você tem</span>
+        <b>{t("Sugestões")}</b>
+        <span className="qs-note">{t("Grupos prontos e os apps e jogos que você tem")}</span>
         <QButton tone="primary" onClick={onClose}>
-          Pronto
+          {t("Pronto")}
         </QButton>
       </div>
 
-      <QTitle>Grupos prontos</QTitle>
+      <QTitle>{t("Grupos prontos")}</QTitle>
       {TEMPLATES.map((template) => {
         const resolved = resolveTemplate(template, shortcuts, apps);
         const ready = resolved.found >= MIN_GROUP && !resolved.exists;
         const completable = resolved.exists && resolved.missing > 0;
         return (
-          <QRow key={template.id} label={template.name} hint={template.blurb}>
-            <div className="sg-chips" aria-label={`Apps de ${template.name}`}>
+          <QRow key={template.id} label={t(template.name)} hint={t(template.blurb)}>
+            <div className="sg-chips" aria-label={t("Apps de {name}", { name: t(template.name) })}>
               {resolved.apps.map((item) => (
                 <span key={item.label} className={item.shortcutId || item.app ? "on" : ""} title={item.shortcutId ? "Você já tem este atalho" : item.app ? "Instalado: será adicionado" : "Não encontrei este app"}>
                   {item.label}
@@ -60,16 +61,16 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
               disabled={!ready && !completable}
               title={
                 completable
-                  ? `Põe no grupo que você já tem: ${resolved.missing} ${resolved.missing === 1 ? "app" : "apps"}`
+                  ? t("Põe no grupo que você já tem: {n} apps", { n: resolved.missing })
                   : resolved.exists
-                    ? "O grupo já tem todos os apps"
+                    ? t("O grupo já tem todos os apps")
                     : ready
                       ? undefined
-                      : `Precisa de pelo menos ${MIN_GROUP} apps`
+                      : t("Precisa de pelo menos {n} apps", { n: MIN_GROUP })
               }
               onClick={() => update({ shortcuts: completable ? completeGroup(template, shortcuts, apps, newId) : buildGroup(template, shortcuts, apps, newId) })}
             >
-              {completable ? `Completar (+${resolved.missing})` : resolved.exists ? "Criado" : "Criar"}
+              {completable ? t("Completar (+{n})", { n: resolved.missing }) : t(resolved.exists ? "Criado" : "Criar")}
             </QButton>
           </QRow>
         );
@@ -77,23 +78,23 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
 
       {!scanApps ? (
         <>
-          <QTitle>Apps e jogos instalados</QTitle>
-          <QRow label="Procurar no computador" hint="Menu Iniciar, Steam e Epic Games. A busca é só local: nada sai do computador.">
+          <QTitle>{t("Apps e jogos instalados")}</QTitle>
+          <QRow label={t("Procurar no computador")} hint={t("Menu Iniciar, Steam e Epic Games. A busca é só local: nada sai do computador.")}>
             <QButton tone="primary" onClick={() => update({ scanApps: true })}>
-              Permitir
+              {t("Permitir")}
             </QButton>
           </QRow>
         </>
       ) : (
         <>
-          {loading && apps.length === 0 && <p className="qs-note sg-note">Procurando apps e jogos instalados…</p>}
-          {!loading && sections.length === 0 && <p className="qs-note sg-note">Nenhum app ou jogo novo para sugerir.</p>}
+          {loading && apps.length === 0 && <p className="qs-note sg-note">{t("Procurando apps e jogos instalados…")}</p>}
+          {!loading && sections.length === 0 && <p className="qs-note sg-note">{t("Nenhum app ou jogo novo para sugerir.")}</p>}
           {sections.map((section) => (
             <div key={section.kind}>
-              <QTitle>{section.kind === "app" ? "Apps que você mais usa" : section.title}</QTitle>
+              <QTitle>{t(section.kind === "app" ? "Apps que você mais usa" : section.title)}</QTitle>
               {section.entries.map((entry) => (
                 <QRow key={entry.target} label={entry.name} hint={whySuggested(entry)}>
-                  <QButton onClick={() => add(entry)}>+ Adicionar</QButton>
+                  <QButton onClick={() => add(entry)}>{t("+ Adicionar")}</QButton>
                 </QRow>
               ))}
             </div>

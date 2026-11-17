@@ -5,6 +5,7 @@ import { type AppEntry, addApps, adoptAppIcon, suggestionSections, useAppsStore,
 import { Group, Row } from "./controls";
 import "../launcher/iconPicker.css";
 import "./appSuggestions.css";
+import { t } from "../i18n";
 
 /** Lembra, só neste computador, se a pessoa recolheu as sugestões (o padrão é aberto). */
 const OPEN_KEY = "docky-app-suggestions-open";
@@ -41,9 +42,9 @@ export function AppSuggestions() {
   if (!config.scanApps) {
     return (
       <Group>
-        <Row label="Sugerir atalhos dos apps instalados" hint="Procura no Menu Iniciar, na Steam e na Epic. Tudo fica neste computador">
+        <Row label={t("Sugerir atalhos dos apps instalados")} hint={t("Procura no Menu Iniciar, na Steam e na Epic. Tudo fica neste computador")}>
           <button className="btn" onClick={() => update({ scanApps: true })}>
-            Permitir
+            {t("Permitir")}
           </button>
         </Row>
       </Group>
@@ -60,16 +61,20 @@ export function AppSuggestions() {
     entries.forEach((entry, i) => void adoptAppIcon(ids[i], entry));
   };
 
-  const hint = loading ? "Procurando apps e jogos…" : total === 0 ? "Nada novo para sugerir: tudo o que foi encontrado já é atalho" : `${total} ${total === 1 ? "sugestão" : "sugestões"} a partir do que está instalado`;
+  const hint = loading
+    ? "Procurando apps e jogos…"
+    : total === 0
+      ? "Nada novo para sugerir: tudo o que foi encontrado já é atalho"
+      : t(total === 1 ? "1 sugestão a partir do que está instalado" : "{n} sugestões a partir do que está instalado", { n: total });
   return (
     <Group>
-      <Row label="Sugestões de atalhos" hint={hint}>
-        <button className="btn" onClick={() => update({ scanApps: false })} title="Para de procurar apps e jogos neste computador">
-          Não procurar
+      <Row label={t("Sugestões de atalhos")} hint={hint}>
+        <button className="btn" onClick={() => update({ scanApps: false })} title={t("Para de procurar apps e jogos neste computador")}>
+          {t("Não procurar")}
         </button>
         {total > 0 && (
           <button className="btn" onClick={toggle} aria-expanded={open}>
-            {open ? "Ocultar" : "Mostrar"}
+            {t(open ? "Ocultar" : "Mostrar")}
           </button>
         )}
       </Row>
@@ -90,7 +95,7 @@ export function AppSuggestions() {
             </div>
             {section.entries.length > 1 && (
               <button className="btn" onClick={() => add(section.entries)}>
-                Adicionar todos
+                {t("Adicionar todos")}
               </button>
             )}
           </div>

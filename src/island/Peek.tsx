@@ -9,6 +9,7 @@ import { useMediaStore, usePositionMs } from "../media/store";
 import { useWeatherStore } from "../weather/store";
 import { CalendarIcon, Equalizer, GridIcon, MusicIcon, NextIcon, NoteIcon, PauseIcon, PlayIcon, PrevIcon, TimerIcon, WeatherIcon } from "./icons";
 import { useIslandStore } from "./store";
+import { t } from "../i18n";
 
 const mmss = (ms: number) => {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -39,7 +40,7 @@ export function PeekPlayer({ active }: { active: boolean }) {
       <div className="pk-top">
         {/* Only text here: a click on the name or the cover opens the island (opening the app is on the Música page). */}
         <span className="pk-song">
-          <b>{media.title || "Sem título"}</b>
+          <b>{media.title || t("Sem título")}</b>
           {media.artist && <em> · {media.artist}</em>}
         </span>
         <Equalizer playing={media.playing && active} />
@@ -58,13 +59,13 @@ export function PeekPlayer({ active }: { active: boolean }) {
         </span>
         <span className="pk-time">{duration > 0 ? mmss(duration) : ""}</span>
         <span className="pk-ctl" onClick={stop}>
-          <button aria-label="Música anterior" onClick={() => ipc.mediaControl("previous")}>
+          <button aria-label={t("Música anterior")} onClick={() => ipc.mediaControl("previous")}>
             <PrevIcon size={14} />
           </button>
-          <button className="main" aria-label={media.playing ? "Pausar" : "Tocar"} onClick={() => ipc.mediaControl("toggle")}>
+          <button className="main" aria-label={t(media.playing ? "Pausar" : "Tocar")} onClick={() => ipc.mediaControl("toggle")}>
             {media.playing ? <PauseIcon size={15} /> : <PlayIcon size={15} />}
           </button>
-          <button aria-label="Próxima música" onClick={() => ipc.mediaControl("next")}>
+          <button aria-label={t("Próxima música")} onClick={() => ipc.mediaControl("next")}>
             <NextIcon size={14} />
           </button>
         </span>
@@ -112,22 +113,22 @@ export function PeekGlance({ active, clock, date }: { active: boolean; clock: st
           </button>
         )}
         {weather && (
-          <button className="pk-chip" onClick={() => openPage("cal")} title={`${weather.city}: máx ${Math.round(weather.max)}°, mín ${Math.round(weather.min)}°`}>
+          <button className="pk-chip" onClick={() => openPage("cal")} title={t("{city}: máx {max}°, mín {min}°", { city: weather.city, max: Math.round(weather.max), min: Math.round(weather.min) })}>
             <WeatherIcon code={weather.code} size={15} />
             <span>{Math.round(weather.temperature)}°</span>
           </button>
         )}
-        <button className={`pk-chip${timer.running ? ` on ${timer.mode}` : ""}`} onClick={() => timer.toggle()} title={timer.running ? "Pausar" : "Começar agora"}>
+        <button className={`pk-chip${timer.running ? ` on ${timer.mode}` : ""}`} onClick={() => timer.toggle()} title={t(timer.running ? "Pausar" : "Começar agora")}>
           <TimerIcon size={14} />
-          <span>{timer.running ? `${LABELS[timer.mode]} ${timerClock(timer.left)}` : START[timer.mode]}</span>
+          <span>{timer.running ? `${t(LABELS[timer.mode])} ${timerClock(timer.left)}` : t(START[timer.mode])}</span>
         </button>
-        <button className="pk-chip" onClick={() => openPage("note")} aria-label="Nota rápida" title="Nota rápida">
+        <button className="pk-chip" onClick={() => openPage("note")} aria-label={t("Nota rápida")} title={t("Nota rápida")}>
           <NoteIcon size={14} />
-          {!next && <span>Nota</span>}
+          {!next && <span>{t("Nota")}</span>}
         </button>
-        <button className="pk-chip" onClick={() => openPage("launch")} aria-label="Atalhos" title="Atalhos">
+        <button className="pk-chip" onClick={() => openPage("launch")} aria-label={t("Atalhos")} title={t("Atalhos")}>
           <GridIcon size={14} />
-          {!next && <span>Atalhos</span>}
+          {!next && <span>{t("Atalhos")}</span>}
         </button>
       </div>
     </div>

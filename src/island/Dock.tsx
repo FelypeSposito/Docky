@@ -4,6 +4,7 @@ import { ipc } from "../lib/ipc";
 import { GearIcon } from "./icons";
 import { mergeOrder, moveItem, orderPages, visiblePages } from "./pageOrder";
 import { PAGES } from "./pages/registry";
+import { t } from "../i18n";
 
 interface DockProps {
   page: string;
@@ -171,19 +172,19 @@ export function Dock({ page, onPage }: DockProps) {
           }}
           className={`dk${id === page ? " on" : ""}${id === dragId ? " drag" : ""}`}
           style={{ order: position.get(id) }}
-          aria-label={label}
-          title="Segure e arraste para mudar a ordem"
+          aria-label={t(label)}
+          title={t("Segure e arraste para mudar a ordem")}
           onPointerDown={(e) => down(e, id)}
           onClick={() => {
             if (!suppressClick.current) onPage(id);
           }}
         >
           <Icon size={16} />
-          <span className="lb">{label}</span>
+          <span className="lb">{t(label)}</span>
         </button>
       ))}
       <i className="dsep" style={{ order: PAGES.length }} />
-      <button className="dk" style={{ order: PAGES.length + 1 }} aria-label="Configurações" onClick={() => ipc.openSettings(PAGES.find((p) => p.id === page)?.area)} title="Configurações desta página">
+      <button className="dk" style={{ order: PAGES.length + 1 }} aria-label={t("Configurações")} onClick={() => ipc.openSettings(PAGES.find((p) => p.id === page)?.area)} title={t("Configurações desta página")}>
         <GearIcon />
       </button>
     </div>

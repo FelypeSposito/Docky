@@ -4,6 +4,7 @@ import { Glyph, LIBRARY, libraryId } from "./iconLibrary";
 import { iconKind } from "./icons";
 import { ItemIcon } from "./ShortcutIcon";
 import "./iconPicker.css";
+import { t } from "../i18n";
 
 interface IconPickerProps {
   /** O ícone atual (vazio, emoji, `lib:nome` ou caminho de imagem). */
@@ -29,21 +30,21 @@ export function IconPicker({ value, name, color, image, onChange, onDone }: Icon
   useEffect(() => setEmoji(iconKind(value) === "text" ? value : ""), [value]);
 
   return (
-    <div className="ip" role="dialog" aria-label={`Ícone de ${name || "item"}`}>
+    <div className="ip" role="dialog" aria-label={t("Ícone de {name}", { name: name || t("item") })}>
       <div className="ip-head">
         <span className="ip-preview">
           <ItemIcon icon={value} image={image} color={color} name={name} className="li" size={18} />
         </span>
         <div className="ip-title">
           <b>Ícone de {name || "item"}</b>
-          <span>Escolha um desenho, um emoji ou uma foto</span>
+          <span>{t("Escolha um desenho, um emoji ou uma foto")}</span>
         </div>
         <button className="ip-btn primary" onClick={onDone}>
-          Pronto
+          {t("Pronto")}
         </button>
       </div>
 
-      <div className="ip-grid" role="listbox" aria-label="Biblioteca de ícones">
+      <div className="ip-grid" role="listbox" aria-label={t("Biblioteca de ícones")}>
         {LIBRARY.map((icon) => (
           <button
             key={icon.id}
@@ -60,22 +61,22 @@ export function IconPicker({ value, name, color, image, onChange, onDone }: Icon
 
       <div className="ip-foot">
         <label className="ip-emoji">
-          <span>Emoji</span>
+          <span>{t("Emoji")}</span>
           <input
             value={emoji}
             maxLength={8}
             placeholder="🙂"
-            aria-label="Emoji do ícone"
+            aria-label={t("Emoji do ícone")}
             onChange={(e) => setEmoji(e.target.value)}
             onBlur={() => emoji.trim() !== (iconKind(value) === "text" ? value : "") && onChange(emoji.trim())}
             onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
           />
         </label>
         <button className="ip-btn" onClick={() => void ipc.pickPath("image").then((path) => path && onChange(path))}>
-          Escolher foto…
+          {t("Escolher foto…")}
         </button>
         <button className="ip-btn" disabled={!value.trim()} onClick={() => onChange("")}>
-          Usar o padrão
+          {t("Usar o padrão")}
         </button>
       </div>
     </div>

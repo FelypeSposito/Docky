@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 export type SessionState = "running" | "idle";
 
 export interface Session {
@@ -117,8 +118,8 @@ export function formatDuration(ms: number): string {
 /** "editou 4 arquivos em 3 min", or "respondeu em 42 s" when it changed no file. */
 export function describeTurn(turn: TurnSummary): string {
   const time = formatDuration(turn.ms);
-  if (turn.files === 0) return `respondeu em ${time}`;
-  return `editou ${turn.files === 1 ? "1 arquivo" : `${turn.files} arquivos`} em ${time}`;
+  if (turn.files === 0) return t("respondeu em {time}", { time });
+  return turn.files === 1 ? t("editou 1 arquivo em {time}", { time }) : t("editou {n} arquivos em {time}", { n: turn.files, time });
 }
 
 /** What Claude is doing, from its last tool: thinking (no tool yet), editing, running commands, reading, delegating. */

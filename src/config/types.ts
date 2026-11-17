@@ -39,6 +39,8 @@ export interface Config {
   onboarded: boolean;
   /** Asks GitHub, twice a day, whether a newer Docky was released. */
   checkUpdates: boolean;
+  /** Interface language: "auto" (follow the system), "pt" or "en". */
+  language: string;
   reduceMotion: boolean;
   lyricPill: boolean;
   lyricDelayMs: number;
@@ -127,6 +129,7 @@ export const DEFAULT_CONFIG: Config = {
   clipboardHistory: true,
   onboarded: false,
   checkUpdates: true,
+  language: "auto",
   reduceMotion: false,
   lyricPill: true,
   lyricDelayMs: 0,

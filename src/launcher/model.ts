@@ -1,4 +1,5 @@
 import type { Shortcut } from "../config/types";
+import { t } from "../i18n";
 
 /** Um id curto para um atalho novo (o Rust confere e troca se repetir). */
 export const newId = (): string => `n${Math.random().toString(36).slice(2, 8)}`;
@@ -35,16 +36,16 @@ export function needsConfirmation(shortcut: Shortcut, shortcuts: Shortcut[], con
 
 /** A pergunta da confirmação: "Abrir Bambuzal?" ou "Abrir Trabalho (Chrome, Claude, Spotify)?". */
 export function confirmationText(shortcut: Shortcut, shortcuts: Shortcut[]): string {
-  const name = shortcut.name.trim() || "este atalho";
-  if (!shortcut.group) return `Abrir ${name}?`;
-  const names = membersOf(shortcut, shortcuts).map((s) => s.name.trim() || "sem nome");
-  return names.length === 0 ? `${name} está vazio` : `Abrir ${name} (${names.join(", ")})?`;
+  const name = shortcut.name.trim() || t("este atalho");
+  if (!shortcut.group) return t("Abrir {name}?", { name });
+  const names = membersOf(shortcut, shortcuts).map((s) => s.name.trim() || t("sem nome"));
+  return names.length === 0 ? t("{name} está vazio", { name }) : t("Abrir {name} ({apps})?", { name, apps: names.join(", ") });
 }
 
 /** Os itens de um grupo numa linha só: "Chrome, Claude, Spotify" ou "Chrome, Claude +2". */
 export function memberSummary(group: Shortcut, shortcuts: Shortcut[], show = 2): string {
-  const names = membersOf(group, shortcuts).map((s) => s.name.trim() || "sem nome");
-  if (names.length === 0) return "Sem itens";
+  const names = membersOf(group, shortcuts).map((s) => s.name.trim() || t("sem nome"));
+  if (names.length === 0) return t("Sem itens");
   const rest = names.length - show;
   return rest > 0 ? `${names.slice(0, show).join(", ")} +${rest}` : names.join(", ");
 }

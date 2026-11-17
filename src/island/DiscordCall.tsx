@@ -3,6 +3,7 @@ import type { DiscordState } from "../lib/ipc";
 import { ipc } from "../lib/ipc";
 import { formatElapsed } from "./activity";
 import { HeadphonesIcon, HeadphonesOffIcon, MicIcon, MicOffIcon, PhoneOffIcon } from "./icons";
+import { t } from "../i18n";
 
 const MAX_FACES = 6;
 
@@ -22,7 +23,7 @@ export function DiscordButtons({ discord, size = "md" }: { discord: DiscordState
     <span className={`dc-btns${size === "sm" ? " mini" : ""}`} onClick={stop}>
       <button
         className={discord.muted ? "on" : ""}
-        aria-label={discord.muted ? "Ativar o microfone no Discord" : "Mutar no Discord"}
+        aria-label={t(discord.muted ? "Ativar o microfone no Discord" : "Mutar no Discord")}
         aria-pressed={discord.muted}
         onClick={() => ipc.discordCommand(discord.muted ? "unmute" : "mute")}
       >
@@ -30,14 +31,14 @@ export function DiscordButtons({ discord, size = "md" }: { discord: DiscordState
       </button>
       <button
         className={discord.deafened ? "on" : ""}
-        aria-label={discord.deafened ? "Voltar a ouvir no Discord" : "Ensurdecer no Discord"}
+        aria-label={t(discord.deafened ? "Voltar a ouvir no Discord" : "Ensurdecer no Discord")}
         aria-pressed={discord.deafened}
         onClick={() => ipc.discordCommand(discord.deafened ? "undeafen" : "deafen")}
       >
         {discord.deafened ? <HeadphonesOffIcon /> : <HeadphonesIcon />}
       </button>
       {size === "md" && (
-        <button className="leave" aria-label="Sair da chamada" onClick={() => ipc.discordCommand("leave")}>
+        <button className="leave" aria-label={t("Sair da chamada")} onClick={() => ipc.discordCommand("leave")}>
           <PhoneOffIcon />
         </button>
       )}

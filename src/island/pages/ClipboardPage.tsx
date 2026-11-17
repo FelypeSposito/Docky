@@ -4,6 +4,7 @@ import { formatAgo } from "../../lib/format";
 import { type ClipItem, ipc } from "../../lib/ipc";
 import { EmptyState } from "../EmptyState";
 import { CheckIcon, CloseIcon } from "../icons";
+import { t } from "../../i18n";
 
 /** What happened to the card just clicked: copied back, or why not. */
 type Status = { id: number; ok: true } | { id: number; ok: false; text: string };
@@ -48,14 +49,14 @@ export function ClipboardPage({ active }: { active: boolean }) {
   if (!on) {
     return (
       <EmptyState
-        title="O histórico está desligado"
+        title={t("O histórico está desligado")}
         text="Ligado, os últimos textos que você copiar ficam aqui para copiar de novo com um clique."
         action={{ label: "Ligar", onClick: () => update({ clipboardHistory: true }) }}
       />
     );
   }
   if (items.length === 0) {
-    return <EmptyState title="Nada copiado ainda" text="Os últimos 10 textos que você copiar aparecem aqui. Senhas copiadas de gerenciadores ficam de fora." />;
+    return <EmptyState title={t("Nada copiado ainda")} text="Os últimos 10 textos que você copiar aparecem aqui. Senhas copiadas de gerenciadores ficam de fora." />;
   }
 
   return (
@@ -68,7 +69,7 @@ export function ClipboardPage({ active }: { active: boolean }) {
             className={`tile ncard ccard${mine?.ok ? " copied" : ""}${i === 0 ? " current" : ""}`}
             role="button"
             tabIndex={0}
-            title={i === 0 ? "Na área de transferência agora" : "Clique para copiar de novo"}
+            title={t(i === 0 ? "Na área de transferência agora" : "Clique para copiar de novo")}
             onClick={() => void copy(item)}
             onKeyDown={(e) => e.target === e.currentTarget && e.key === "Enter" && void copy(item)}
           >
@@ -76,19 +77,19 @@ export function ClipboardPage({ active }: { active: boolean }) {
             <em>
               {mine?.ok ? (
                 <span className="cok">
-                  <CheckIcon size={11} /> Copiado, é só colar
+                  <CheckIcon size={11} /> {t("Copiado, é só colar")}
                 </span>
               ) : mine ? (
                 <span className="cerr">{mine.text}</span>
               ) : (
-                (i === 0 ? "na área de transferência" : formatAgo(item.at, new Date(now)))
+                (i === 0 ? t("na área de transferência") : formatAgo(item.at, new Date(now)))
               )}
             </em>
             <div className="nact">
               <button
                 className="del"
-                aria-label="Tirar do histórico"
-                title="Tirar do histórico"
+                aria-label={t("Tirar do histórico")}
+                title={t("Tirar do histórico")}
                 onClick={(e) => {
                   e.stopPropagation();
                   void ipc.clipboardRemove(item.id);
@@ -101,7 +102,7 @@ export function ClipboardPage({ active }: { active: boolean }) {
         );
       })}
       <button className="tile ncard cclear" onClick={() => void ipc.clipboardClear()}>
-        Limpar o histórico
+        {t("Limpar o histórico")}
       </button>
     </div>
   );

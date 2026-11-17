@@ -3,6 +3,7 @@ import { useFocusStore } from "../../focus/store";
 import { useConfigStore } from "../../config/useConfig";
 import { clock, LABELS, type TimerMode } from "../../focus/timer";
 import { PauseIcon, PlayIcon } from "../icons";
+import { t } from "../../i18n";
 
 const MODES: TimerMode[] = ["focus", "short", "long", "custom"];
 const PRESETS = [5, 15, 30, 45, 60];
@@ -26,7 +27,7 @@ function MinutesInput({ value, disabled, onCommit }: { value: number; disabled: 
     <input
       className="mins"
       inputMode="numeric"
-      aria-label="Minutos do contador"
+      aria-label={t("Minutos do contador")}
       value={draft}
       disabled={disabled}
       onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 3))}
@@ -72,9 +73,9 @@ export function TimerPage() {
         <div className="row">
           <button className="pbtn" onClick={toggle}>
             {running ? <PauseIcon size={15} /> : <PlayIcon size={15} />}
-            {running ? "Pausar" : "Iniciar"}
+            {t(running ? "Pausar" : "Iniciar")}
           </button>
-          <button className="ib" aria-label="Reiniciar" onClick={reset}>
+          <button className="ib" aria-label={t("Reiniciar")} onClick={reset}>
             ↺
           </button>
         </div>
@@ -82,13 +83,13 @@ export function TimerPage() {
 
       {mode === "custom" ? (
         <div className="tile st cust" title={running ? "Pause para mudar o tempo" : undefined}>
-          <div className="stp" role="group" aria-label="Tempo do contador">
-            <button aria-label="Menos um minuto" disabled={running || customMinutes <= MIN_CUSTOM} onClick={() => setCustom(customMinutes - 1)}>
+          <div className="stp" role="group" aria-label={t("Tempo do contador")}>
+            <button aria-label={t("Menos um minuto")} disabled={running || customMinutes <= MIN_CUSTOM} onClick={() => setCustom(customMinutes - 1)}>
               −
             </button>
             <MinutesInput value={customMinutes} disabled={running} onCommit={setCustom} />
-            <span>min</span>
-            <button aria-label="Mais um minuto" disabled={running || customMinutes >= MAX_CUSTOM} onClick={() => setCustom(customMinutes + 1)}>
+            <span>{t("min")}</span>
+            <button aria-label={t("Mais um minuto")} disabled={running || customMinutes >= MAX_CUSTOM} onClick={() => setCustom(customMinutes + 1)}>
               +
             </button>
           </div>
@@ -108,10 +109,8 @@ export function TimerPage() {
             ))}
           </div>
           <div>
-            <b>
-              {Math.min(cycle, perSet)} de {perSet} focos
-            </b>
-            <span>{done === 0 ? "Nenhum foco hoje ainda" : `${done} ${done === 1 ? "foco" : "focos"} · ${minutes} min`}</span>
+            <b>{t("{n} de {total} focos", { n: Math.min(cycle, perSet), total: perSet })}</b>
+            <span>{done === 0 ? t("Nenhum foco hoje ainda") : `${t(done === 1 ? "1 foco" : "{n} focos", { n: done })} · ${minutes} min`}</span>
           </div>
         </div>
       )}

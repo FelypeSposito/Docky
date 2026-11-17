@@ -1,5 +1,6 @@
 import type { Shortcut, ShortcutSection } from "../config/types";
 import { cleanTarget } from "./model";
+import { t } from "../i18n";
 
 /** Um atalho com a posição dele na lista completa (a mesma ideia de `splitShortcuts`). */
 export interface IndexedShortcut {
@@ -33,7 +34,7 @@ export function layoutSections(entries: IndexedShortcut[], sections: ShortcutSec
 }
 
 /** O título da parte dos atalhos sem seção: "Outros" quando a pessoa tem seções, "Atalhos" quando não tem. */
-export const restTitle = (sections: ShortcutSection[]): string => (sections.length > 0 ? "Outros" : "Atalhos");
+export const restTitle = (sections: ShortcutSection[]): string => t(sections.length > 0 ? "Outros" : "Atalhos");
 
 /** As chaves dos filtros da tela grande: "tudo", uma seção da pessoa, os sem seção e os grupos. */
 export const FILTER_ALL = "all";
@@ -57,9 +58,9 @@ export function filterChips(blocks: SectionBlock[], groupCount: number, sections
   const parts: FilterChip[] = blocks
     .filter((b) => b.entries.length > 0)
     .map((b) => ({ key: blockKey(b), label: b.section ? b.section.name : restTitle(sections), count: b.entries.length }));
-  if (groupCount > 0) parts.push({ key: FILTER_GROUPS, label: "Grupos", count: groupCount });
+  if (groupCount > 0) parts.push({ key: FILTER_GROUPS, label: t("Grupos"), count: groupCount });
   if (parts.length < 2) return [];
-  return [{ key: FILTER_ALL, label: "Tudo", count: parts.reduce((n, p) => n + p.count, 0) }, ...parts];
+  return [{ key: FILTER_ALL, label: t("Tudo"), count: parts.reduce((n, p) => n + p.count, 0) }, ...parts];
 }
 
 /** O filtro em vigor: o escolhido, se ele ainda existe na fileira; senão (a seção sumiu, ficou vazia), "Tudo". */

@@ -11,8 +11,10 @@ import { TextField } from "./Fields";
 import { useSortable } from "./useSortable";
 import "../launcher/iconPicker.css";
 import "./sections.css";
+import { t } from "../i18n";
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** "1 atalho" / "3 atalhos", in the interface's language ("{n}" is the count). */
+const plural = (n: number, one: string, many: string) => t(n === 1 ? `1 ${one}` : `{n} ${many}`, { n });
 
 /**
  * As seções da tela grande dos atalhos (Jogos, Comunicação, Utilitários…), em ordem de prioridade: a primeira aparece
@@ -37,29 +39,29 @@ export function SectionsGroup() {
     <>
       <Group>
         <Row
-          label="Seções"
+          label={t("Seções")}
           hint={
             sections.length === 0
               ? "Separe os atalhos em partes que abrem e fecham na ilha, com um filtro para cada uma"
               : unsorted > 0
-                ? `${plural(unsorted, "atalho ainda sem seção", "atalhos ainda sem seção")}: eles aparecem em "Outros"`
+                ? t("{what}: eles aparecem em “Outros”", { what: plural(unsorted, "atalho ainda sem seção", "atalhos ainda sem seção") })
                 : "Todos os atalhos estão numa seção"
           }
         >
           {unsorted > 0 && (
-            <button className="btn" onClick={() => set(autoOrganize(config.shortcuts, sections, newId))} title="Põe os atalhos sem seção nas seções prontas que fazem sentido">
-              Organizar automaticamente
+            <button className="btn" onClick={() => set(autoOrganize(config.shortcuts, sections, newId))} title={t("Põe os atalhos sem seção nas seções prontas que fazem sentido")}>
+              {t("Organizar automaticamente")}
             </button>
           )}
-          <button className="btn primary" disabled={sections.length >= 20} onClick={() => set(addSection(sections, "Nova seção", newId))}>
-            + Seção
+          <button className="btn primary" disabled={sections.length >= 20} onClick={() => set(addSection(sections, t("Nova seção"), newId))}>
+            {t("+ Seção")}
           </button>
         </Row>
       </Group>
 
       {sections.length > 0 && (
-        <Group title="Ordem de prioridade">
-          <p className="grp-note">A primeira seção aparece em cima e primeiro nos filtros da ilha. Arraste pela alça para mudar. Com um horário, os atalhos da seção vêm primeiro na ilha nesse período (por exemplo, Trabalho de manhã e Jogos à noite).</p>
+        <Group title={t("Ordem de prioridade")}>
+          <p className="grp-note">{t("A primeira seção aparece em cima e primeiro nos filtros da ilha. Arraste pela alça para mudar. Com um horário, os atalhos da seção vêm primeiro na ilha nesse período (por exemplo, Trabalho de manhã e Jogos à noite).")}</p>
           <div className="sortable">
             {sections.map((section, i) => (
               <div
@@ -69,41 +71,41 @@ export function SectionsGroup() {
                 ref={sortable.rowRef(section.id)}
                 style={{ order: sortable.position.get(section.id) }}
               >
-                <span className="handle" role="presentation" title="Arraste para mudar a ordem" onPointerDown={(e) => sortable.down(e, section.id)}>
+                <span className="handle" role="presentation" title={t("Arraste para mudar a ordem")} onPointerDown={(e) => sortable.down(e, section.id)}>
                   <GripIcon />
                 </span>
                 <span className="sec-rank" aria-label={`Prioridade ${(sortable.position.get(section.id) ?? i) + 1}`}>
                   {(sortable.position.get(section.id) ?? i) + 1}
                 </span>
-                <TextField label="Nome da seção" width={150} value={section.name} placeholder="Nome da seção" onCommit={(v) => set(renameSection(sections, section.id, v))} />
+                <TextField label={t("Nome da seção")} width={150} value={section.name} placeholder={t("Nome da seção")} onCommit={(v) => set(renameSection(sections, section.id, v))} />
                 <button
                   className={`btn sec-pick${choosing === section.id ? " on" : ""}`}
                   aria-expanded={choosing === section.id}
                   onClick={() => setChoosing((current) => (current === section.id ? null : section.id))}
-                  title="Marque quais atalhos ficam nesta seção"
+                  title={t("Marque quais atalhos ficam nesta seção")}
                 >
                   {plural(section.members.length, "atalho", "atalhos")}
                 </button>
                 <select
                   className="secsel sec-hours"
-                  aria-label={`Quando ${section.name} vem primeiro na ilha`}
-                  title="Nesse período, os atalhos desta seção aparecem primeiro na ilha"
+                  aria-label={t("Quando {name} vem primeiro na ilha", { name: section.name })}
+                  title={t("Nesse período, os atalhos desta seção aparecem primeiro na ilha")}
                   value={section.hours ?? ""}
                   onChange={(e) => set(sections.map((s) => (s.id === section.id ? { ...s, hours: e.target.value } : s)))}
                 >
-                  <option value="">Qualquer hora</option>
+                  <option value="">{t("Qualquer hora")}</option>
                   {DAY_PARTS.map((part) => (
                     <option key={part.value} value={part.value}>
-                      {part.label} ({part.hours})
+                      {t(part.label)} ({part.hours})
                     </option>
                   ))}
                 </select>
                 <span className="summary" />
                 <span className="sec-open">
-                  <span>Aberta</span>
-                  <Toggle label={`${section.name} começa aberta`} value={!section.collapsed} onChange={() => set(toggleCollapsed(sections, section.id))} />
+                  <span>{t("Aberta")}</span>
+                  <Toggle label={t("{name} começa aberta", { name: section.name })} value={!section.collapsed} onChange={() => set(toggleCollapsed(sections, section.id))} />
                 </span>
-                <IconButton label="Apagar a seção (os atalhos continuam, só ficam sem seção)" danger onClick={() => set(removeSection(sections, section.id))}>
+                <IconButton label={t("Apagar a seção (os atalhos continuam, só ficam sem seção)")} danger onClick={() => set(removeSection(sections, section.id))}>
                   <TrashIcon />
                 </IconButton>
               </div>
@@ -113,10 +115,10 @@ export function SectionsGroup() {
       )}
 
       {chosen && (
-        <Group title={`Atalhos em ${chosen.name || "Nova seção"}`}>
-          <p className="grp-note">Clique para pôr ou tirar. Um atalho fica numa seção só: escolher aqui tira ele da outra.</p>
+        <Group title={t("Atalhos em {name}", { name: chosen.name || t("Nova seção") })}>
+          <p className="grp-note">{t("Clique para pôr ou tirar. Um atalho fica numa seção só: escolher aqui tira ele da outra.")}</p>
           {plain.length === 0 ? (
-            <p className="grp-note">Crie atalhos na aba Atalhos primeiro.</p>
+            <p className="grp-note">{t("Crie atalhos na aba Atalhos primeiro.")}</p>
           ) : (
             <div className="ge-chips sec-chips">
               {plain.map(({ item }) => {
@@ -127,7 +129,7 @@ export function SectionsGroup() {
                     key={item.id}
                     className={here ? "on" : ""}
                     aria-pressed={here}
-                    title={elsewhere ? `Hoje em ${elsewhere.name}` : undefined}
+                    title={elsewhere ? t("Hoje em {name}", { name: elsewhere.name }) : undefined}
                     onClick={() => set(assignSection(sections, item.id, here ? null : chosen.id))}
                   >
                     {item.name}
@@ -139,7 +141,7 @@ export function SectionsGroup() {
           )}
           <div className="sec-done">
             <button className="btn" onClick={() => setChoosing(null)}>
-              Pronto
+              {t("Pronto")}
             </button>
           </div>
         </Group>
@@ -155,8 +157,8 @@ export function SectionSelect({ shortcutId, name }: { shortcutId: string; name: 
   if (sections.length === 0) return null;
   const current = sectionOf(shortcutId, sections)?.id ?? "";
   return (
-    <select className="secsel" aria-label={`Seção de ${name || "atalho"}`} value={current} onChange={(e) => update({ shortcutSections: assignSection(sections, shortcutId, e.target.value || null) })}>
-      <option value="">Sem seção</option>
+    <select className="secsel" aria-label={t("Seção de {name}", { name: name || t("atalho") })} value={current} onChange={(e) => update({ shortcutSections: assignSection(sections, shortcutId, e.target.value || null) })}>
+      <option value="">{t("Sem seção")}</option>
       {sections.map((s) => (
         <option key={s.id} value={s.id}>
           {s.name}

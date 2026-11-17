@@ -132,6 +132,13 @@ canto da pílula; sem letra, a faixa "Claude trabalhando" aparece como antes.
 Na primeira vez que o Docky abre, a ilha se abre sozinha com um cartão de boas-vindas: como ela abre, as teclas que
 funcionam de qualquer lugar e onde criar atalhos.
 
+## Idiomas
+
+A interface fala português (Brasil) e inglês. Em Configurações, Geral, Idioma, "Automático" segue o idioma do Windows.
+O texto é escrito em português e a própria frase é a chave: `t("Abrir no GitHub")`. As traduções ficam em
+`src/i18n/en.ts`; uma frase sem tradução aparece em português, então nada quebra. Para um idioma novo, copie o `en.ts`
+e acrescente o código em `src/i18n/index.ts`.
+
 ## Licença
 
 MIT: veja [LICENSE](LICENSE). As animações do Clawd vêm do clawd-pet, também MIT (`src/assets/clawd/LICENSE`).

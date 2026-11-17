@@ -3,6 +3,7 @@ import { useConfigStore } from "../config/useConfig";
 import { type DiscordSetup, type DiscordState, ipc } from "../lib/ipc";
 import { TextField } from "./Fields";
 import { Group, Row } from "./controls";
+import { t } from "../i18n";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -64,29 +65,29 @@ export function DiscordSection() {
   return (
     <>
       <Group title="Discord">
-        <Row label="Chamada do Discord" hint="Mutar, ensurdecer, sair e ver quem está falando, direto na ilha. Precisa do Discord aberto neste computador">
+        <Row label={t("Chamada do Discord")} hint={t("Mutar, ensurdecer, sair e ver quem está falando, direto na ilha. Precisa do Discord aberto neste computador")}>
           <span className={`badge${status === "ready" ? " ok" : ""}`}>{STATUS_LABEL[status]}</span>
           {status === "ready" ? (
             <button className="btn danger" onClick={() => void ipc.discordCommand("forget").then(refresh)}>
-              Desconectar
+              {t("Desconectar")}
             </button>
           ) : (
             <button className="btn primary" disabled={status !== "authorize"} onClick={() => void ipc.discordCommand("authorize").catch((e) => setError(message(e)))}>
-              Autorizar
+              {t("Autorizar")}
             </button>
           )}
         </Row>
-        <Row label="Client ID" hint="Um número longo, em OAuth2 no portal do Discord">
-          <TextField label="Client ID do Discord" width={300} value={config.discordClientId} placeholder="123456789012345678" onCommit={(v) => update({ discordClientId: v.trim() })} />
+        <Row label={t("Client ID")} hint={t("Um número longo, em OAuth2 no portal do Discord")}>
+          <TextField label={t("Client ID do Discord")} width={300} value={config.discordClientId} placeholder="123456789012345678" onCommit={(v) => update({ discordClientId: v.trim() })} />
         </Row>
-        <Row label="Client Secret" hint={setup?.secretSaved ? "Guardado no Gerenciador de Credenciais do Windows. Cole outro para trocar." : "Fica guardado no Gerenciador de Credenciais do Windows, não em arquivo."}>
+        <Row label={t("Client Secret")} hint={t(setup?.secretSaved ? "Guardado no Gerenciador de Credenciais do Windows. Cole outro para trocar." : "Fica guardado no Gerenciador de Credenciais do Windows, não em arquivo.")}>
           <input
             className="inp"
             style={{ width: 300 }}
             type="password"
             value={secret}
-            placeholder={setup?.secretSaved ? "•••••••••••• (salvo)" : "Client Secret"}
-            aria-label="Client Secret do Discord"
+            placeholder={setup?.secretSaved ? t("•••••••••••• (salvo)") : "Client Secret"}
+            aria-label={t("Client Secret do Discord")}
             autoComplete="off"
             onChange={(e) => setSecret(e.target.value)}
             onBlur={saveSecret}
@@ -98,9 +99,9 @@ export function DiscordSection() {
       {shownError && <div className="error">{shownError}</div>}
 
       <Group>
-        <Row label="Como criar o app do Discord" hint="Leva uns 3 minutos e só precisa ser feito uma vez">
+        <Row label={t("Como criar o app do Discord")} hint={t("Leva uns 3 minutos e só precisa ser feito uma vez")}>
           <button className="btn" onClick={() => setGuide((v) => !v)}>
-            {guide ? "Esconder" : "Ver o passo a passo"}
+            {t(guide ? "Esconder" : "Ver o passo a passo")}
           </button>
         </Row>
         {guide && (
@@ -108,10 +109,10 @@ export function DiscordSection() {
             <ol>
               {STEPS.map((step) => (
                 <li key={step.text}>
-                  {step.text}
+                  {t(step.text)}
                   {step.link && (
                     <button className="link" onClick={() => void ipc.openUrl(step.link!.url)}>
-                      {step.link.label}
+                      {t(step.link.label)}
                     </button>
                   )}
                 </li>

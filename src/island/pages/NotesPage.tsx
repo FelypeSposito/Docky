@@ -10,6 +10,7 @@ import { EmptyState } from "../EmptyState";
 import { HeaderField } from "../HeaderField";
 import { NoteIcon, PinIcon, TrashIcon } from "../icons";
 import { useGridSort } from "../useGridSort";
+import { t } from "../../i18n";
 
 /** Where a color sits in the palette: bright ones on the first row, quiet ones under them, after the "no color" cell. */
 const VIVID_COUNT = NOTE_COLORS.filter((c) => c.tone === "vivid").length;
@@ -129,30 +130,30 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
       <HeaderField
         icon={<NoteIcon size={14} />}
         value={text}
-        label="Nota rápida"
-        placeholder={notes.length > 0 ? `Nota rápida · ${notes.length} salvas` : "Nota rápida"}
+        label={t("Nota rápida")}
+        placeholder={notes.length > 0 ? t("Nota rápida · {n} salvas", { n: notes.length }) : t("Nota rápida")}
         onChange={setText}
         onEnter={(shift) => save(shift)}
-        hint={draft ? `lembrete ${formatWhen(draft.at, new Date(), twelveHour).startsWith("amanhã") ? "" : "às "}${formatWhen(draft.at, new Date(), twelveHour)}` : undefined}
+        hint={draft ? t(new Date(draft.at).toDateString() === new Date().toDateString() ? "lembrete às {when}" : "lembrete {when}", { when: formatWhen(draft.at, new Date(), twelveHour) }) : undefined}
         typeToFocus
       />
 
       {error ? (
         <EmptyState
-          title={folder ? "Não consegui acessar as notas" : "Falta a pasta das notas"}
+          title={t(folder ? "Não consegui acessar as notas" : "Falta a pasta das notas")}
           text={error}
           action={{ label: "Abrir configurações", onClick: () => ipc.openSettings("geral") }}
         />
       ) : notes.length === 0 && reminders.length === 0 ? (
-        <EmptyState title="Nenhuma nota ainda" text="Comece a digitar: a nota vai para o campo lá em cima, e Enter salva." />
+        <EmptyState title={t("Nenhuma nota ainda")} text="Comece a digitar: a nota vai para o campo lá em cima, e Enter salva." />
       ) : (
         <div className="nlist" ref={listRef}>
           {reminders.map((r) => (
-            <div key={`r${r.id}`} className="tile ncard rcard" style={{ order: -1 }} title={`Lembrete: ${r.text}`}>
+            <div key={`r${r.id}`} className="tile ncard rcard" style={{ order: -1 }} title={t("Lembrete: {text}", { text: r.text })}>
               <p>{r.text}</p>
-              <em>lembrete · {formatWhen(r.at, new Date(), twelveHour)}</em>
+              <em>{t("lembrete")} · {formatWhen(r.at, new Date(), twelveHour)}</em>
               <div className="nact">
-                <button className="del on" aria-label="Cancelar o lembrete" title="Cancelar o lembrete" onClick={() => void ipc.reminderCancel(r.id)}>
+                <button className="del on" aria-label={t("Cancelar o lembrete")} title={t("Cancelar o lembrete")} onClick={() => void ipc.reminderCancel(r.id)}>
                   ×
                 </button>
               </div>
@@ -174,32 +175,32 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
                 onMouseLeave={() => painting === note.file && setPainting(null)}
                 role="button"
                 tabIndex={0}
-                title={`${note.text}\n\nClique para abrir no Obsidian`}
+                title={`${note.text}\n\n${t("Clique para abrir no Obsidian")}`}
                 onClick={open}
                 onKeyDown={(e) => e.target === e.currentTarget && e.key === "Enter" && open()}
               >
                 {confirming === note.file ? (
                   <div className="nconfirm" onClick={stop}>
-                    <b>Excluir esta nota?</b>
-                    <span>Ela vai para a Lixeira.</span>
+                    <b>{t("Excluir esta nota?")}</b>
+                    <span>{t("Ela vai para a Lixeira.")}</span>
                     <div>
                       <button className="nbtn" onClick={() => setConfirming(null)}>
-                        Cancelar
+                        {t("Cancelar")}
                       </button>
                       <button className="nbtn danger" autoFocus onClick={() => remove(note.file)}>
-                        Excluir
+                        {t("Excluir")}
                       </button>
                     </div>
                   </div>
                 ) : painting === note.file ? (
                   <div className="npaint" onClick={stop}>
-                    <div role="radiogroup" aria-label="Cor da nota">
+                    <div role="radiogroup" aria-label={t("Cor da nota")}>
                       <button
                         className={`nsw none${color ? "" : " on"}`}
                         role="radio"
                         aria-checked={!color}
-                        aria-label="Sem cor"
-                        title="Sem cor"
+                        aria-label={t("Sem cor")}
+                        title={t("Sem cor")}
                         onClick={() => paint(note.file, null)}
                       />
                       {NOTE_COLORS.map((c, i) => (
@@ -208,8 +209,8 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
                           className={`nsw${color?.id === c.id ? " on" : ""}`}
                           role="radio"
                           aria-checked={color?.id === c.id}
-                          aria-label={c.label}
-                          title={c.label}
+                          aria-label={t(c.label)}
+                          title={t(c.label)}
                           style={{ "--sw": c.hex, ...paletteCell(c.tone, i) } as React.CSSProperties}
                           onClick={() => paint(note.file, c.id)}
                         />
@@ -221,16 +222,16 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
                     <p>{note.text}</p>
                     <em>{formatNoteDate(note.modifiedMs)}</em>
                     <div className="nact" onClick={stop}>
-                      <button aria-label="Mudar a cor da nota" title="Cor" onClick={() => setPainting(note.file)}>
+                      <button aria-label={t("Mudar a cor da nota")} title={t("Cor")} onClick={() => setPainting(note.file)}>
                         <i className="ndot" />
                       </button>
-                      <button className="del" aria-label="Excluir nota" title="Excluir" onClick={() => setConfirming(note.file)}>
+                      <button className="del" aria-label={t("Excluir nota")} title={t("Excluir")} onClick={() => setConfirming(note.file)}>
                         <TrashIcon />
                       </button>
                       <button
                         className={isPinned ? "on" : ""}
-                        aria-label={isPinned ? "Desafixar nota" : "Fixar nota no topo"}
-                        title={isPinned ? "Desafixar" : "Fixar no topo"}
+                        aria-label={t(isPinned ? "Desafixar nota" : "Fixar nota no topo")}
+                        title={t(isPinned ? "Desafixar" : "Fixar no topo")}
                         onClick={() => update({ pinnedNotes: togglePinned(pinned, note.file) })}
                       >
                         <PinIcon />

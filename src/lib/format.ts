@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -11,16 +12,16 @@ export function formatClock(date: Date, twelveHour = false): string {
 
 /** "sex 30 out 2026" */
 export function formatDate(date: Date, withYear = true): string {
-  const day = `${WEEKDAYS[date.getDay()]} ${pad(date.getDate())} ${MONTHS[date.getMonth()]}`;
+  const day = `${t(WEEKDAYS[date.getDay()])} ${pad(date.getDate())} ${t(MONTHS[date.getMonth()])}`;
   return withYear ? `${day} ${date.getFullYear()}` : day;
 }
 
 /** "agora", "há 5 min", "há 2 h" or, from yesterday on, the date: how long ago something was copied. */
 export function formatAgo(ms: number, now: Date = new Date()): string {
   const minutes = Math.floor((now.getTime() - ms) / 60_000);
-  if (minutes < 1) return "agora";
-  if (minutes < 60) return `há ${minutes} min`;
-  if (minutes < 24 * 60) return `há ${Math.floor(minutes / 60)} h`;
+  if (minutes < 1) return t("agora");
+  if (minutes < 60) return t("há {n} min", { n: minutes });
+  if (minutes < 24 * 60) return t("há {n} h", { n: Math.floor(minutes / 60) });
   return formatNoteDate(ms, now);
 }
 
@@ -29,6 +30,6 @@ export function formatNoteDate(ms: number, now: Date = new Date()): string {
   const date = new Date(ms);
   const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const daysAgo = Math.round((day(now) - day(date)) / 86_400_000);
-  const when = daysAgo === 0 ? "hoje" : daysAgo === 1 ? "ontem" : `${String(date.getDate()).padStart(2, "0")} ${MONTHS[date.getMonth()]}`;
+  const when = daysAgo === 0 ? t("hoje") : daysAgo === 1 ? t("ontem") : `${String(date.getDate()).padStart(2, "0")} ${t(MONTHS[date.getMonth()])}`;
   return `${when} · ${formatClock(date)}`;
 }

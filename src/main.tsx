@@ -6,6 +6,7 @@ import { Island } from "./island/Island";
 import { Settings } from "./settings/Settings";
 import "@fontsource-variable/inter/wght.css";
 import "./index.css";
+import { resolveLanguage, setLanguage } from "./i18n";
 
 /** Cada janela do Tauri carrega este mesmo app; o nome dela decide o que desenhar. */
 async function windowLabel(): Promise<string> {
@@ -20,10 +21,14 @@ async function windowLabel(): Promise<string> {
 function Root({ label }: { label: string }) {
   useConfigSync();
   const reduceMotion = useConfigStore((s) => s.config.reduceMotion);
+  const setting = useConfigStore((s) => s.config.language);
+  // The language is set before this render, and the whole window redraws (key) when it changes.
+  const language = resolveLanguage(setting, navigator.language);
+  setLanguage(language);
   React.useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", reduceMotion);
   }, [reduceMotion]);
-  return label === "settings" ? <Settings /> : <Island />;
+  return label === "settings" ? <Settings key={language} /> : <Island key={language} />;
 }
 
 // Errors nobody caught go to Docky's log file, so a bug report can carry them.

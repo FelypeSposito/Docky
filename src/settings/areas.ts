@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /** As áreas da janela de Configurações, como a barra lateral as mostra, e o índice que a busca usa. */
 
 export type AreaId = "atalhos" | "paginas" | "aparencia" | "musica" | "foco" | "claude" | "integracoes" | "shelf" | "geral";
@@ -28,7 +29,7 @@ export const AREAS: Area[] = [
   { id: "claude", label: "Claude Code", lead: "Veja o que o Claude está fazendo e aprove pedidos pela ilha.", group: "Conexões", options: ["Hooks do Claude Code", "Aprovar pela ilha", "Faixa “Claude trabalhando”", "Aviso “Claude terminou”", "Servidor local", "permissões"] },
   { id: "integracoes", label: "Agenda, clima e Discord", lead: "Google Agenda, a cidade do clima e a chamada do Discord.", group: "Conexões", options: ["Discord", "chamada", "mutar", "ensurdecer", "Cidade do clima", "Unidade", "Google Agenda", "ID do cliente", "Chave secreta", "Como criar o ID do cliente", "temperatura"] },
   { id: "shelf", label: "Shelf", lead: "Para onde vão os arquivos que você solta na ilha.", group: "Conexões", options: ["Ao enviar", "Adicionar pasta", "arquivos", "arrastar", "lixeira", "apagar"] },
-  { id: "geral", label: "Geral", lead: "Abrir com o Windows, telas, avisos e teclas.", group: "Sistema", options: ["Histórico do que você copia", "Copiados", "área de transferência", "clipboard", "copiar", "Iniciar com o Windows", "Telas", "Abrir ao passar o mouse", "Esconder em tela cheia", "Aviso do carregador", "Aviso de volume", "Aviso do Foco", "Resumo do jogo", "Download concluído", "Bateria do fone", "bluetooth", "fone de ouvido", "headset", "Chamada na pílula", "microfone", "Teclas", "Abrir e fechar a ilha", "monitor", "atalho de teclado", "Registros", "log", "erro", "relatar um problema", "Sobre", "versão", "Procurar atualizações", "atualizar", "nova versão"] },
+  { id: "geral", label: "Geral", lead: "Abrir com o Windows, telas, avisos e teclas.", group: "Sistema", options: ["Histórico do que você copia", "Copiados", "área de transferência", "clipboard", "copiar", "Iniciar com o Windows", "Telas", "Abrir ao passar o mouse", "Esconder em tela cheia", "Aviso do carregador", "Aviso de volume", "Aviso do Foco", "Resumo do jogo", "Download concluído", "Bateria do fone", "bluetooth", "fone de ouvido", "headset", "Chamada na pílula", "microfone", "Teclas", "Abrir e fechar a ilha", "monitor", "atalho de teclado", "Registros", "log", "erro", "relatar um problema", "Sobre", "versão", "Idioma da interface", "idioma", "language", "inglês", "English", "português", "Procurar atualizações", "atualizar", "nova versão"] },
 ];
 
 export const isArea = (value: string | null): value is AreaId => AREAS.some((a) => a.id === value);
@@ -50,7 +51,9 @@ const fold = (text: string) =>
 export function searchOptions(query: string, limit = 8): SearchHit[] {
   const q = fold(query);
   if (!q) return [];
-  const areas: SearchHit[] = AREAS.filter((a) => fold(a.label).includes(q)).map((area) => ({ area, option: null }));
-  const options: SearchHit[] = AREAS.flatMap((area) => area.options.filter((o) => fold(o).includes(q) && fold(o) !== fold(area.label)).map((option) => ({ area, option })));
+  // Each name matches in Portuguese and in the interface's language.
+  const has = (name: string) => fold(name).includes(q) || fold(t(name)).includes(q);
+  const areas: SearchHit[] = AREAS.filter((a) => has(a.label)).map((area) => ({ area, option: null }));
+  const options: SearchHit[] = AREAS.flatMap((area) => area.options.filter((o) => has(o) && fold(o) !== fold(area.label)).map((option) => ({ area, option })));
   return [...areas, ...options].slice(0, limit);
 }

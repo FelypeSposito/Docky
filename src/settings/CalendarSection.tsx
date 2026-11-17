@@ -4,6 +4,7 @@ import { useConfigStore } from "../config/useConfig";
 import { ipc } from "../lib/ipc";
 import { TextField } from "./Fields";
 import { Group, Row } from "./controls";
+import { t } from "../i18n";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -57,11 +58,11 @@ export function CalendarSection() {
   return (
     <>
       <Group>
-        <Row label="Google Agenda" hint="Somente leitura: o Docky mostra os próximos eventos e o botão de entrar na chamada">
+        <Row label={t("Google Agenda")} hint={t("Somente leitura: o Docky mostra os próximos eventos e o botão de entrar na chamada")}>
           <span className={`badge${status?.connected ? " ok" : ""}`}>{label}</span>
           {status?.connected ? (
             <button className="btn danger" disabled={busy} onClick={() => run(() => ipc.calendarDisconnect())}>
-              Desconectar
+              {t("Desconectar")}
             </button>
           ) : (
             <button
@@ -76,21 +77,21 @@ export function CalendarSection() {
                 })
               }
             >
-              {busy ? "Aguardando o login…" : "Conectar"}
+              {t(busy ? "Aguardando o login…" : "Conectar")}
             </button>
           )}
         </Row>
-        <Row label="ID do cliente" hint="Termina em .apps.googleusercontent.com">
-          <TextField label="ID do cliente" width={300} value={config.googleClientId} placeholder="123456-abc.apps.googleusercontent.com" onCommit={(v) => update({ googleClientId: v })} />
+        <Row label={t("ID do cliente")} hint={t("Termina em .apps.googleusercontent.com")}>
+          <TextField label={t("ID do cliente")} width={300} value={config.googleClientId} placeholder={t("123456-abc.apps.googleusercontent.com")} onCommit={(v) => update({ googleClientId: v })} />
         </Row>
-        <Row label="Chave secreta" hint={status?.secretSaved ? "Guardada no Gerenciador de Credenciais do Windows. Cole outra para trocar." : "Fica guardada no Gerenciador de Credenciais do Windows, não em arquivo."}>
+        <Row label={t("Chave secreta")} hint={t(status?.secretSaved ? "Guardada no Gerenciador de Credenciais do Windows. Cole outra para trocar." : "Fica guardada no Gerenciador de Credenciais do Windows, não em arquivo.")}>
           <input
             className="inp"
             style={{ width: 300 }}
             type="password"
             value={secret}
-            placeholder={status?.secretSaved ? "•••••••••••• (salva)" : "GOCSPX-…"}
-            aria-label="Chave secreta"
+            placeholder={status?.secretSaved ? t("•••••••••••• (salva)") : "GOCSPX-…"}
+            aria-label={t("Chave secreta")}
             autoComplete="off"
             onChange={(e) => setSecret(e.target.value)}
             onBlur={saveSecret}
@@ -102,9 +103,9 @@ export function CalendarSection() {
       {error && <div className="error">{error}</div>}
 
       <Group>
-        <Row label="Como criar o ID do cliente" hint="Leva uns 5 minutos e só precisa ser feito uma vez">
+        <Row label={t("Como criar o ID do cliente")} hint={t("Leva uns 5 minutos e só precisa ser feito uma vez")}>
           <button className="btn" onClick={() => setGuide((v) => !v)}>
-            {guide ? "Esconder" : "Ver o passo a passo"}
+            {t(guide ? "Esconder" : "Ver o passo a passo")}
           </button>
         </Row>
         {guide && (
@@ -112,10 +113,10 @@ export function CalendarSection() {
             <ol>
               {STEPS.map((step) => (
                 <li key={step.text}>
-                  {step.text}
+                  {t(step.text)}
                   {step.link && (
                     <button className="link" onClick={() => void ipc.openUrl(step.link!.url)}>
-                      {step.link.label}
+                      {t(step.link.label)}
                     </button>
                   )}
                 </li>
