@@ -51,6 +51,31 @@ let devClips: ClipItem[] = [
 ];
 const devClipsChanged = () => window.dispatchEvent(new CustomEvent("docky:clipboard", { detail: devClips }));
 
+export interface Mic {
+  muted: boolean;
+}
+
+export type OutputKind = "headphones" | "speakers" | "display" | "other";
+
+export interface AudioOutput {
+  id: string;
+  /** Windows' name, e.g. "Fones de ouvido (UGREEN Studio Pro)". */
+  name: string;
+  kind: OutputKind;
+  default: boolean;
+}
+
+export interface AudioState {
+  outputs: AudioOutput[];
+  /** null without a microphone. */
+  mic: Mic | null;
+}
+
+/** Why `setOutput` failed: Windows refused, or another app (a sound enhancer) made itself the default again. */
+export type SwitchError = { kind: "refused" } | { kind: "takenBack"; by: string };
+
+let devOutput = "b";
+
 /** A quick reminder ("15 min tirar a pizza"), kept on the Rust side until it fires. */
 export interface Reminder {
   id: number;
@@ -417,6 +442,43 @@ export const ipc = {
 
   setMicMuted(muted: boolean): void {
     if (isTauri) void invoke("set_mic_muted", { muted });
+  },
+
+  /** Sound outputs (which one is the default) and the default microphone's mute. */
+  async audioState(): Promise<AudioState> {
+    if (isTauri) return invoke<AudioState>("audio_state");
+    return {
+      outputs: [
+        { id: "a", name: "Alto-falantes (Realtek(R) Audio)", kind: "speakers", default: devOutput === "a" },
+        { id: "b", name: "Fones de ouvido (UGREEN Studio Pro)", kind: "headphones", default: devOutput === "b" },
+        { id: "c", name: "5 - H238F165 (AMD High Definition Audio Device)", kind: "display", default: devOutput === "c" },
+      ],
+      mic: { muted: false },
+    };
+  },
+
+  /** The default microphone was muted or unmuted, by Docky (Ctrl+Alt+M) or anything else. */
+  onMic(handler: (mic: Mic) => void): Unlisten {
+    return isTauri ? subscribe("mic", handler) : devListen("docky:mic", handler);
+  },
+
+  /** Makes `id` the default output and checks that it stayed. Rejects with a `SwitchError`. */
+  async setOutput(id: string): Promise<void> {
+    if (isTauri) return invoke<void>("set_output", { id });
+    devOutput = id;
+  },
+
+  /** Mutes or unmutes the default microphone (the Som page and Ctrl+Alt+M). False without one, or if Windows refused. */
+  async setDefaultMicMuted(muted: boolean): Promise<boolean> {
+    if (!isTauri) {
+      window.dispatchEvent(new CustomEvent("docky:mic", { detail: { muted } }));
+      return true;
+    }
+    return invoke<boolean>("set_default_mic_muted", { muted });
+  },
+
+  openSoundSettings(): Promise<void> {
+    return isTauri ? invoke<void>("open_sound_settings") : Promise.resolve();
   },
 
   async reminderList(): Promise<Reminder[]> {

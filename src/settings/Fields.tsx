@@ -168,6 +168,7 @@ const HOTKEYS: [string, string[]][] = [
   ["Próxima página", ["Ctrl", "Alt", "→"]],
   ["Página anterior", ["Ctrl", "Alt", "←"]],
   ["Nota rápida", ["Ctrl", "Alt", "N"]],
+  ["Mutar ou ativar o microfone", ["Ctrl", "Alt", "M"]],
 ];
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));

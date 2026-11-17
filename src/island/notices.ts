@@ -7,6 +7,7 @@ export function noticeEnabled(overlay: Overlay, config: Pick<Config, "noticeChar
     case "charge":
       return config.noticeCharge;
     case "volume":
+    case "mic": // the microphone shares the volume switch: both are "sound changed" notices
       return config.noticeVolume;
     case "done":
       return config.noticeClaudeDone;

@@ -1,6 +1,6 @@
 /** Estados visuais da ilha e seus tamanhos (pixels lógicos). Cresce a cada fase. */
-export type Overlay = "charge" | "volume" | "done" | "timer" | "game" | "download" | "bluetooth" | "reminder";
-export type Mode = "idle" | "lyric" | "charge" | "volume" | "done" | "timer" | "game" | "download" | "bluetooth" | "reminder" | "work" | "ask" | "peek" | "expanded";
+export type Overlay = "charge" | "volume" | "mic" | "done" | "timer" | "game" | "download" | "bluetooth" | "reminder";
+export type Mode = "idle" | "lyric" | "charge" | "volume" | "mic" | "done" | "timer" | "game" | "download" | "bluetooth" | "reminder" | "work" | "ask" | "peek" | "expanded";
 
 /** O que o Claude Code está pedindo da ilha agora. */
 export type ClaudeActivity = "ask" | "work" | null;
@@ -15,6 +15,8 @@ export const SIZES: Record<Mode, Size> = {
   lyric: { w: 410, h: 36 },
   charge: { w: 252, h: 36 },
   volume: { w: 270, h: 36 },
+  /** "Microfone mudo" after Ctrl+Alt+M (or any app muting it). */
+  mic: { w: 250, h: 36 },
   /** "docky terminou · editou 4 arquivos em 3 min", with Clawd celebrating. */
   done: { w: 412, h: 36 },
   timer: { w: 296, h: 36 },

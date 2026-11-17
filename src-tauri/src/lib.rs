@@ -1,4 +1,5 @@
 mod apps;
+mod audio;
 mod bluetooth;
 mod claude;
 mod clipboard;
@@ -92,6 +93,10 @@ pub fn run() {
             shelf::recycle_bin_count,
             shelf::open_recycle_bin,
             logfile::log_write,
+            audio::audio_state,
+            audio::set_output,
+            audio::set_default_mic_muted,
+            audio::open_sound_settings,
             reminders::reminder_list,
             reminders::reminder_add,
             reminders::reminder_cancel,
@@ -170,6 +175,7 @@ pub fn run() {
             bluetooth::spawn(handle.clone());
             updates::spawn(handle.clone());
             reminders::spawn(handle.clone());
+            audio::spawn(handle.clone());
             fullscreen::spawn(handle);
             Ok(())
         })

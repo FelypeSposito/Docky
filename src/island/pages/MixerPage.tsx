@@ -5,6 +5,7 @@ import { inDiscordCall, useActivityStore } from "../activity";
 import { DiscordCall } from "../DiscordCall";
 import { VolumeIcon } from "../icons";
 import { t } from "../../i18n";
+import { OutputRow } from "./OutputRow";
 
 const POLL_MS = 1500;
 /** Mexer no volume chama o Windows; com o controle arrastando, manda no máximo a cada 40 ms e o valor final. */
@@ -113,6 +114,7 @@ export function MixerPage({ active }: { active: boolean }) {
           />
           <span className="mx-pct">{muted ? "—" : percent(level)}</span>
         </div>
+        <OutputRow active={active} />
         {apps !== null && apps.length === 0 && (
           <div className="mx-empty">{t("Nenhum app abriu o som agora")}</div>
         )}

@@ -151,7 +151,9 @@ configurações ficam em `%APPDATA%\com.docky.desktop`, e o registro de erros em
 
 ## Teclas globais
 
-Ctrl+Alt+D abre e fecha a ilha, Ctrl+Alt+←/→ trocam de página e Ctrl+Alt+N abre a nota rápida.
+Ctrl+Alt+D abre e fecha a ilha, Ctrl+Alt+←/→ trocam de página, Ctrl+Alt+N abre a nota rápida e Ctrl+Alt+M muta ou
+ativa o microfone (a pílula avisa). Na página Som, uma linha abaixo do volume geral escolhe a saída de som e muta o
+microfone.
 
 ## Fases
 

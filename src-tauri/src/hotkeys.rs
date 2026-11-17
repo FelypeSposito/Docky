@@ -9,11 +9,13 @@ use std::{
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
-const BINDINGS: [(Code, &str); 4] = [
+const BINDINGS: [(Code, &str); 5] = [
     (Code::KeyD, "toggle"),
     (Code::ArrowRight, "next"),
     (Code::ArrowLeft, "previous"),
     (Code::KeyN, "notes"),
+    // Ctrl+Alt+M mutes or unmutes the default microphone.
+    (Code::KeyM, "mic"),
 ];
 
 fn modifiers() -> Modifiers {
@@ -43,7 +45,8 @@ pub fn hotkeys_taken() -> Vec<String> {
     TAKEN.lock().unwrap().iter().map(|code| label(*code)).collect()
 }
 
-/// Registra Ctrl+Alt+D (abrir/fechar), Ctrl+Alt+→/← (trocar de página) e Ctrl+Alt+N (nota rápida).
+/// Registra Ctrl+Alt+D (abrir/fechar), Ctrl+Alt+→/← (trocar de página), Ctrl+Alt+N (nota rápida) e Ctrl+Alt+M
+/// (microfone).
 /// Se outro app já usa uma combinação, ela só fica de fora; a ilha continua funcionando.
 pub fn register(app: &AppHandle) -> tauri::Result<()> {
     app.plugin(
@@ -55,6 +58,11 @@ pub fn register(app: &AppHandle) -> tauri::Result<()> {
                 let Some((_, name)) = BINDINGS.iter().find(|(code, _)| *shortcut == Shortcut::new(Some(modifiers()), *code)) else {
                     return;
                 };
+                // Mic mute needs no island: the audio watcher shows the notice on every screen.
+                if *name == "mic" {
+                    crate::audio::toggle_mic();
+                    return;
+                }
                 // Abrir ou escrever precisa de foco no teclado, e a janela da ilha normalmente não o pega.
                 // Com várias telas, vale a ilha da tela onde o cursor está.
                 let Some(window) = crate::island::window_under_cursor(app) else { return };

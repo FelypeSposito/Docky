@@ -402,6 +402,21 @@ export const GlobeIcon = (p: IconProps) => (
   </Stroke>
 );
 
+export const SpeakerIcon = (p: IconProps) => (
+  <Stroke size={17} stroke={1.8} {...p}>
+    <rect x="5.5" y="2.5" width="13" height="19" rx="3" />
+    <circle cx="12" cy="14.5" r="3.2" />
+    <path d="M12 7h.01" />
+  </Stroke>
+);
+
+export const ScreenIcon = (p: IconProps) => (
+  <Stroke size={17} stroke={1.8} {...p}>
+    <rect x="3" y="4.5" width="18" height="12" rx="2.5" />
+    <path d="M9 20h6M12 16.5V20" />
+  </Stroke>
+);
+
 export const HeadphonesIcon = (p: IconProps) => (
   <Stroke size={13} stroke={2} {...p}>
     <path d="M4 15v-3a8 8 0 0 1 16 0v3" />

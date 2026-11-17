@@ -1,5 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { currentWork, WAIT_CLAWD, WORK_CLAWD } from "../claude/clawd";
+import { micText } from "../audio/devices";
+import { startAudioSync, useAudioStore } from "../audio/store";
 import { describeTurn, runningSessions } from "../claude/sessions";
 import { startClaudeSync, useClaudeStore } from "../claude/store";
 import { useConfigStore } from "../config/useConfig";
@@ -181,6 +183,8 @@ export function Island() {
   useEffect(() => startClaudeSync(), []);
   useEffect(() => startShelfSync(), []);
   useEffect(() => startActivitySync(), []);
+  useEffect(() => startAudioSync(), []);
+  const pcMicMuted = useAudioStore((s) => s.mic?.muted ?? false);
   const call = useActivityStore((s) => s.call);
   const micMuted = useActivityStore((s) => s.micMuted);
   const finishedDownload = useActivityStore((s) => s.finished);
@@ -511,6 +515,15 @@ export function Island() {
               <span className="txt sub">{game ? (game.video ? t("{time} em tela cheia", { time: formatMinutes(game.minutes) }) : t("jogou {time}", { time: formatMinutes(game.minutes) })) : ""}</span>
             </div>
             <div className="r">{!game?.video && <ClawdMini src={gamingSvg} show={mode === "game"} />}</div>
+          </div>
+        </div>
+
+        <div className={`layer${mode === "mic" ? " on" : ""}`} style={{ width: SIZES.mic.w }}>
+          <div className="strip">
+            <div className="c vol-row">
+              <span className="vol-ic">{pcMicMuted ? <MicOffIcon /> : <MicIcon />}</span>
+              <span className="txt">{micText(pcMicMuted)}</span>
+            </div>
           </div>
         </div>
 
