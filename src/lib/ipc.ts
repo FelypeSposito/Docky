@@ -34,13 +34,6 @@ export interface Media {
 
 export type RepeatMode = "none" | "track" | "list";
 
-/** A download in progress (the browser's partial file in the Downloads folder). */
-export interface Download {
-  /** The final name; empty while the browser does not know it yet. */
-  name: string;
-  bytes: number;
-}
-
 export interface DownloadDone {
   name: string;
   path: string;
@@ -315,10 +308,6 @@ export const ipc = {
       if (action.startsWith("repeat-")) DEV_MEDIA.repeat = action.slice("repeat-".length) as RepeatMode;
       window.dispatchEvent(new CustomEvent("docky:media", { detail: { ...DEV_MEDIA, playing: devPlaying() } }));
     }
-  },
-
-  onDownloads(handler: (downloads: Download[]) => void): Unlisten {
-    return isTauri ? subscribe("downloads", handler) : devListen("docky:downloads", handler);
   },
 
   onDownloadDone(handler: (done: DownloadDone) => void): Unlisten {

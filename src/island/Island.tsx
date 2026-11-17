@@ -17,7 +17,7 @@ import { PeekGlance, PeekPlayer } from "./Peek";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
 import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
-import { ArrowDownIcon, BatteryIcon, BellIcon, BoltIcon, ClaudeSpinner, MicIcon, MicOffIcon, Equalizer, ExpandIcon, ShrinkIcon, VolumeIcon } from "./icons";
+import { BatteryIcon, BellIcon, BoltIcon, ClaudeSpinner, MicIcon, MicOffIcon, Equalizer, ExpandIcon, ShrinkIcon, VolumeIcon } from "./icons";
 import { bodyHeight, CHIP_WIDTH, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
@@ -28,7 +28,7 @@ import codingSvg from "../assets/clawd/clawd-coding.svg";
 import coffeeSvg from "../assets/clawd/clawd-coffee.svg";
 import gamingSvg from "../assets/clawd/clawd-gaming.svg";
 import yogaSvg from "../assets/clawd/clawd-yoga.svg";
-import { formatBytes, formatElapsed, formatMinutes, startActivitySync, useActivityStore } from "./activity";
+import { formatElapsed, formatMinutes, startActivitySync, useActivityStore } from "./activity";
 import { ClawdMini } from "./ClawdMini";
 import "./island.css";
 import "./quick/quick.css";
@@ -143,18 +143,6 @@ function CallChip({ app, since, muted }: { app: string; since: number; muted: bo
   );
 }
 
-/** Downloads in progress: an arrow that keeps dropping and how much has come in. */
-function DownloadChip({ count, bytes, name }: { count: number; bytes: number; name: string }) {
-  return (
-    <span className="dchip" title={count > 1 ? `Baixando ${count} arquivos` : name ? `Baixando ${name}` : "Baixando"}>
-      <i className="dchip-ic">
-        <ArrowDownIcon size={12} />
-      </i>
-      <b>{count > 1 ? `${count} · ${formatBytes(bytes)}` : formatBytes(bytes)}</b>
-    </span>
-  );
-}
-
 export function Island() {
   const config = useConfigStore((s) => s.config);
   const expanded = useIslandStore((s) => s.expanded);
@@ -173,7 +161,6 @@ export function Island() {
   useEffect(() => startClaudeSync(), []);
   useEffect(() => startShelfSync(), []);
   useEffect(() => startActivitySync(), []);
-  const downloads = useActivityStore((s) => s.downloads);
   const call = useActivityStore((s) => s.call);
   const micMuted = useActivityStore((s) => s.micMuted);
   const finishedDownload = useActivityStore((s) => s.finished);
@@ -210,9 +197,8 @@ export function Island() {
   const canExpand = !!ActivePage.Large;
   const largeOn = large && canExpand;
   const showCall = config.callPill && !!call;
-  const downloading = downloads.length > 0;
   const idleSize = {
-    w: SIZES.idle.w + (timerRunning ? CHIP_WIDTH.timer : 0) + (showCall ? CHIP_WIDTH.call : 0) + (downloading ? CHIP_WIDTH.download : 0),
+    w: SIZES.idle.w + (timerRunning ? CHIP_WIDTH.timer : 0) + (showCall ? CHIP_WIDTH.call : 0),
     h: SIZES.idle.h,
   };
   const size = mode === "expanded" && largeOn ? EXPANDED_LARGE : mode === "idle" ? idleSize : SIZES[mode];
@@ -302,10 +288,7 @@ export function Island() {
   const playing = !!media?.playing;
   const timerChip = timerRunning ? <TimerChip mode={timerMode} left={timerLeft} total={timerTotal} /> : null;
   const callChip = showCall && call ? <CallChip app={call.app} since={call.since} muted={micMuted} /> : null;
-  const downloadChip = downloading ? (
-    <DownloadChip count={downloads.length} bytes={downloads.reduce((sum, d) => sum + d.bytes, 0)} name={downloads[0].name} />
-  ) : null;
-  const chips = timerChip || callChip || downloadChip;
+  const chips = timerChip || callChip;
   // End of a Foco: Clawd takes a coffee (or does yoga before a long break); end of a break: back to coding.
   const alarmClawd = timerFinished === "focus" ? (focusMode === "long" ? yogaSvg : coffeeSvg) : timerFinished === "short" || timerFinished === "long" ? codingSvg : null;
   const volumeLevel = volume?.muted ? 0 : (volume?.level ?? 0);
@@ -336,7 +319,6 @@ export function Island() {
               {chips ? (
                 <>
                   {callChip}
-                  {downloadChip}
                   {timerChip}
                 </>
               ) : (
@@ -355,7 +337,7 @@ export function Island() {
                   <ClaudeSpinner />
                 </span>
               )}
-              {timerChip ?? callChip ?? downloadChip ?? <Equalizer playing={playing && mode === "lyric"} />}
+              {timerChip ?? callChip ?? <Equalizer playing={playing && mode === "lyric"} />}
             </div>
           </div>
         </div>

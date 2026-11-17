@@ -330,10 +330,9 @@ Big targets, icon over name.
 ### Timer Chip (pill)
 - A 22px capsule at the pill's right, tinted 16% of the mode colour (`--tc`: pink focus, green break, violet custom) with a small progress ring and 12px 650 tabular time. Kept visually apart from the clock.
 
-### Call and Download Chips (pill)
-- Same 22px capsule as the timer chip, side by side at the pill's right; each one widens the collapsed pill by its own width so the clock stays clear.
+### Call Chip (pill)
+- Same 22px capsule as the timer chip, beside it at the pill's right; it widens the collapsed pill by its own width so the clock stays clear.
 - **Call:** green 14% tint with an 18px green mic button (mutes the Windows microphone) and the call time in 12px 650 tabular; muted turns the chip pink with a crossed mic.
-- **Download:** 0.1 white with an accent arrow that keeps dropping and the size so far ("340 MB", or "2 · 1,2 GB").
 - Short notices reuse the pill: "Download concluído" with the file name shortened by "…" and a 24px "Mostrar" capsule; the end of a long fullscreen game shows the game and "jogou 1h 23min" with a small Clawd playing.
 
 ### Alarm

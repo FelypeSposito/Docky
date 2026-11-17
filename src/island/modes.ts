@@ -31,8 +31,8 @@ export const SIZES: Record<Mode, Size> = {
 /** A pílula recolhida com o Foco rodando: o relógio no meio e o tempo do Foco numa etiqueta à direita. */
 export const IDLE_TIMER: Size = { w: 274, h: 36 };
 
-/** How much each chip on the collapsed pill adds to its width (the Foco timer, a call, a download). */
-export const CHIP_WIDTH = { timer: 60, call: 84, download: 84 } as const;
+/** How much each chip on the collapsed pill adds to its width (the Foco timer, a call). */
+export const CHIP_WIDTH = { timer: 60, call: 84 } as const;
 
 /** A ilha aberta na versão maior de uma página (botão de expandir no cabeçalho). Cabe na janela de `island.rs`. */
 export const EXPANDED_LARGE: Size = { w: 640, h: 400 };

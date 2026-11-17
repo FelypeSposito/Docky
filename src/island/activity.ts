@@ -1,13 +1,12 @@
 import { create } from "zustand";
-import { type Call, type Download, type DownloadDone, type FullscreenSummary, ipc } from "../lib/ipc";
+import { type Call, type DownloadDone, type FullscreenSummary, ipc } from "../lib/ipc";
 import { useIslandStore } from "./store";
 
 const DOWNLOAD_NOTICE_MS = 6000;
 const GAME_NOTICE_MS = 7000;
 
-/** What the pill shows about the rest of the computer: downloads, a call, the end of a game. */
+/** What the pill shows about the rest of the computer: a finished download, a call, the end of a game. */
 interface ActivityStore {
-  downloads: Download[];
   /** The download that just finished (for the notice). */
   finished: DownloadDone | null;
   call: Call | null;
@@ -18,7 +17,6 @@ interface ActivityStore {
 }
 
 export const useActivityStore = create<ActivityStore>((set, get) => ({
-  downloads: [],
   finished: null,
   call: null,
   micMuted: false,
@@ -38,7 +36,6 @@ export function startActivitySync(): () => void {
     if (call) readMic();
   });
   const offs = [
-    ipc.onDownloads((downloads) => useActivityStore.setState({ downloads })),
     ipc.onDownloadDone((finished) => {
       useActivityStore.setState({ finished });
       useIslandStore.getState().showOverlay("download", DOWNLOAD_NOTICE_MS);
@@ -54,13 +51,6 @@ export function startActivitySync(): () => void {
     }),
   ];
   return () => offs.forEach((off) => off());
-}
-
-/** "340 MB", "1,2 GB", "820 KB". */
-export function formatBytes(bytes: number): string {
-  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1).replace(".", ",")} GB`;
-  if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 /** "45 min", "1h 23min", "2h". */

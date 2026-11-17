@@ -2771,8 +2771,7 @@ button.m-top:active .cover {
 }
 
 /* Chamada na pílula: o botão do microfone e o tempo */
-.cchip,
-.dchip {
+.cchip {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -2784,8 +2783,7 @@ button.m-top:active .cover {
   background: rgba(61, 214, 140, 0.14);
   font-variant-numeric: tabular-nums;
 }
-.cchip b,
-.dchip b {
+.cchip b {
   font-size: 12px;
   font-weight: 650;
 }
@@ -2810,31 +2808,6 @@ button.m-top:active .cover {
 .cchip.muted .cchip-mic {
   color: #2a0710;
   background: #ff5c7a;
-}
-/* Download em andamento: a seta que desce sem parar */
-.dchip {
-  padding-left: 6px;
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.1);
-}
-.dchip-ic {
-  display: grid;
-  place-items: center;
-  width: 12px;
-  height: 14px;
-  overflow: hidden;
-  color: var(--accent, #ff5c7a);
-}
-.dchip-ic svg {
-  animation: dchip-drop 1.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-}
-@keyframes dchip-drop {
-  0% { opacity: 0; transform: translateY(-9px); }
-  35% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(9px); }
-}
-.reduce-motion .dchip-ic svg {
-  animation: none;
 }
 /* Download concluído: começa depois dos olhos, o nome do arquivo encurta com "…" e o botão fica à direita */
 .strip .c.pad.dl-done {

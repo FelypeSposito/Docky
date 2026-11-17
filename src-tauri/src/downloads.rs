@@ -1,6 +1,6 @@
 //! Downloads: browsers write a partial file in the Downloads folder (".crdownload" in Chrome and Edge, ".part" in
-//! Firefox) and rename it when it is done. Watching the folder once a second is enough to show a download in progress
-//! on the pill and a short notice when it finishes, for any browser, without extensions.
+//! Firefox) and rename it when it is done. Watching the folder once a second is enough to show a short notice when a
+//! download finishes, for any browser, without extensions. (The total size is not on disk, so there is no progress.)
 
 use std::{
     collections::BTreeMap,
@@ -23,14 +23,6 @@ pub fn partial_stem(name: &str) -> Option<&str> {
 /// Chrome names a download "Unconfirmed 123456.crdownload" until it knows the real name.
 pub fn is_unconfirmed(stem: &str) -> bool {
     stem.starts_with("Unconfirmed ") || stem.starts_with("Não confirmado ")
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Download {
-    /// The name it will have when done (empty while the browser does not know it yet).
-    pub name: String,
-    pub bytes: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -105,14 +97,6 @@ pub fn spawn(app: AppHandle) {
                     crate::island::emit(&app, "download-done", Finished { name, path: path.display().to_string() });
                 }
             }
-            let list: Vec<Download> = now
-                .iter()
-                .filter_map(|(name, bytes)| {
-                    let stem = partial_stem(name)?;
-                    Some(Download { name: if is_unconfirmed(stem) { String::new() } else { stem.to_string() }, bytes: *bytes })
-                })
-                .collect();
-            crate::island::emit(&app, "downloads", &list);
             last = now;
         }
     });
