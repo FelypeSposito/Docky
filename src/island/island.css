@@ -2842,3 +2842,153 @@ button.m-top:active .cover {
 .pill-btn:active {
   transform: scale(0.94);
 }
+
+/* Discord: os botões da chamada (mutar, ensurdecer, sair), as bolinhas de quem está na chamada */
+.dc-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dc-btns button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.2s, color 0.2s, transform 0.1s var(--ease);
+}
+.dc-btns button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.dc-btns button:active {
+  transform: scale(0.9);
+}
+.dc-btns button.on {
+  color: #2a0710;
+  background: #ff5c7a;
+}
+.dc-btns button.leave {
+  color: #fff;
+  background: #e5484d;
+}
+.dc-btns button.leave:hover {
+  background: #f2555a;
+}
+.dc-btns.mini {
+  gap: 3px;
+}
+.dc-btns.mini button {
+  width: 18px;
+  height: 18px;
+  color: #04230f;
+  background: #3dd68c;
+}
+.dc-btns.mini button.on {
+  color: #2a0710;
+  background: #ff5c7a;
+}
+.dc-btns.mini svg {
+  width: 11px;
+  height: 11px;
+}
+.cchip.dcchip {
+  padding-left: 3px;
+}
+.dc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mx .dc {
+  flex: none;
+  padding-bottom: 8px;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+}
+.dc-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.dc-top b {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.dc-sub {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink2);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.dc-top em {
+  flex: none;
+  color: var(--ink2);
+  font-size: 11.5px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+.dc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.dc-faces {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.dc-face {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: -3px;
+  border-radius: 50%;
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 650;
+  color: var(--ink);
+  background: #2b2b31;
+  box-shadow: 0 0 0 2px #000;
+  transition: box-shadow 0.15s ease;
+}
+.dc-face.talk {
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px #3dd68c;
+  z-index: 1;
+}
+.dc-face.mute {
+  color: var(--ink3);
+  text-decoration: line-through;
+}
+.dc-face.more {
+  color: var(--ink2);
+  background: #1a1a1f;
+}
+/* No hover: a mesma grade do player (linha de 36 px depois dos olhos, linha de 44 px embaixo) */
+.pk-call .dc {
+  gap: 0;
+}
+.pk-call .dc-top {
+  height: 36px;
+  align-items: center;
+  padding-left: 42px;
+}
+.notch.no-eyes .pk-call .dc-top {
+  padding-left: 4px;
+}
+.pk-call .dc-row {
+  height: 44px;
+}

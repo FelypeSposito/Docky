@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { type AudioApp, ipc } from "../../lib/ipc";
 import { useMediaStore } from "../../media/store";
+import { inDiscordCall, useActivityStore } from "../activity";
+import { DiscordCall } from "../DiscordCall";
 import { VolumeIcon } from "../icons";
 
 const POLL_MS = 1500;
@@ -30,6 +32,8 @@ const percent = (level: number) => `${Math.round(level * 100)}`;
 export function MixerPage({ active }: { active: boolean }) {
   const [apps, setApps] = useState<AudioApp[] | null>(null);
   const volume = useMediaStore((s) => s.volume);
+  const discord = useActivityStore((s) => s.discord);
+  const callSince = useActivityStore((s) => s.call?.since ?? null);
   /** O app cujo controle está sendo arrastado: a leitura periódica não sobrescreve o valor dele. */
   const dragging = useRef<string | null>(null);
   const sendApp = useThrottled((id, level) => ipc.setAppVolume(id, level));
@@ -65,6 +69,7 @@ export function MixerPage({ active }: { active: boolean }) {
 
   return (
     <div className="mx">
+      {inDiscordCall(discord) && <DiscordCall discord={discord} since={callSince} />}
       <div className="mx-row master">
         <button
           className="mx-mute"

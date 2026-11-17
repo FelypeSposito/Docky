@@ -164,6 +164,8 @@ pub struct Config {
     pub shelf_move: bool,
     /// Client ID do Google Cloud para o Google Agenda (o segredo fica no Gerenciador de Credenciais).
     pub google_client_id: String,
+    /// Client ID of the person's own Discord app (Developer Portal); the secret stays in the Credential Manager.
+    pub discord_client_id: String,
     /// Itens do lançador (página Atalhos).
     pub shortcuts: Vec<Shortcut>,
     /// Ordem das páginas do dock (ids). Vazio = ordem original.
@@ -218,6 +220,7 @@ impl Default for Config {
             shelf_folders: Vec::new(),
             weather_city: String::new(),
             google_client_id: String::new(),
+            discord_client_id: String::new(),
             focus_minutes: 25,
             short_break_minutes: 5,
             long_break_minutes: 15,
@@ -274,6 +277,11 @@ impl ConfigState {
 
     pub fn get(&self) -> Config {
         self.current.lock().unwrap().clone()
+    }
+
+    /// The Discord Client ID, read by the Discord thread without cloning the whole config.
+    pub fn discord_client_id(&self) -> String {
+        self.current.lock().unwrap().discord_client_id.trim().to_string()
     }
 
     /// Hide the island while an app is fullscreen. Read every second, so without cloning the whole config.

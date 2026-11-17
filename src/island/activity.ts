@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type Call, type DownloadDone, type FullscreenSummary, ipc } from "../lib/ipc";
+import { type Call, type DiscordState, type DownloadDone, type FullscreenSummary, ipc } from "../lib/ipc";
 import { useIslandStore } from "./store";
 
 const DOWNLOAD_NOTICE_MS = 6000;
@@ -13,14 +13,19 @@ interface ActivityStore {
   micMuted: boolean;
   /** The fullscreen session that just ended (for the notice). */
   game: FullscreenSummary | null;
+  discord: DiscordState | null;
   toggleMic: () => void;
 }
+
+/** In a Discord call that Docky can control (set up and authorized). */
+export const inDiscordCall = (discord: DiscordState | null): discord is DiscordState => discord?.status === "ready" && !!discord.channel;
 
 export const useActivityStore = create<ActivityStore>((set, get) => ({
   finished: null,
   call: null,
   micMuted: false,
   game: null,
+  discord: null,
   toggleMic: () => {
     const muted = !get().micMuted;
     ipc.setMicMuted(muted);
@@ -35,7 +40,9 @@ export function startActivitySync(): () => void {
     useActivityStore.setState({ call });
     if (call) readMic();
   });
+  void ipc.discordState().then((discord) => useActivityStore.setState({ discord })).catch(() => {});
   const offs = [
+    ipc.onDiscord((discord) => useActivityStore.setState({ discord })),
     ipc.onDownloadDone((finished) => {
       useActivityStore.setState({ finished });
       useIslandStore.getState().showOverlay("download", DOWNLOAD_NOTICE_MS);

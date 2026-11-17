@@ -30,6 +30,9 @@ import gamingSvg from "../assets/clawd/clawd-gaming.svg";
 import yogaSvg from "../assets/clawd/clawd-yoga.svg";
 import { formatElapsed, formatMinutes, startActivitySync, useActivityStore } from "./activity";
 import { ClawdMini } from "./ClawdMini";
+import { DiscordButtons, DiscordCall } from "./DiscordCall";
+import { inDiscordCall } from "./activity";
+import type { DiscordState } from "../lib/ipc";
 import "./island.css";
 import "./quick/quick.css";
 
@@ -121,13 +124,25 @@ function TimerChip({ mode, left, total }: { mode: TimerMode; left: number; total
   );
 }
 
-/** A call on the pill: the mic button (mutes the whole microphone, like the Windows mute) and how long it has been. */
-function CallChip({ app, since, muted }: { app: string; since: number; muted: boolean }) {
+/**
+ * A call on the pill: how long it has been, and the buttons. In a Discord call Docky controls, Discord's own mute and
+ * deafen; otherwise the mic button mutes the whole microphone, like the Windows mute.
+ */
+function CallChip({ app, since, muted, discord }: { app: string; since: number | null; muted: boolean; discord: DiscordState | null }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
+  const time = since !== null ? <b>{formatElapsed((now - since) / 1000)}</b> : null;
+  if (inDiscordCall(discord)) {
+    return (
+      <span className={`cchip dcchip${discord.muted || discord.deafened ? " muted" : ""}`} title={`No Discord: ${discord.channel}`}>
+        <DiscordButtons discord={discord} size="sm" />
+        {time}
+      </span>
+    );
+  }
   return (
     <span className={`cchip${muted ? " muted" : ""}`} title={`Em chamada no ${app}`}>
       <button
@@ -138,7 +153,7 @@ function CallChip({ app, since, muted }: { app: string; since: number; muted: bo
       >
         {muted ? <MicOffIcon /> : <MicIcon />}
       </button>
-      <b>{formatElapsed((now - since) / 1000)}</b>
+      {time}
     </span>
   );
 }
@@ -165,6 +180,8 @@ export function Island() {
   const micMuted = useActivityStore((s) => s.micMuted);
   const finishedDownload = useActivityStore((s) => s.finished);
   const game = useActivityStore((s) => s.game);
+  const discord = useActivityStore((s) => s.discord);
+  const discordCall = inDiscordCall(discord) ? discord : null;
   const focusMode = useFocusStore((s) => s.mode);
   useHotkeys();
   const timerRunning = useFocusStore((s) => s.running);
@@ -196,9 +213,9 @@ export function Island() {
   // Páginas com tela maior (Large) ou só com ajustes (Settings) ganham o botão de expandir.
   const canExpand = !!ActivePage.Large;
   const largeOn = large && canExpand;
-  const showCall = config.callPill && !!call;
+  const showCall = config.callPill && (!!call || !!discordCall);
   const idleSize = {
-    w: SIZES.idle.w + (timerRunning ? CHIP_WIDTH.timer : 0) + (showCall ? CHIP_WIDTH.call : 0),
+    w: SIZES.idle.w + (timerRunning ? CHIP_WIDTH.timer : 0) + (showCall ? (discordCall ? CHIP_WIDTH.discord : CHIP_WIDTH.call) : 0),
     h: SIZES.idle.h,
   };
   const size = mode === "expanded" && largeOn ? EXPANDED_LARGE : mode === "idle" ? idleSize : SIZES[mode];
@@ -287,7 +304,7 @@ export function Island() {
   const charging = !!power && power.hasBattery && (power.charging || power.plugged);
   const playing = !!media?.playing;
   const timerChip = timerRunning ? <TimerChip mode={timerMode} left={timerLeft} total={timerTotal} /> : null;
-  const callChip = showCall && call ? <CallChip app={call.app} since={call.since} muted={micMuted} /> : null;
+  const callChip = showCall ? <CallChip app={call?.app ?? "Discord"} since={call?.since ?? null} muted={micMuted} discord={discordCall} /> : null;
   const chips = timerChip || callChip;
   // End of a Foco: Clawd takes a coffee (or does yoga before a long break); end of a break: back to coding.
   const alarmClawd = timerFinished === "focus" ? (focusMode === "long" ? yogaSvg : coffeeSvg) : timerFinished === "short" || timerFinished === "long" ? codingSvg : null;
@@ -442,7 +459,15 @@ export function Island() {
         </div>
 
         <div className={`layer${mode === "peek" ? " on" : ""}`} style={{ width: SIZES.peek.w }}>
-          {peekMusic ? <PeekPlayer active={mode === "peek"} /> : <PeekGlance active={mode === "peek"} clock={clock} date={date} />}
+          {discordCall ? (
+            <div className="pk pk-call">
+              <DiscordCall discord={discordCall} since={call?.since ?? null} />
+            </div>
+          ) : peekMusic ? (
+            <PeekPlayer active={mode === "peek"} />
+          ) : (
+            <PeekGlance active={mode === "peek"} clock={clock} date={date} />
+          )}
         </div>
 
         <div className={`layer ask${mode === "ask" ? " on" : ""}`} style={{ width: SIZES.ask.w }}>

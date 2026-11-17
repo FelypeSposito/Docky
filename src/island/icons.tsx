@@ -387,3 +387,27 @@ export const GlobeIcon = (p: IconProps) => (
     <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
   </Stroke>
 );
+
+export const HeadphonesIcon = (p: IconProps) => (
+  <Stroke size={13} stroke={2} {...p}>
+    <path d="M4 15v-3a8 8 0 0 1 16 0v3" />
+    <rect x="3.5" y="14" width="4.5" height="6.5" rx="1.6" />
+    <rect x="16" y="14" width="4.5" height="6.5" rx="1.6" />
+  </Stroke>
+);
+
+export const HeadphonesOffIcon = (p: IconProps) => (
+  <Stroke size={13} stroke={2} {...p}>
+    <path d="M4 15v-3a8 8 0 0 1 12.9-6.3M19.6 9.4c.3.8.4 1.7.4 2.6v3" />
+    <rect x="3.5" y="14" width="4.5" height="6.5" rx="1.6" />
+    <rect x="16" y="14" width="4.5" height="6.5" rx="1.6" />
+    <path d="M3 3l18 18" />
+  </Stroke>
+);
+
+/** Sair da chamada: o fone virado para baixo. */
+export const PhoneOffIcon = (p: IconProps) => (
+  <Stroke size={13} stroke={2} {...p}>
+    <path d="M3.5 14.5c4.7-4 12.3-4 17 0l-1.6 2.6a1 1 0 0 1-1.3.4l-2.8-1.3a1 1 0 0 1-.6-1v-1.6a10 10 0 0 0-4.4 0v1.6a1 1 0 0 1-.6 1l-2.8 1.3a1 1 0 0 1-1.3-.4z" />
+  </Stroke>
+);

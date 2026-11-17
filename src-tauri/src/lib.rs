@@ -15,6 +15,7 @@ mod placement;
 mod launcher;
 mod lyrics;
 mod call;
+mod discord;
 mod downloads;
 mod media;
 mod mixer;
@@ -92,6 +93,10 @@ pub fn run() {
             mixer::set_media_app_volume,
             mixer::set_media_app_muted,
             hotkeys::hotkeys_taken,
+            discord::discord_state,
+            discord::discord_setup,
+            discord::discord_save_secret,
+            discord::discord_command,
             call::current_call,
             call::mic_muted,
             call::set_mic_muted,
@@ -111,6 +116,8 @@ pub fn run() {
             // Os atalhos que ficaram sem ícone ganham o do app, em segundo plano.
             icons::schedule(&handle);
 
+            // Before the windows exist, so the island never asks for a Discord state that is not managed yet.
+            discord::spawn(handle.clone());
             island::reconcile(&handle)?;
             island::watch(handle.clone());
             hotkeys::register(&handle)?;

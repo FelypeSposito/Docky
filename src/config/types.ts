@@ -35,6 +35,8 @@ export interface Config {
   shelfFolders: ShelfFolder[];
   weatherCity: string;
   googleClientId: string;
+  /** Client ID of the person's own Discord app; the secret stays in the Credential Manager. */
+  discordClientId: string;
   focusMinutes: number;
   shortBreakMinutes: number;
   longBreakMinutes: number;
@@ -107,6 +109,7 @@ export const DEFAULT_CONFIG: Config = {
   shelfFolders: [],
   weatherCity: "",
   googleClientId: "",
+  discordClientId: "",
   focusMinutes: 25,
   shortBreakMinutes: 5,
   longBreakMinutes: 15,

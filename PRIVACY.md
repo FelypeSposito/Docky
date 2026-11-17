@@ -38,7 +38,13 @@ Docky can show your upcoming events if you connect your Google account in Settin
   `Documents\Docky\icons`) and never requested again. If nothing is found, Docky uses the icon Windows already shows
   for the installed app, with no request at all.
 
-No other request is made.
+- **Discord (optional, only after you set it up in Settings):** Docky talks to the Discord app running on your PC
+  through its local RPC (a named pipe, no network) to show your current voice call and to mute, deafen or leave it.
+  To authorize, it exchanges a one-time code for a token at `discord.com` using the Client ID and secret of the
+  Discord app **you** created; the secret and the token stay in the Windows Credential Manager. Nothing about your
+  calls is stored or sent anywhere else. "Desconectar" deletes the token.
+
+No other request is made. The interface font (Inter) ships with the app; it is not downloaded.
 
 **Installed apps and games (only after you click Permitir in Settings → Atalhos):** to suggest shortcuts, Docky reads
 the Start Menu, the Microsoft Store app list, the Steam library files and the Epic Games launcher manifests on your PC.
@@ -61,6 +67,11 @@ análise de uso nem telemetria, e não envia seus dados ao desenvolvedor nem a t
   gravados em disco nem enviados para outro lugar. A chave secreta e o token de renovação ficam no Gerenciador de
   Credenciais do Windows. Para apagar, use Desconectar nas configurações ou revogue o acesso em
   <https://myaccount.google.com/permissions>.
+- **Discord (opcional, só depois de configurar):** o Docky conversa com o app do Discord aberto no seu PC pelo RPC
+  local (sem rede) para mostrar a sua chamada de voz e mutar, ensurdecer ou sair. Para autorizar, troca um código
+  por um token no `discord.com`, com o Client ID e o segredo do app de Discord que **você** criou; o segredo e o token
+  ficam no Gerenciador de Credenciais do Windows. Nada das suas chamadas é guardado ou enviado. "Desconectar" apaga o
+  token.
 - **Letras:** título, artista e duração da faixa vão para o LRCLIB. **Clima:** a cidade que você digitou vai para o Open-Meteo.
 - **Ícones automáticos (dá para desligar em Configurações → Atalhos):** para um atalho sem ícone, o Docky pede ao jsDelivr
   (biblioteca aberta dashboard-icons) uma imagem com o nome do app e, para sites, ao serviço de favicons do Google o

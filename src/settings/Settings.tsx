@@ -9,6 +9,7 @@ import { AREAS, type AreaId, type SearchHit, isArea, searchOptions } from "./are
 import { ClaudeSection } from "./ClaudeSection";
 import { HotkeysGroup, NotesFolderRow, PagesSection, ScreensRow, ShelfFolders, ShortcutsEditor, WeatherCityRow } from "./Fields";
 import { CalendarSection } from "./CalendarSection";
+import { DiscordSection } from "./DiscordSection";
 import { Group, NumberStepper, Row, Segmented, Slider, Stepper, Toggle } from "./controls";
 import { Preview } from "./Preview";
 import "./settings.css";
@@ -181,6 +182,7 @@ function AreaContent({ id }: { id: AreaId }) {
             </Row>
           </Group>
           <CalendarSection />
+          <DiscordSection />
         </>
       );
     case "atalhos":

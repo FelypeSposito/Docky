@@ -46,6 +46,31 @@ export interface Call {
   since: number;
 }
 
+export interface DiscordMember {
+  id: string;
+  name: string;
+  speaking: boolean;
+  muted: boolean;
+}
+
+/** The Discord call, through Discord's local RPC. */
+export interface DiscordState {
+  status: "off" | "closed" | "authorize" | "ready";
+  /** The voice channel you are in; null outside a call. */
+  channel: string | null;
+  muted: boolean;
+  deafened: boolean;
+  members: DiscordMember[];
+}
+
+export interface DiscordSetup {
+  secretSaved: boolean;
+  redirect: string;
+  error: string | null;
+}
+
+export type DiscordAction = "authorize" | "mute" | "unmute" | "deafen" | "undeafen" | "leave" | "forget";
+
 /** A long fullscreen session that just ended. */
 export interface FullscreenSummary {
   app: string;
@@ -316,6 +341,26 @@ export const ipc = {
 
   revealDownload(path: string): void {
     if (isTauri) void invoke("reveal_download", { path }).catch(() => {});
+  },
+
+  async discordState(): Promise<DiscordState> {
+    return isTauri ? invoke<DiscordState>("discord_state") : { status: "off", channel: null, muted: false, deafened: false, members: [] };
+  },
+
+  onDiscord(handler: (state: DiscordState) => void): Unlisten {
+    return isTauri ? subscribe("discord", handler) : devListen("docky:discord", handler);
+  },
+
+  async discordSetup(): Promise<DiscordSetup> {
+    return isTauri ? invoke<DiscordSetup>("discord_setup") : { secretSaved: false, redirect: "http://127.0.0.1", error: null };
+  },
+
+  async discordSaveSecret(secret: string): Promise<void> {
+    if (isTauri) await invoke("discord_save_secret", { secret });
+  },
+
+  async discordCommand(action: DiscordAction): Promise<void> {
+    if (isTauri) await invoke("discord_command", { action });
   },
 
   /** Hotkeys another program took first ("Ctrl+Alt+D"); Docky keeps trying them in the background. */
