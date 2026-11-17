@@ -814,14 +814,21 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
-.okc {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #1fd15a;
-  color: #04230f;
+/* Clawd comemorando no aviso "Claude terminou": o SVG tem uma tela de 45 unidades e o Clawd ocupa 15, então ele é
+   desenhado a 1,75 px por unidade e recortado num quadrado de 30 px em volta do corpo. */
+.clawd-mini {
+  position: relative;
+  display: block;
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+}
+.clawd-mini img {
+  position: absolute;
+  left: -24px;
+  top: -43px;
+  width: 79px;
+  height: 79px;
 }
 .dot {
   flex: none;
@@ -2457,21 +2464,6 @@ button.m-top:active .cover {
   width: 30px;
   height: 30px;
 }
-button.pk-song {
-  padding: 0;
-  text-align: left;
-}
-.pk-open {
-  flex: none;
-  display: flex;
-  padding: 0;
-  border-radius: 8px;
-  transition: transform 0.15s var(--ease);
-}
-.pk-open:hover {
-  transform: scale(1.06);
-}
-
 /* Som: o mixer por app */
 .mx {
   position: absolute;

@@ -4,6 +4,10 @@ import { useIslandStore } from "../island/store";
 import { applyEvent, type ClaudeEvent, justFinished, type PermissionRequest, type Sessions } from "./sessions";
 
 const DONE_NOTICE_MS = 4200;
+/** How long Clawd celebrates a finished session or sulks after you deny. */
+const REACTION_MS = 4200;
+
+export type Reaction = { kind: "celebrate" | "sad"; until: number };
 
 interface ClaudeStore {
   sessions: Sessions;
@@ -11,6 +15,8 @@ interface ClaudeStore {
   permissions: (PermissionRequest & { project: string })[];
   /** Quantas vezes você negou: faz os olhinhos balançarem a cabeça. */
   denials: number;
+  /** Clawd's latest reaction (a session finished, you denied), until `until` (performance.now). */
+  reaction: Reaction | null;
   onEvent: (event: ClaudeEvent) => void;
   addPermission: (request: PermissionRequest) => void;
   dropPermission: (id: number) => void;
@@ -23,6 +29,7 @@ export const useClaudeStore = create<ClaudeStore>((set, get) => ({
   sessions: {},
   permissions: [],
   denials: 0,
+  reaction: null,
 
   onEvent: (event) => {
     const before = get().sessions;
@@ -30,6 +37,7 @@ export const useClaudeStore = create<ClaudeStore>((set, get) => ({
     if (after === before) return;
     set({ sessions: after });
     if (justFinished(before, after) && get().permissions.length === 0) {
+      set({ reaction: { kind: "celebrate", until: performance.now() + REACTION_MS } });
       useIslandStore.getState().showOverlay("done", DONE_NOTICE_MS);
     }
   },
@@ -48,6 +56,7 @@ export const useClaudeStore = create<ClaudeStore>((set, get) => ({
     set((s) => ({
       permissions: s.permissions.filter((p) => p.id !== id),
       denials: allow ? s.denials : s.denials + 1,
+      reaction: allow ? s.reaction : { kind: "sad", until: performance.now() + REACTION_MS },
     }));
   },
 }));

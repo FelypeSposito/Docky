@@ -7,6 +7,8 @@ GHAZALI, under the MIT license (copy in `LICENSE` next to this file):
 - `clawd-notification.svg`: a session is waiting for your permission
 - `clawd-idle-living.svg`: sessions are open but nothing is running
 - `clawd-sleeping.svg`: no session
+- `clawd-celebrating.svg`: a session just finished (also in the "Claude terminou" pill)
+- `clawd-sad.svg`: you just denied a permission
 
 Clawd, the Claude Code mascot, is a character of Anthropic. Docky is an unofficial, non-commercial project and is not
 affiliated with or endorsed by Anthropic.

@@ -3,12 +3,14 @@ import { type Session } from "../../claude/sessions";
 import { useClaudeStore } from "../../claude/store";
 import { ipc } from "../../lib/ipc";
 import { CheckIcon, ClaudeSpinner } from "../icons";
+import celebrateSvg from "../../assets/clawd/clawd-celebrating.svg";
 import idleSvg from "../../assets/clawd/clawd-idle-living.svg";
+import sadSvg from "../../assets/clawd/clawd-sad.svg";
 import waitSvg from "../../assets/clawd/clawd-notification.svg";
 import sleepSvg from "../../assets/clawd/clawd-sleeping.svg";
 import typingSvg from "../../assets/clawd/clawd-working-typing.svg";
 
-type Mood = "work" | "wait" | "idle" | "sleep";
+type Mood = "work" | "wait" | "idle" | "sleep" | "celebrate" | "sad";
 
 /**
  * Clawd for each mood: ready-made animated SVGs from clawd-pet (MIT), see src/assets/clawd/README.md. Their canvas is
@@ -20,6 +22,8 @@ const CLAWD: Record<Mood, { src: string; label: string; box: number; dx: number 
   wait: { src: waitSvg, label: "Clawd chamando você", box: 45, dx: 0 },
   idle: { src: idleSvg, label: "Clawd à toa", box: 45, dx: 0 },
   sleep: { src: sleepSvg, label: "Clawd dormindo", box: 40, dx: 2.5 },
+  celebrate: { src: celebrateSvg, label: "Clawd comemorando", box: 45, dx: 0 },
+  sad: { src: sadSvg, label: "Clawd triste", box: 45, dx: 0 },
 };
 /** Pixels per SVG unit: Clawd is 15 units wide, so 90px on the stage. */
 const UNIT = 6;
@@ -53,6 +57,7 @@ function SessionRow({ session, now, asking }: { session: Session; now: number; a
 export function ClaudePage({ active }: { active: boolean }) {
   const sessions = useClaudeStore((s) => s.sessions);
   const permissions = useClaudeStore((s) => s.permissions);
+  const reaction = useClaudeStore((s) => s.reaction);
   const [now, setNow] = useState(() => performance.now());
   const [installed, setInstalled] = useState<boolean | null>(null);
 
@@ -69,12 +74,20 @@ export function ClaudePage({ active }: { active: boolean }) {
   const askingBy = new Map(permissions.map((p) => [p.sessionId, p.toolName]));
   const waiting = permissions[0];
 
-  const mood: Mood = waiting ? "wait" : running.length > 0 ? "work" : list.length > 0 ? "idle" : "sleep";
+  // A reaction (session finished, permission denied) shows for a few seconds, unless a new request is waiting.
+  const reacting = !waiting && reaction && now < reaction.until ? reaction.kind : null;
+  const mood: Mood = reacting ?? (waiting ? "wait" : running.length > 0 ? "work" : list.length > 0 ? "idle" : "sleep");
   const stopped = list.length - running.length;
 
   let title: string;
   let sub: string;
-  if (waiting) {
+  if (reacting === "celebrate") {
+    title = "Terminou!";
+    sub = running.length > 0 ? `Ainda escrevendo em ${plural(running.length, "projeto", "projetos")}` : "Pode conferir o resultado.";
+  } else if (reacting === "sad") {
+    title = "Permissão negada";
+    sub = "Tudo bem, o Claude não vai fazer isso.";
+  } else if (waiting) {
     title = "Esperando você";
     sub = `${list.find((s) => s.id === waiting.sessionId)?.project ?? "Uma sessão"} quer usar ${waiting.toolName}`;
   } else if (running.length > 0) {

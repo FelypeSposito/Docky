@@ -17,12 +17,13 @@ import { PeekGlance, PeekPlayer } from "./Peek";
 import { Eyes, type EyesMood } from "./Eyes";
 import { createHoverController } from "./hoverController";
 import { useEyesPhase, useIslandSpring, useNow, usePower } from "./hooks";
-import { BatteryIcon, BellIcon, BoltIcon, CheckIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, VolumeIcon } from "./icons";
+import { BatteryIcon, BellIcon, BoltIcon, ClaudeSpinner, Equalizer, ExpandIcon, ShrinkIcon, VolumeIcon } from "./icons";
 import { bodyHeight, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, IDLE_TIMER, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { visiblePages } from "./pageOrder";
 import { useIslandStore } from "./store";
+import celebrateSvg from "../assets/clawd/clawd-celebrating.svg";
 import "./island.css";
 import "./quick/quick.css";
 
@@ -353,8 +354,9 @@ export function Island() {
               <span className="txt">Claude terminou</span>
             </div>
             <div className="r">
-              <span className="okc">
-                <CheckIcon />
+              {/* Clawd celebrating (clawd-pet, MIT), cropped to the pill; only mounted while the notice shows. */}
+              <span className="clawd-mini" aria-hidden="true">
+                {mode === "done" && <img src={celebrateSvg} alt="" draggable={false} />}
               </span>
             </div>
           </div>
