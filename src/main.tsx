@@ -4,6 +4,7 @@ import { useConfigStore, useConfigSync } from "./config/useConfig";
 import { isTauri } from "./lib/ipc";
 import { Island } from "./island/Island";
 import { Settings } from "./settings/Settings";
+import "@fontsource-variable/inter/wght.css";
 import "./index.css";
 
 /** Cada janela do Tauri carrega este mesmo app; o nome dela decide o que desenhar. */

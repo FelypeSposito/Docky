@@ -109,7 +109,7 @@
   outline: 0;
   background: rgba(0, 0, 0, 0.32);
   color: #fff;
-  font: 500 14px Inter, system-ui, sans-serif;
+  font: 500 14px "Inter Variable", Inter, system-ui, sans-serif;
   user-select: text;
 }
 .ip-emoji input:focus {
@@ -121,7 +121,7 @@
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  font: 600 11.5px Inter, system-ui, sans-serif;
+  font: 600 11.5px "Inter Variable", Inter, system-ui, sans-serif;
   white-space: nowrap;
   transition: background 0.18s, transform 0.1s;
 }
@@ -153,7 +153,7 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   color: var(--ink2, #c7c7cc);
-  font: 600 11.5px Inter, system-ui, sans-serif;
+  font: 600 11.5px "Inter Variable", Inter, system-ui, sans-serif;
   transition: background 0.18s, color 0.18s;
 }
 .ge-chips button:hover {
@@ -190,7 +190,7 @@
   outline: 0;
   background: rgba(0, 0, 0, 0.32);
   color: #fff;
-  font: 600 13px Inter, system-ui, sans-serif;
+  font: 600 13px "Inter Variable", Inter, system-ui, sans-serif;
   user-select: text;
 }
 .ge-name {

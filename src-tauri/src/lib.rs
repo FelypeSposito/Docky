@@ -91,6 +91,7 @@ pub fn run() {
             mixer::media_app_volume,
             mixer::set_media_app_volume,
             mixer::set_media_app_muted,
+            hotkeys::hotkeys_taken,
             call::current_call,
             call::mic_muted,
             call::set_mic_muted,

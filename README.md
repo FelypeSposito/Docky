@@ -6,7 +6,21 @@ atividade do Claude Code, timers, notas e mais. Uso pessoal por enquanto, com ar
 ## Instalar
 
 Baixe o `Docky_x.y.z_x64-setup.exe` mais recente em **Releases** e execute. A instalação é só para o seu usuário (não
-pede administrador) e o Docky abre sozinho no fim. Requer Windows 11 (ou o 10 com o WebView2, que já vem instalado).
+pede administrador) e o Docky abre sozinho no fim.
+
+### Onde roda
+
+| Windows | Funciona? |
+| --- | --- |
+| Windows 11 (x64) | Sim, tudo. É onde o Docky é feito e testado. |
+| Windows 10 versão 1903 ou mais nova (x64) | Sim, tudo. O visual é o mesmo, só sem os cantos arredondados do 11 nas janelas. |
+| Windows 10 1809 | Quase tudo: a pílula de chamada não aparece (o Windows ainda não registrava o uso do microfone). |
+| Windows 10 anterior ao 1809 | Não: falta o controle de mídia do Windows (música, letras). |
+| Windows 11 em ARM | Deve rodar pela emulação x64 do Windows; não testado. |
+| Windows 7 e 8.1, macOS, Linux | Não. |
+
+O WebView2 (o motor das telas) já vem no Windows 11 e nas versões atualizadas do 10; se faltar, o instalador baixa.
+Os hooks do Claude Code usam o `curl`, que vem no Windows desde o 10 versão 1803.
 
 O instalador ainda não é assinado digitalmente, então o Windows SmartScreen pode avisar "O Windows protegeu o seu PC":
 clique em **Mais informações → Executar assim mesmo**. Para o Docky abrir junto com o Windows, ligue a opção em

@@ -85,6 +85,22 @@ pub fn install(settings: &mut Value, port: u16, token: &str) {
     }
 }
 
+/// The port and token Docky's installed hooks call, if they are installed. Read from the hook command itself.
+pub fn installed_endpoint(settings: &Value) -> Option<(u16, String)> {
+    let command = settings["hooks"]
+        .as_object()?
+        .values()
+        .filter_map(Value::as_array)
+        .flatten()
+        .filter(|group| is_ours(group))
+        .filter_map(|group| group["hooks"].as_array())
+        .flatten()
+        .find_map(|hook| hook["command"].as_str().filter(|c| c.contains(MARKER)))?;
+    let port = command.split("127.0.0.1:").nth(1)?.split('/').next()?.parse().ok()?;
+    let token = command.split("Bearer ").nth(1)?.split('"').next()?.to_string();
+    Some((port, token))
+}
+
 pub fn is_installed(settings: &Value) -> bool {
     settings["hooks"]
         .as_object()
@@ -100,6 +116,14 @@ mod tests {
             .as_object()
             .map(|h| h.values().filter_map(Value::as_array).flatten().filter(|g| is_ours(g)).count())
             .unwrap_or(0)
+    }
+
+    #[test]
+    fn le_a_porta_e_o_token_dos_hooks_instalados() {
+        let mut settings = json!({ "hooks": { "Stop": [{ "hooks": [{ "type": "command", "command": "echo meu" }] }] } });
+        assert_eq!(installed_endpoint(&settings), None);
+        install(&mut settings, 47833, "abc123");
+        assert_eq!(installed_endpoint(&settings), Some((47833, "abc123".to_string())));
     }
 
     #[test]

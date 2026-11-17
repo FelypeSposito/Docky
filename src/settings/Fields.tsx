@@ -171,18 +171,26 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /** As teclas globais do Docky (ficam em Geral). */
 export function HotkeysGroup() {
+  // Combinations another program took first: they start working by themselves once it lets go.
+  const [taken, setTaken] = useState<string[]>([]);
+  useEffect(() => {
+    void ipc.hotkeysTaken().then(setTaken).catch(() => {});
+  }, []);
   return (
     <>
       <Group title="Teclas">
-        {HOTKEYS.map(([label, keys]) => (
-          <Row key={label} label={label}>
-            <div className="kc">
-              {keys.map((k) => (
-                <kbd key={k}>{k}</kbd>
-              ))}
-            </div>
-          </Row>
-        ))}
+        {HOTKEYS.map(([label, keys]) => {
+          const busy = taken.includes(keys.join("+"));
+          return (
+            <Row key={label} label={label} hint={busy ? "Outro programa está usando esta combinação. Ela volta a funcionar sozinha quando ele soltar." : undefined}>
+              <div className={`kc${busy ? " busy" : ""}`}>
+                {keys.map((k) => (
+                  <kbd key={k}>{k}</kbd>
+                ))}
+              </div>
+            </Row>
+          );
+        })}
       </Group>
       <p className="hint">Se outro programa já usa uma dessas teclas, ela fica de fora e as outras continuam funcionando.</p>
     </>

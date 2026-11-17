@@ -267,15 +267,35 @@ fn serve(app: AppHandle, mut stream: TcpStream) {
     respond(&mut stream, "200 OK", &reply);
 }
 
-/// Abre o servidor na primeira porta livre a partir de 47831 (só na máquina local).
+/// Abre o servidor só na máquina local. Tenta primeiro a porta que os hooks instalados já usam; se ela estiver ocupada
+/// (outro programa abriu antes do Docky), usa a próxima livre a partir de 47831 e atualiza os hooks do Docky para ela.
+/// Sem isso, o Claude Code só funcionava quando o Docky abria antes do outro programa.
 pub fn spawn(app: AppHandle) {
-    let listener = (FIRST_PORT..FIRST_PORT + PORT_ATTEMPTS)
+    let path = settings_path();
+    let installed = path.as_ref().and_then(|p| read_settings(p).ok()).and_then(|s| claude_hooks::installed_endpoint(&s));
+    let preferred = installed.as_ref().map(|(port, _)| *port);
+    let listener = preferred
+        .into_iter()
+        .chain(FIRST_PORT..FIRST_PORT + PORT_ATTEMPTS)
         .find_map(|port| TcpListener::bind(("127.0.0.1", port)).ok().map(|l| (port, l)));
     let Some((port, listener)) = listener else {
         eprintln!("docky: nenhuma porta livre para o servidor do Claude Code");
         return;
     };
-    app.state::<ClaudeState>().port.store(port, Ordering::SeqCst);
+    let state = app.state::<ClaudeState>();
+    state.port.store(port, Ordering::SeqCst);
+
+    // The hooks point somewhere else (another port, or a token from an older install): fix only Docky's entries.
+    if let (Some(path), Some((old_port, old_token))) = (&path, &installed) {
+        if *old_port != port || *old_token != state.token {
+            if let Ok(mut settings) = read_settings(path) {
+                claude_hooks::install(&mut settings, port, &state.token);
+                if let Err(e) = write_settings(path, &settings) {
+                    eprintln!("docky: não consegui atualizar os hooks do Claude Code: {e}");
+                }
+            }
+        }
+    }
 
     thread::spawn(move || {
         for stream in listener.incoming().flatten() {

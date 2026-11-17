@@ -318,6 +318,11 @@ export const ipc = {
     if (isTauri) void invoke("reveal_download", { path }).catch(() => {});
   },
 
+  /** Hotkeys another program took first ("Ctrl+Alt+D"); Docky keeps trying them in the background. */
+  async hotkeysTaken(): Promise<string[]> {
+    return isTauri ? invoke<string[]>("hotkeys_taken") : [];
+  },
+
   async currentCall(): Promise<Call | null> {
     return isTauri ? invoke<Call | null>("current_call") : null;
   },
