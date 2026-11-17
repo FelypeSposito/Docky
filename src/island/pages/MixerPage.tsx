@@ -16,7 +16,8 @@ function useThrottled(send: (id: string, value: number) => void) {
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   return (id: string, value: number) => {
     clearTimeout(timers.current.get(id));
-    const wait = SEND_EVERY_MS - (performance.now() - (last.current.get(id) ?? 0));
+    const wait =
+      SEND_EVERY_MS - (performance.now() - (last.current.get(id) ?? 0));
     const fire = () => {
       last.current.set(id, performance.now());
       send(id, value);
@@ -48,8 +49,12 @@ export function MixerPage({ active }: { active: boolean }) {
         if (!alive) return;
         setApps((current) =>
           next.map((app) => {
-            const held = dragging.current === app.id && current?.find((c) => c.id === app.id);
-            return held ? { ...app, volume: held.volume, muted: held.muted } : app;
+            const held =
+              dragging.current === app.id &&
+              current?.find((c) => c.id === app.id);
+            return held
+              ? { ...app, volume: held.volume, muted: held.muted }
+              : app;
           }),
         );
       });
@@ -62,58 +67,77 @@ export function MixerPage({ active }: { active: boolean }) {
   }, [active]);
 
   const change = (id: string, patch: Partial<AudioApp>) =>
-    setApps((current) => current?.map((app) => (app.id === id ? { ...app, ...patch } : app)) ?? current);
+    setApps(
+      (current) =>
+        current?.map((app) => (app.id === id ? { ...app, ...patch } : app)) ??
+        current,
+    );
 
   const level = volume?.level ?? 0;
   const muted = volume?.muted ?? false;
 
   return (
     <div className="mx">
-      {inDiscordCall(discord) && <DiscordCall discord={discord} since={callSince} />}
-      <div className="mx-row master">
-        <button
-          className="mx-mute"
-          aria-label={muted ? "Ativar o som" : "Silenciar tudo"}
-          title={muted ? "Ativar o som" : "Silenciar tudo"}
-          onClick={() => {
-            ipc.setMuted(!muted);
-            useMediaStore.setState({ volume: { level, muted: !muted } });
-          }}
-        >
-          <VolumeIcon level={level} muted={muted} size={17} />
-        </button>
-        <span className="mx-name">Volume geral</span>
-        <input
-          className="vol-slider mx-slider"
-          type="range"
-          min={0}
-          max={100}
-          value={Math.round(level * 100)}
-          aria-label="Volume geral"
-          style={{ "--v": `${level * 100}%` } as React.CSSProperties}
-          onChange={(e) => {
-            const next = Number(e.target.value) / 100;
-            sendMaster("master", next);
-            useMediaStore.setState({ volume: { level: next, muted: false } });
-          }}
-        />
-        <span className="mx-pct">{muted ? "—" : percent(level)}</span>
-      </div>
-
+      {inDiscordCall(discord) && (
+        <DiscordCall discord={discord} since={callSince} />
+      )}
+      {/* The whole PC is the first row of the list and scrolls with the apps, instead of a fixed bar above them. */}
       <div className="mx-list">
-        {apps !== null && apps.length === 0 && <div className="mx-empty">Nenhum app abriu o som agora</div>}
+        <div className="mx-row master">
+          <button
+            className="mx-mute"
+            aria-label={muted ? "Ativar o som" : "Silenciar tudo"}
+            title={muted ? "Ativar o som" : "Silenciar tudo"}
+            onClick={() => {
+              ipc.setMuted(!muted);
+              useMediaStore.setState({ volume: { level, muted: !muted } });
+            }}
+          >
+            <VolumeIcon level={level} muted={muted} size={17} />
+          </button>
+          <span className="mx-name">Volume geral</span>
+          <input
+            className="vol-slider mx-slider"
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(level * 100)}
+            aria-label="Volume geral"
+            style={{ "--v": `${level * 100}%` } as React.CSSProperties}
+            onChange={(e) => {
+              const next = Number(e.target.value) / 100;
+              sendMaster("master", next);
+              useMediaStore.setState({ volume: { level: next, muted: false } });
+            }}
+          />
+          <span className="mx-pct">{muted ? "—" : percent(level)}</span>
+        </div>
+        {apps !== null && apps.length === 0 && (
+          <div className="mx-empty">Nenhum app abriu o som agora</div>
+        )}
         {(apps ?? []).map((app) => (
-          <div key={app.id} className={`mx-row${app.active ? " live" : ""}${app.muted ? " off" : ""}`}>
+          <div
+            key={app.id}
+            className={`mx-row${app.active ? " live" : ""}${app.muted ? " off" : ""}`}
+          >
             <button
               className="mx-mute app"
-              aria-label={app.muted ? `Ativar o som de ${app.name}` : `Silenciar ${app.name}`}
+              aria-label={
+                app.muted
+                  ? `Ativar o som de ${app.name}`
+                  : `Silenciar ${app.name}`
+              }
               title={app.muted ? "Ativar o som" : "Silenciar"}
               onClick={() => {
                 ipc.setAppMuted(app.id, !app.muted);
                 change(app.id, { muted: !app.muted });
               }}
             >
-              {app.icon ? <img src={app.icon} alt="" /> : <span className="mx-letter">{app.name.slice(0, 1)}</span>}
+              {app.icon ? (
+                <img src={app.icon} alt="" />
+              ) : (
+                <span className="mx-letter">{app.name.slice(0, 1)}</span>
+              )}
               {app.muted && (
                 <span className="mx-x" aria-hidden="true">
                   <VolumeIcon muted size={11} />
@@ -141,7 +165,9 @@ export function MixerPage({ active }: { active: boolean }) {
                 change(app.id, { volume: next, muted: false });
               }}
             />
-            <span className="mx-pct">{app.muted ? "—" : percent(app.volume)}</span>
+            <span className="mx-pct">
+              {app.muted ? "—" : percent(app.volume)}
+            </span>
           </div>
         ))}
       </div>

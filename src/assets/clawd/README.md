@@ -3,7 +3,9 @@
 These animated SVGs come unchanged from [clawd-pet](https://github.com/abderrahimghazali/clawd-pet) by Abderrahim
 GHAZALI, under the MIT license (copy in `LICENSE` next to this file):
 
-- `clawd-working-typing.svg`: Claude Code is writing code
+- `clawd-working-thinking.svg`, `clawd-working-building.svg`, `clawd-working-tool-calling.svg`,
+  `clawd-working-reviewing.svg`, `clawd-working-juggling.svg`: Claude Code working (thinking, editing, running
+  commands, reading, with subagents)
 - `clawd-notification.svg`: a session is waiting for your permission
 - `clawd-idle-living.svg`: sessions are open but nothing is running
 - `clawd-sleeping.svg`: no session

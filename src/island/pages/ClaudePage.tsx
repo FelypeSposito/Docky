@@ -8,7 +8,12 @@ import idleSvg from "../../assets/clawd/clawd-idle-living.svg";
 import sadSvg from "../../assets/clawd/clawd-sad.svg";
 import waitSvg from "../../assets/clawd/clawd-notification.svg";
 import sleepSvg from "../../assets/clawd/clawd-sleeping.svg";
-import typingSvg from "../../assets/clawd/clawd-working-typing.svg";
+import buildingSvg from "../../assets/clawd/clawd-working-building.svg";
+import delegateSvg from "../../assets/clawd/clawd-working-juggling.svg";
+import readingSvg from "../../assets/clawd/clawd-working-reviewing.svg";
+import thinkingSvg from "../../assets/clawd/clawd-working-thinking.svg";
+import toolSvg from "../../assets/clawd/clawd-working-tool-calling.svg";
+import { type WorkKind, workKind } from "../../claude/sessions";
 
 type Mood = "work" | "wait" | "idle" | "sleep" | "celebrate" | "sad";
 
@@ -18,13 +23,22 @@ type Mood = "work" | "wait" | "idle" | "sleep" | "celebrate" | "sad";
  * size and `dx` the shift that puts Clawd (x 0 to 15) in the middle of the stage.
  */
 const CLAWD: Record<Mood, { src: string; label: string; box: number; dx: number }> = {
-  work: { src: typingSvg, label: "Clawd digitando", box: 45, dx: 0 },
+  work: { src: buildingSvg, label: "Clawd trabalhando", box: 45, dx: 0 },
   wait: { src: waitSvg, label: "Clawd chamando você", box: 45, dx: 0 },
   idle: { src: idleSvg, label: "Clawd à toa", box: 45, dx: 0 },
   sleep: { src: sleepSvg, label: "Clawd dormindo", box: 40, dx: 2.5 },
   celebrate: { src: celebrateSvg, label: "Clawd comemorando", box: 45, dx: 0 },
   sad: { src: sadSvg, label: "Clawd triste", box: 45, dx: 0 },
 };
+/** While working, Clawd shows what Claude is doing right now (its last tool). */
+const WORK: Record<WorkKind, { src: string; label: string; doing: string }> = {
+  think: { src: thinkingSvg, label: "Clawd pensando", doing: "pensando" },
+  edit: { src: buildingSvg, label: "Clawd construindo", doing: "escrevendo código" },
+  run: { src: toolSvg, label: "Clawd rodando comandos", doing: "rodando comandos" },
+  read: { src: readingSvg, label: "Clawd lendo", doing: "lendo o projeto" },
+  delegate: { src: delegateSvg, label: "Clawd com subagentes", doing: "com subagentes" },
+};
+
 /** Pixels per SVG unit: Clawd is 15 units wide, so 90px on the stage. */
 const UNIT = 6;
 
@@ -44,7 +58,7 @@ function SessionRow({ session, now, asking }: { session: Session; now: number; a
         {state === "wait" ? <i className="cs-ping" /> : state === "run" ? <ClaudeSpinner size={14} /> : <CheckIcon />}
       </span>
       <b>{session.project}</b>
-      <span className="cs-tx">{state === "wait" ? `quer usar ${asking}` : state === "run" ? "escrevendo código" : "parada"}</span>
+      <span className="cs-tx">{state === "wait" ? `quer usar ${asking}` : state === "run" ? WORK[workKind(session.tool)].doing : "parada"}</span>
       <em>{state === "done" ? ago(seconds) : clock(seconds)}</em>
     </div>
   );
@@ -77,6 +91,8 @@ export function ClaudePage({ active }: { active: boolean }) {
   // A reaction (session finished, permission denied) shows for a few seconds, unless a new request is waiting.
   const reacting = !waiting && reaction && now < reaction.until ? reaction.kind : null;
   const mood: Mood = reacting ?? (waiting ? "wait" : running.length > 0 ? "work" : list.length > 0 ? "idle" : "sleep");
+  // What the most recent running session is doing picks Clawd's work animation.
+  const work = workKind(running.length > 0 ? running[running.length - 1].tool : null);
   const stopped = list.length - running.length;
 
   let title: string;
@@ -91,7 +107,7 @@ export function ClaudePage({ active }: { active: boolean }) {
     title = "Esperando você";
     sub = `${list.find((s) => s.id === waiting.sessionId)?.project ?? "Uma sessão"} quer usar ${waiting.toolName}`;
   } else if (running.length > 0) {
-    title = "Escrevendo código";
+    title = WORK[work].doing.charAt(0).toUpperCase() + WORK[work].doing.slice(1);
     sub = running.length === 1 ? `em ${running[0].project}` : `em ${plural(running.length, "projeto", "projetos")}`;
     if (stopped > 0) sub += ` · ${plural(stopped, "parada", "paradas")}`;
   } else if (list.length > 0) {
@@ -111,10 +127,10 @@ export function ClaudePage({ active }: { active: boolean }) {
         {/* Only mounted while the page is open: the animation lives inside the SVG and cannot be paused from outside. */}
         {active && (
           <img
-            key={mood}
+            key={mood === "work" ? `work-${work}` : mood}
             className="cs-clawd"
-            src={CLAWD[mood].src}
-            alt={CLAWD[mood].label}
+            src={mood === "work" ? WORK[work].src : CLAWD[mood].src}
+            alt={mood === "work" ? WORK[work].label : CLAWD[mood].label}
             draggable={false}
             style={{ width: CLAWD[mood].box * UNIT, height: CLAWD[mood].box * UNIT, translate: `${CLAWD[mood].dx * UNIT}px 0` }}
           />

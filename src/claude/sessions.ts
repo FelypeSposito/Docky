@@ -7,6 +7,8 @@ export interface Session {
   state: SessionState;
   /** Quando entrou no estado atual (ms, relógio do navegador). */
   since: number;
+  /** The last tool it used in this turn (from PostToolUse); null right after your prompt. */
+  tool?: string | null;
 }
 
 export interface ClaudeEvent {
@@ -51,11 +53,25 @@ export function applyEvent(sessions: Sessions, e: ClaudeEvent, now: number): Ses
   if (!next) return sessions;
 
   const project = e.cwd ? projectName(e.cwd) : (current?.project ?? "projeto");
-  if (current && current.state === next && current.project === project) return sessions;
+  // A new prompt starts a turn with no tool yet; each tool use replaces the last one.
+  const tool = e.event === "PostToolUse" ? (e.toolName ?? current?.tool ?? null) : e.event === "UserPromptSubmit" ? null : (current?.tool ?? null);
+  if (current && current.state === next && current.project === project && (current.tool ?? null) === tool) return sessions;
   return {
     ...sessions,
-    [e.sessionId]: { id: e.sessionId, project, state: next, since: current?.state === next ? current.since : now },
+    [e.sessionId]: { id: e.sessionId, project, state: next, since: current?.state === next ? current.since : now, tool },
   };
+}
+
+/** What Claude is doing, from its last tool: thinking (no tool yet), editing, running commands, reading, delegating. */
+export type WorkKind = "think" | "edit" | "run" | "read" | "delegate";
+
+export function workKind(tool: string | null | undefined): WorkKind {
+  if (!tool) return "think";
+  if (/^(Edit|MultiEdit|Write|NotebookEdit)$/.test(tool)) return "edit";
+  if (/^(Bash|PowerShell|BashOutput|KillShell)$/.test(tool)) return "run";
+  if (/^(Read|Grep|Glob|LS|WebFetch|WebSearch)$/.test(tool)) return "read";
+  if (/^(Task|Agent)$/.test(tool)) return "delegate";
+  return "edit";
 }
 
 /** Sessões em andamento, da que começou há mais tempo para a mais recente. */

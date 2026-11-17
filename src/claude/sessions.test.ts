@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEvent, justFinished, projectName, runningSessions, type ClaudeEvent, type Sessions } from "./sessions";
+import { applyEvent, justFinished, projectName, runningSessions, workKind, type ClaudeEvent, type Sessions } from "./sessions";
 
 const event = (name: string, sessionId = "s1", cwd = "C:\\dev\\docky"): ClaudeEvent => ({
   event: name,
@@ -19,7 +19,7 @@ describe("projectName", () => {
 describe("applyEvent", () => {
   it("o prompt do usuário coloca a sessão para rodar", () => {
     const s = applyEvent({}, event("UserPromptSubmit"), 100);
-    expect(s.s1).toEqual({ id: "s1", project: "docky", state: "running", since: 100 });
+    expect(s.s1).toEqual({ id: "s1", project: "docky", state: "running", since: 100, tool: null });
   });
 
   it("não reinicia o relógio enquanto continua rodando", () => {
@@ -57,5 +57,29 @@ describe("runningSessions e justFinished", () => {
     expect(justFinished(before, oneStopped)).toBe(false);
     const allStopped = applyEvent(oneStopped, event("Stop", "b"), 4);
     expect(justFinished(oneStopped, allStopped)).toBe(true);
+  });
+});
+
+describe("o que o Claude está fazendo", () => {
+  it("lembra a última ferramenta do turno e zera a cada pedido novo", () => {
+    let s = applyEvent({}, { event: "UserPromptSubmit", sessionId: "a", cwd: "C:/dev/docky", toolName: null }, 0);
+    expect(s.a.tool).toBeNull();
+    s = applyEvent(s, { event: "PostToolUse", sessionId: "a", cwd: "C:/dev/docky", toolName: "Bash" }, 1);
+    expect(s.a.tool).toBe("Bash");
+    s = applyEvent(s, { event: "PostToolUse", sessionId: "a", cwd: "C:/dev/docky", toolName: "Edit" }, 2);
+    expect(s.a.tool).toBe("Edit");
+    s = applyEvent(s, { event: "UserPromptSubmit", sessionId: "a", cwd: "C:/dev/docky", toolName: null }, 3);
+    expect(s.a.tool).toBeNull();
+  });
+
+  it("agrupa as ferramentas em pensar, editar, rodar, ler e delegar", () => {
+    expect(workKind(null)).toBe("think");
+    expect(workKind("Edit")).toBe("edit");
+    expect(workKind("Write")).toBe("edit");
+    expect(workKind("Bash")).toBe("run");
+    expect(workKind("Grep")).toBe("read");
+    expect(workKind("WebFetch")).toBe("read");
+    expect(workKind("Task")).toBe("delegate");
+    expect(workKind("mcp__qualquer__coisa")).toBe("edit");
   });
 });

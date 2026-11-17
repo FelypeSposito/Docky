@@ -2479,10 +2479,9 @@ button.m-top:active .cover {
   gap: 10px;
   height: 32px;
 }
-.mx-row.master {
-  padding-bottom: 6px;
-  height: 38px;
-  border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+/* O volume geral é só a primeira linha da lista: um nome um pouco mais forte, sem faixa separada */
+.mx-row.master .mx-name {
+  font-weight: 650;
 }
 .mx-list {
   flex: 1;
