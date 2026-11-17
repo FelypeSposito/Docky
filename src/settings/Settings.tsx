@@ -14,6 +14,9 @@ import { Group, NumberStepper, Row, Segmented, Slider, Stepper, Toggle } from ".
 import { Preview } from "./Preview";
 import "./settings.css";
 
+/** Where the project lives: releases, issues and ideas. */
+const REPO_URL = "https://github.com/FelypeSposito/Docky";
+
 const ICONS: Record<AreaId, ComponentType<{ size?: number }>> = {
   atalhos: KeyboardIcon,
   paginas: GridIcon,
@@ -71,6 +74,13 @@ function AreaContent({ id }: { id: AreaId }) {
             </Row>
           </Group>
           <HotkeysGroup />
+          <Group title="Sobre">
+            <Row label={`Docky ${__APP_VERSION__}`} hint="Código aberto: veja as novidades, relate um problema ou sugira uma ideia">
+              <button className="btn" onClick={() => ipc.openUrl(REPO_URL)}>
+                Abrir no GitHub
+              </button>
+            </Row>
+          </Group>
         </>
       );
     case "aparencia":

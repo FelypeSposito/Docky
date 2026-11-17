@@ -1,12 +1,15 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import pkg from "./package.json" with { type: "json" };
 
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
   plugins: [react()],
+  // The version shown in Settings, Geral, Sobre (package.json is the source; tauri.conf.json and Cargo.toml follow it).
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
