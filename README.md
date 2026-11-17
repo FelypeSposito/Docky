@@ -89,7 +89,8 @@ Música (com letra sincronizada), Foco (Pomodoro e contador livre), Notas (fixar
 Agenda (clima com chuva, sensação, umidade, vento, UV e sol), Atalhos (apps, jogos, pastas, sites e grupos, com ícone
 próprio e confirmação ao abrir), e Claude. Com os olhinhos desligados, o Clawd aparece no lugar deles enquanto o
 Claude Code trabalha. Com sessões abertas e nada rodando, a página Claude mostra o Clawd conforme a hora: dormindo
-de madrugada, tomando café de manhã e jogando à noite.
+de madrugada, tomando café de manhã e jogando à noite. Quando um turno acaba, cada sessão diz o que ele fez: "editou 4 arquivos em
+3 min" ou "respondeu em 42 s".
 
 A ilha fica no centro do topo ou em qualquer ponto dele, até encostada num canto: arraste pela pílula (ou pelo
 cabeçalho, com ela aberta) ou escolha em Configurações, Aparência. Duplo clique numa parte vazia a traz de volta ao

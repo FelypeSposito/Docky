@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEvent, justFinished, projectName, runningSessions, workKind, type ClaudeEvent, type Sessions } from "./sessions";
+import { applyEvent, describeTurn, formatDuration, justFinished, projectName, runningSessions, workKind, type ClaudeEvent, type Sessions } from "./sessions";
 
 const event = (name: string, sessionId = "s1", cwd = "C:\\dev\\docky"): ClaudeEvent => ({
   event: name,
@@ -19,7 +19,7 @@ describe("projectName", () => {
 describe("applyEvent", () => {
   it("o prompt do usuário coloca a sessão para rodar", () => {
     const s = applyEvent({}, event("UserPromptSubmit"), 100);
-    expect(s.s1).toEqual({ id: "s1", project: "docky", state: "running", since: 100, tool: null });
+    expect(s.s1).toEqual({ id: "s1", project: "docky", state: "running", since: 100, tool: null, edited: [] });
   });
 
   it("não reinicia o relógio enquanto continua rodando", () => {
@@ -40,6 +40,46 @@ describe("applyEvent", () => {
     const empty: Sessions = {};
     expect(applyEvent(empty, event("Qualquer"), 1)).toBe(empty);
     expect(applyEvent(empty, event("Stop", ""), 1)).toBe(empty);
+  });
+});
+
+describe("o resumo do turno", () => {
+  const tool = (toolName: string, file: string | null, sessionId = "s1"): ClaudeEvent => ({ event: "PostToolUse", sessionId, cwd: "C:\\dev\\docky", toolName, file });
+
+  it("conta cada arquivo editado uma vez e mede o turno", () => {
+    let s = applyEvent({}, event("UserPromptSubmit"), 1_000);
+    s = applyEvent(s, tool("Edit", "C:\\dev\\docky\\a.ts"), 2_000);
+    s = applyEvent(s, tool("Edit", "c:/dev/docky/a.ts"), 3_000);
+    s = applyEvent(s, tool("Write", "C:\\dev\\docky\\b.ts"), 4_000);
+    s = applyEvent(s, tool("Read", "C:\\dev\\docky\\c.ts"), 5_000);
+    s = applyEvent(s, tool("Bash", null), 6_000);
+    s = applyEvent(s, event("Stop"), 181_000);
+    expect(s.s1.last).toEqual({ files: 2, ms: 180_000 });
+    expect(describeTurn(s.s1.last!)).toBe("editou 2 arquivos em 3 min");
+  });
+
+  it("um pedido novo zera os arquivos, mas guarda o último resumo até acabar", () => {
+    let s = applyEvent({}, event("UserPromptSubmit"), 0);
+    s = applyEvent(s, tool("Edit", "a.ts"), 1);
+    s = applyEvent(s, event("Stop"), 10_000);
+    s = applyEvent(s, event("UserPromptSubmit"), 20_000);
+    expect(s.s1.edited).toEqual([]);
+    expect(s.s1.last).toEqual({ files: 1, ms: 10_000 });
+    s = applyEvent(s, event("Stop"), 62_000);
+    expect(s.s1.last).toEqual({ files: 0, ms: 42_000 });
+    expect(describeTurn(s.s1.last!)).toBe("respondeu em 42 s");
+  });
+
+  it("um Stop sem turno rodando não inventa resumo", () => {
+    const s = applyEvent({}, event("Stop"), 5);
+    expect(s.s1.last).toBeUndefined();
+  });
+
+  it("escreve a duração curta", () => {
+    expect(formatDuration(900)).toBe("1 s");
+    expect(formatDuration(59_000)).toBe("59 s");
+    expect(formatDuration(150_000)).toBe("3 min");
+    expect(formatDuration(65 * 60_000)).toBe("1 h 05");
   });
 });
 

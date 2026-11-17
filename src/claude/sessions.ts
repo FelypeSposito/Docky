@@ -9,6 +9,16 @@ export interface Session {
   since: number;
   /** The last tool it used in this turn (from PostToolUse); null right after your prompt. */
   tool?: string | null;
+  /** Files edited in the current turn (Edit, Write and the like), each once. */
+  edited?: string[];
+  /** The last finished turn: how many files it edited and how long it took. */
+  last?: TurnSummary;
+}
+
+/** What a finished turn did, for the Claude page: "editou 4 arquivos em 3 min". */
+export interface TurnSummary {
+  files: number;
+  ms: number;
 }
 
 export interface ClaudeEvent {
@@ -16,7 +26,15 @@ export interface ClaudeEvent {
   sessionId: string;
   cwd: string;
   toolName: string | null;
+  /** The file a tool worked on (tool_input.file_path or notebook_path), when it has one. */
+  file?: string | null;
 }
+
+/** Tools that change files: what counts toward "editou N arquivos". */
+const EDIT_TOOLS = /^(Edit|MultiEdit|Write|NotebookEdit)$/;
+
+/** The same file written in two ways (C:\a vs c:/a) counts once. */
+const fileKey = (path: string) => path.replace(/\\/g, "/").toLowerCase();
 
 export interface PermissionRequest {
   id: number;
@@ -55,11 +73,52 @@ export function applyEvent(sessions: Sessions, e: ClaudeEvent, now: number): Ses
   const project = e.cwd ? projectName(e.cwd) : (current?.project ?? "projeto");
   // A new prompt starts a turn with no tool yet; each tool use replaces the last one.
   const tool = e.event === "PostToolUse" ? (e.toolName ?? current?.tool ?? null) : e.event === "UserPromptSubmit" ? null : (current?.tool ?? null);
-  if (current && current.state === next && current.project === project && (current.tool ?? null) === tool) return sessions;
+  // A new prompt starts counting files again; an edit adds its file once.
+  let edited = e.event === "UserPromptSubmit" ? [] : (current?.edited ?? []);
+  const file = e.file;
+  if (e.event === "PostToolUse" && file && e.toolName && EDIT_TOOLS.test(e.toolName) && !edited.some((f) => fileKey(f) === fileKey(file))) {
+    edited = [...edited, file];
+  }
+  // A turn that ends sums itself up; it ran since the session went to "running".
+  const last = e.event === "Stop" && current?.state === "running" ? { files: edited.length, ms: Math.max(0, now - current.since) } : current?.last;
+  if (
+    current &&
+    current.state === next &&
+    current.project === project &&
+    (current.tool ?? null) === tool &&
+    (current.edited ?? []).length === edited.length &&
+    current.last === last
+  ) {
+    return sessions;
+  }
   return {
     ...sessions,
-    [e.sessionId]: { id: e.sessionId, project, state: next, since: current?.state === next ? current.since : now, tool },
+    [e.sessionId]: {
+      id: e.sessionId,
+      project,
+      state: next,
+      since: current?.state === next ? current.since : now,
+      tool,
+      edited,
+      ...(last ? { last } : {}),
+    },
   };
+}
+
+/** "42 s", "3 min", "1 h 05": how long a turn ran. */
+export function formatDuration(ms: number): string {
+  const seconds = Math.max(0, Math.round(ms / 1000));
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`;
+}
+
+/** "editou 4 arquivos em 3 min", or "respondeu em 42 s" when it changed no file. */
+export function describeTurn(turn: TurnSummary): string {
+  const time = formatDuration(turn.ms);
+  if (turn.files === 0) return `respondeu em ${time}`;
+  return `editou ${turn.files === 1 ? "1 arquivo" : `${turn.files} arquivos`} em ${time}`;
 }
 
 /** What Claude is doing, from its last tool: thinking (no tool yet), editing, running commands, reading, delegating. */

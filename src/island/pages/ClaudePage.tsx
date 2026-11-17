@@ -13,7 +13,7 @@ import sleepSvg from "../../assets/clawd/clawd-sleeping.svg";
 import buildingSvg from "../../assets/clawd/clawd-working-building.svg";
 import { currentWork, WORK_CLAWD as WORK } from "../../claude/clawd";
 import { restAt } from "../../claude/rest";
-import { workKind } from "../../claude/sessions";
+import { describeTurn, workKind } from "../../claude/sessions";
 
 type Mood = "work" | "wait" | "idle" | "sleep" | "coffee" | "gaming" | "celebrate" | "sad";
 
@@ -51,7 +51,9 @@ function SessionRow({ session, now, asking }: { session: Session; now: number; a
         {state === "wait" ? <i className="cs-ping" /> : state === "run" ? <ClaudeSpinner size={14} /> : <CheckIcon />}
       </span>
       <b>{session.project}</b>
-      <span className="cs-tx">{state === "wait" ? `quer usar ${asking}` : state === "run" ? WORK[workKind(session.tool)].doing : "parada"}</span>
+      <span className="cs-tx">
+        {state === "wait" ? `quer usar ${asking}` : state === "run" ? WORK[workKind(session.tool)].doing : session.last ? describeTurn(session.last) : "parada"}
+      </span>
       <em>{state === "done" ? ago(seconds) : clock(seconds)}</em>
     </div>
   );
@@ -93,7 +95,14 @@ export function ClaudePage({ active }: { active: boolean }) {
   let sub: string;
   if (reacting === "celebrate") {
     title = "Terminou!";
-    sub = running.length > 0 ? `Ainda escrevendo em ${plural(running.length, "projeto", "projetos")}` : "Pode conferir o resultado.";
+    // The session that just stopped is the one that went idle last.
+    const finished = list.filter((s) => s.state === "idle" && s.last).sort((a, b) => b.since - a.since)[0];
+    sub =
+      running.length > 0
+        ? `Ainda escrevendo em ${plural(running.length, "projeto", "projetos")}`
+        : finished?.last
+          ? `${finished.project}: ${describeTurn(finished.last)}`
+          : "Pode conferir o resultado.";
   } else if (reacting === "sad") {
     title = "Permissão negada";
     sub = "Tudo bem, o Claude não vai fazer isso.";

@@ -71,6 +71,8 @@ struct ClaudeEvent {
     session_id: String,
     cwd: String,
     tool_name: Option<String>,
+    /// The file the tool worked on, for the turn summary ("editou 4 arquivos").
+    file: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -149,6 +151,12 @@ fn wait_for_decision(app: &AppHandle, stream: &TcpStream, request: PermissionReq
     decision
 }
 
+/// The file in a tool call (`tool_input.file_path` or `notebook_path`), if it has one.
+fn tool_file(body: &Value) -> Option<String> {
+    let input = body.get("tool_input")?;
+    ["file_path", "notebook_path"].iter().find_map(|k| input.get(*k).and_then(Value::as_str)).filter(|f| !f.is_empty()).map(str::to_string)
+}
+
 /// Corpo da resposta ao hook. Vazio = o Claude Code segue o fluxo normal (pergunta no terminal).
 fn handle_hook(app: &AppHandle, stream: &TcpStream, event: &str, body: &Value) -> String {
     let session_id = text(body, "session_id").to_string();
@@ -158,7 +166,7 @@ fn handle_hook(app: &AppHandle, stream: &TcpStream, event: &str, body: &Value) -
     island::emit(
         app,
         "claude-event",
-        ClaudeEvent { event: event.to_string(), session_id: session_id.clone(), cwd: cwd.clone(), tool_name: tool_name.clone() },
+        ClaudeEvent { event: event.to_string(), session_id: session_id.clone(), cwd: cwd.clone(), tool_name: tool_name.clone(), file: tool_file(body) },
     );
 
     if event != "PermissionRequest" || !app.state::<ConfigState>().get().claude_approve {
