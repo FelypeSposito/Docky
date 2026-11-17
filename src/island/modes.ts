@@ -22,7 +22,7 @@ export const SIZES: Record<Mode, Size> = {
   /** "Download concluído · arquivo.zip" and a button to show it. */
   download: { w: 400, h: 36 },
   work: { w: 380, h: 36 },
-  ask: { w: 456, h: 142 },
+  ask: { w: 456, h: 156 },
   /** O mouse sobre a pílula: o player de música ou o resumo, numa ilha um pouco maior. */
   peek: { w: 430, h: 88 },
   expanded: { w: 532, h: 252 },

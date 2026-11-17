@@ -9,6 +9,11 @@ import { HeaderField } from "../HeaderField";
 import { NoteIcon, PinIcon, TrashIcon } from "../icons";
 import { useGridSort } from "../useGridSort";
 
+/** Where a color sits in the palette: bright ones on the first row, quiet ones under them, after the "no color" cell. */
+const VIVID_COUNT = NOTE_COLORS.filter((c) => c.tone === "vivid").length;
+const paletteCell = (tone: string, index: number) =>
+  tone === "vivid" ? { gridRow: 1, gridColumn: index + 2 } : { gridRow: 2, gridColumn: index - VIVID_COUNT + 2 };
+
 /** Quantas notas a página carrega; a lista rola, então nenhuma some por falta de espaço. */
 const MAX_NOTES = 80;
 
@@ -162,7 +167,6 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
                   </div>
                 ) : painting === note.file ? (
                   <div className="npaint" onClick={stop}>
-                    <b>Cor da nota</b>
                     <div role="radiogroup" aria-label="Cor da nota">
                       <button
                         className={`nsw none${color ? "" : " on"}`}
@@ -172,7 +176,7 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
                         title="Sem cor"
                         onClick={() => paint(note.file, null)}
                       />
-                      {NOTE_COLORS.map((c) => (
+                      {NOTE_COLORS.map((c, i) => (
                         <button
                           key={c.id}
                           className={`nsw${color?.id === c.id ? " on" : ""}`}
@@ -180,7 +184,7 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
                           aria-checked={color?.id === c.id}
                           aria-label={c.label}
                           title={c.label}
-                          style={{ "--sw": c.hex } as React.CSSProperties}
+                          style={{ "--sw": c.hex, ...paletteCell(c.tone, i) } as React.CSSProperties}
                           onClick={() => paint(note.file, c.id)}
                         />
                       ))}
