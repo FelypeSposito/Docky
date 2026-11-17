@@ -4,7 +4,13 @@ import { ipc } from "../../lib/ipc";
 import { lineIndexAt } from "../../media/lrc";
 import { useMediaStore, usePositionMs } from "../../media/store";
 import { EmptyState } from "../EmptyState";
-import { LyricsIcon, MusicIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, VolumeIcon } from "../icons";
+import { LyricsIcon, MusicIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, RepeatIcon, ShuffleIcon, VolumeIcon } from "../icons";
+import type { RepeatMode } from "../../lib/ipc";
+
+/** Repetir passa por: desligado, a lista toda, só esta faixa. */
+const NEXT_REPEAT: Record<RepeatMode, RepeatMode> = { none: "list", list: "track", track: "none" };
+const REPEAT_LABEL: Record<RepeatMode, string> = { none: "Repetir: desligado", list: "Repetir: a lista", track: "Repetir: esta música" };
+const OUTSIDE = "Este app não deixa mudar por aqui";
 
 const fmt = (ms: number) => {
   const total = Math.max(0, Math.round(ms / 1000));
@@ -75,15 +81,15 @@ export function MusicPage({ active }: { active: boolean }) {
 
   return (
     <div className={`mp${showLyrics ? " lyr" : ""}`}>
-      <div className="m-top">
-        <div className="cover" style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : undefined}>
+      <button className="m-top" title="Abrir o app que está tocando" onClick={() => ipc.mediaOpenApp()}>
+        <span className="cover" style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : undefined}>
           {!thumbnail && <MusicIcon size={26} />}
-        </div>
-        <div className="m-meta">
-          <div className="m-title">{media.title}</div>
-          <div className="m-artist">{media.artist || media.app}</div>
-        </div>
-      </div>
+        </span>
+        <span className="m-meta">
+          <span className="m-title">{media.title}</span>
+          <span className="m-artist">{media.artist || media.app}</span>
+        </span>
+      </button>
 
       {notice && (
         <div className="m-note" role="status">
@@ -131,6 +137,20 @@ export function MusicPage({ active }: { active: boolean }) {
           <LyricsIcon />
         </button>
         <div className="mid">
+          <button
+            className={`ib sm${media.shuffle ? " on" : ""}`}
+            aria-label="Aleatório"
+            aria-pressed={!!media.shuffle}
+            title={media.shuffle === null ? OUTSIDE : media.shuffle ? "Aleatório: ligado" : "Aleatório: desligado"}
+            disabled={media.shuffle === null}
+            onClick={() => {
+              const next = !media.shuffle;
+              ipc.mediaControl(next ? "shuffle-on" : "shuffle-off");
+              useMediaStore.setState({ media: { ...media, shuffle: next, thumbnail: null } });
+            }}
+          >
+            <ShuffleIcon />
+          </button>
           <button className="ib big" aria-label="Anterior" onClick={() => ipc.mediaControl("previous")}>
             <PrevIcon />
           </button>
@@ -139,6 +159,20 @@ export function MusicPage({ active }: { active: boolean }) {
           </button>
           <button className="ib big" aria-label="Próxima" onClick={() => ipc.mediaControl("next")}>
             <NextIcon />
+          </button>
+          <button
+            className={`ib sm${media.repeat && media.repeat !== "none" ? " on" : ""}`}
+            aria-label="Repetir"
+            title={media.repeat === null ? OUTSIDE : REPEAT_LABEL[media.repeat]}
+            disabled={media.repeat === null}
+            onClick={() => {
+              if (!media.repeat) return;
+              const next = NEXT_REPEAT[media.repeat];
+              ipc.mediaControl(`repeat-${next}`);
+              useMediaStore.setState({ media: { ...media, repeat: next, thumbnail: null } });
+            }}
+          >
+            <RepeatIcon one={media.repeat === "track"} />
           </button>
         </div>
         <div className="vol">

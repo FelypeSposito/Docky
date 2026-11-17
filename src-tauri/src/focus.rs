@@ -19,14 +19,29 @@ pub fn program_of(target: &str) -> Option<String> {
 }
 
 /// Traz para a frente a janela principal mais recente do programa, se ele estiver aberto. `true` quando conseguiu.
-#[cfg(windows)]
 pub fn focus_running(program: &str) -> bool {
+    focus_where(&|path: &str| path.eq_ignore_ascii_case(program))
+}
+
+/// Same, matching only the program's file name without ".exe" ("spotify", "chrome"), for apps known by name.
+pub fn focus_by_name(name: &str) -> bool {
+    !name.is_empty()
+        && focus_where(&|path: &str| {
+            let file = path.rsplit(['\\', '/']).next().unwrap_or(path);
+            let stem = file.strip_suffix(".exe").or_else(|| file.strip_suffix(".EXE")).unwrap_or(file);
+            stem.eq_ignore_ascii_case(name)
+        })
+}
+
+/// Brings to the front the most recent main window whose process path passes `matches`.
+#[cfg(windows)]
+fn focus_where(matches: &dyn Fn(&str) -> bool) -> bool {
     use windows::Win32::Foundation::{HWND, LPARAM};
     use windows::core::BOOL;
     use windows::Win32::UI::WindowsAndMessaging::{EnumWindows, GW_OWNER, GetWindow, GetWindowLongW, GetWindowTextLengthW, GetWindowThreadProcessId, GWL_EXSTYLE, IsWindowVisible, WS_EX_TOOLWINDOW};
 
-    struct Search {
-        program: String,
+    struct Search<'a> {
+        matches: &'a dyn Fn(&str) -> bool,
         found: Option<HWND>,
     }
 
@@ -41,7 +56,7 @@ pub fn focus_running(program: &str) -> bool {
             }
             let mut pid = 0u32;
             GetWindowThreadProcessId(hwnd, Some(&mut pid));
-            if pid != 0 && process_path(pid).is_some_and(|path| path.eq_ignore_ascii_case(&search.program)) {
+            if pid != 0 && process_path(pid).is_some_and(|path| (search.matches)(&path)) {
                 search.found = Some(hwnd);
                 return BOOL(0); // a primeira na ordem da tela é a usada por último
             }
@@ -49,7 +64,7 @@ pub fn focus_running(program: &str) -> bool {
         BOOL(1)
     }
 
-    let mut search = Search { program: program.to_string(), found: None };
+    let mut search = Search { matches, found: None };
     unsafe {
         let _ = EnumWindows(Some(visit), LPARAM(&mut search as *mut Search as isize));
     }
@@ -60,13 +75,13 @@ pub fn focus_running(program: &str) -> bool {
 }
 
 #[cfg(not(windows))]
-pub fn focus_running(_program: &str) -> bool {
+fn focus_where(_matches: &dyn Fn(&str) -> bool) -> bool {
     false
 }
 
 /// O caminho completo do `.exe` de um processo.
 #[cfg(windows)]
-fn process_path(pid: u32) -> Option<String> {
+pub fn process_path(pid: u32) -> Option<String> {
     use windows::Win32::Foundation::CloseHandle;
     use windows::Win32::System::Threading::{OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW};
     use windows::core::PWSTR;
@@ -120,7 +135,7 @@ fn link_program(target: &str) -> Option<String> {
         file.Load(PCWSTR(wide.as_ptr()), STGM_READ).ok()?;
         let mut args = [0u16; 1024];
         link.GetArguments(&mut args).ok()?;
-        if !text(&args).trim().is_empty() {
+        if meaningful_args(&text(&args)) {
             return None;
         }
         let mut program = [0u16; 260];
@@ -135,9 +150,25 @@ fn link_program(_target: &str) -> Option<String> {
     None
 }
 
+/// Whether a shortcut's arguments ask for something beyond opening the program. Chrome's own Start Menu shortcut
+/// carries `--source-shortcut-location=start-menu`, which only records where it was clicked from.
+pub fn meaningful_args(args: &str) -> bool {
+    args.split_whitespace().any(|arg| !arg.to_ascii_lowercase().starts_with("--source-shortcut-location"))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::program_of;
+    use super::{meaningful_args, program_of};
+
+    #[test]
+    fn ignora_so_a_marca_de_origem_do_chrome() {
+        assert!(!meaningful_args(""));
+        assert!(!meaningful_args("--source-shortcut-location=start-menu"));
+        assert!(!meaningful_args("  --source-shortcut-location=taskbar "));
+        assert!(meaningful_args("--profile-directory=\"Profile 1\""));
+        assert!(meaningful_args("--source-shortcut-location=start-menu --incognito"));
+        assert!(meaningful_args("steam://rungameid/570"));
+    }
 
     #[test]
     fn foca_programas_mas_nao_o_explorer_nem_o_resto() {

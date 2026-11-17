@@ -26,6 +26,26 @@ export interface Media {
   durationMs: number;
   /** Data URL da capa; só vem quando a faixa muda. */
   thumbnail: string | null;
+  /** Aleatório ligado ou não; null quando o app não deixa mudar por fora. */
+  shuffle: boolean | null;
+  /** Repetir: nada, a faixa ou a lista; null quando o app não deixa mudar por fora. */
+  repeat: RepeatMode | null;
+}
+
+export type RepeatMode = "none" | "track" | "list";
+
+/** Um app no mixer: as sessões de áudio dele somadas, como no mixer de volume do Windows. */
+export interface AudioApp {
+  /** Caminho do programa, ou "system" para os sons do Windows. */
+  id: string;
+  name: string;
+  /** PNG em data URL. */
+  icon: string | null;
+  /** 0 a 1 */
+  volume: number;
+  muted: boolean;
+  /** Tocando algo agora. */
+  active: boolean;
 }
 
 export interface Volume {
@@ -34,7 +54,7 @@ export interface Volume {
   muted: boolean;
 }
 
-export type MediaAction = "toggle" | "next" | "previous";
+export type MediaAction = "toggle" | "next" | "previous" | "shuffle-on" | "shuffle-off" | "repeat-none" | "repeat-track" | "repeat-list";
 
 export interface ClaudeStatus {
   /** Porta do servidor local; 0 se não subiu. */
@@ -139,9 +159,18 @@ const DEV_MEDIA: Media = {
   positionMs: 41_000,
   durationMs: 216_000,
   thumbnail: null,
+  shuffle: false,
+  repeat: "none",
 };
 let devPlay = true;
 const devPlaying = () => devPlay;
+/** O mixer de mentira do navegador. */
+const DEV_APPS: AudioApp[] = [
+  { id: "spotify", name: "Spotify", icon: null, volume: 0.8, muted: false, active: true },
+  { id: "chrome", name: "Google Chrome", icon: null, volume: 1, muted: false, active: false },
+  { id: "discord", name: "Discord", icon: null, volume: 0.55, muted: true, active: false },
+  { id: "system", name: "Sons do sistema", icon: null, volume: 0.4, muted: false, active: false },
+];
 
 /** Ouvinte de evento do navegador, para simular o Rust ao desenvolver a interface sem o Tauri. */
 function devListen<T>(name: string, handler: (payload: T) => void): Unlisten {
@@ -255,8 +284,30 @@ export const ipc = {
     if (isTauri) void invoke("media_control", { action });
     else {
       if (action === "toggle") devPlay = !devPlay;
+      if (action.startsWith("shuffle-")) DEV_MEDIA.shuffle = action === "shuffle-on";
+      if (action.startsWith("repeat-")) DEV_MEDIA.repeat = action.slice("repeat-".length) as RepeatMode;
       window.dispatchEvent(new CustomEvent("docky:media", { detail: { ...DEV_MEDIA, playing: devPlaying() } }));
     }
+  },
+
+  /** Traz para a frente o app que está tocando (ou abre, se ele não tiver janela). */
+  mediaOpenApp(): void {
+    if (isTauri) void invoke("media_open_app").catch(() => {});
+  },
+
+  async audioApps(): Promise<AudioApp[]> {
+    if (isTauri) return invoke<AudioApp[]>("audio_apps");
+    return DEV_APPS.map((app) => ({ ...app }));
+  },
+
+  setAppVolume(id: string, level: number): void {
+    if (isTauri) void invoke("set_app_volume", { id, level });
+    else DEV_APPS.forEach((app) => app.id === id && Object.assign(app, { volume: level, muted: false }));
+  },
+
+  setAppMuted(id: string, muted: boolean): void {
+    if (isTauri) void invoke("set_app_muted", { id, muted });
+    else DEV_APPS.forEach((app) => app.id === id && Object.assign(app, { muted }));
   },
 
   mediaSeek(positionMs: number): void {

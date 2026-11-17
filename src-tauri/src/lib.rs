@@ -15,6 +15,7 @@ mod placement;
 mod launcher;
 mod lyrics;
 mod media;
+mod mixer;
 mod notes;
 mod pointer;
 mod power;
@@ -81,6 +82,10 @@ pub fn run() {
             media::get_media,
             media::media_control,
             media::media_seek,
+            media::media_open_app,
+            mixer::audio_apps,
+            mixer::set_app_volume,
+            mixer::set_app_muted,
             volume::get_volume,
             volume::set_volume,
             volume::set_muted,

@@ -37,16 +37,22 @@ export function PeekPlayer({ active }: { active: boolean }) {
   return (
     <div className="pk pk-music">
       <div className="pk-top">
-        <span className="pk-song">
+        <button className="pk-song" title="Abrir o app que está tocando" onClick={(e) => (stop(e), ipc.mediaOpenApp())}>
           <b>{media.title || "Sem título"}</b>
           {media.artist && <em> · {media.artist}</em>}
-        </span>
+        </button>
         <Equalizer playing={media.playing && active} />
       </div>
       <div className="pk-row">
-        {thumbnail ? <img className="pk-cover" src={thumbnail} alt="" /> : <span className="pk-cover empty">
-            <MusicIcon size={15} />
-          </span>}
+        <button className="pk-open" aria-label="Abrir o app que está tocando" title="Abrir o app que está tocando" onClick={(e) => (stop(e), ipc.mediaOpenApp())}>
+          {thumbnail ? (
+            <img className="pk-cover" src={thumbnail} alt="" />
+          ) : (
+            <span className="pk-cover empty">
+              <MusicIcon size={15} />
+            </span>
+          )}
+        </button>
         <span className="pk-time">{mmss(position)}</span>
         <span className="pk-bar" aria-hidden="true">
           <i style={{ width: `${progress * 100}%` }} />

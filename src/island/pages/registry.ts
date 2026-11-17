@@ -1,8 +1,9 @@
 import type { ComponentType } from "react";
-import { CalendarIcon, GridIcon, MusicIcon, NoteIcon, SparkIcon, TimerIcon, TrayIcon } from "../icons";
+import { CalendarIcon, GridIcon, MixerIcon, MusicIcon, NoteIcon, SparkIcon, TimerIcon, TrayIcon } from "../icons";
 import { AgendaLarge, AgendaPage } from "./AgendaPage";
 import { ClaudePage } from "./ClaudePage";
 import { LauncherLarge, LauncherPage } from "./LauncherPage";
+import { MixerPage } from "./MixerPage";
 import { MusicPage } from "./MusicPage";
 import { NotesLarge, NotesPage } from "./NotesPage";
 import { ShelfPage } from "./ShelfPage";
@@ -22,6 +23,7 @@ export interface PageDef {
 /** Páginas do dock, na ordem. Cada fase nova acrescenta as suas aqui. */
 export const PAGES: PageDef[] = [
   { id: "music", label: "Música", Icon: MusicIcon, Component: MusicPage, area: "musica" },
+  { id: "audio", label: "Som", Icon: MixerIcon, Component: MixerPage, Large: MixerPage, area: "musica" },
   { id: "timer", label: "Foco", Icon: TimerIcon, Component: TimerPage, area: "foco" },
   { id: "note", label: "Notas", Icon: NoteIcon, Component: NotesPage, Large: NotesLarge, area: "foco" },
   { id: "tray", label: "Shelf", Icon: TrayIcon, Component: ShelfPage, area: "shelf" },

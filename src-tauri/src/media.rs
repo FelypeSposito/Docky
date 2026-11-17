@@ -21,6 +21,10 @@ pub struct MediaState {
     pub duration_ms: u64,
     /// Capa como data URL. Só vai junto quando a faixa muda; o frontend guarda a última.
     pub thumbnail: Option<String>,
+    /// Shuffle on or off, or `None` when the app does not let others change it.
+    pub shuffle: Option<bool>,
+    /// "none", "track" or "list", or `None` when the app does not let others change it.
+    pub repeat: Option<String>,
 }
 
 #[cfg(windows)]
@@ -32,6 +36,7 @@ mod smtc {
             GlobalSystemMediaTransportControlsSessionManager as Manager,
             GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status,
         },
+        Media::MediaPlaybackAutoRepeatMode as Repeat,
         Storage::Streams::DataReader,
     };
 
@@ -64,7 +69,21 @@ mod smtc {
     pub fn read(with_thumbnail: bool) -> Option<MediaState> {
         let session = current_session()?;
         let props = session.TryGetMediaPropertiesAsync().ok()?.get().ok()?;
-        let playing = session.GetPlaybackInfo().ok()?.PlaybackStatus().ok()? == Status::Playing;
+        let info = session.GetPlaybackInfo().ok()?;
+        let playing = info.PlaybackStatus().ok()? == Status::Playing;
+        let controls = info.Controls().ok();
+        let shuffle = controls
+            .as_ref()
+            .is_some_and(|c| c.IsShuffleEnabled().unwrap_or(false))
+            .then(|| info.IsShuffleActive().ok().and_then(|r| r.Value().ok()).unwrap_or(false));
+        let repeat = controls.as_ref().is_some_and(|c| c.IsRepeatEnabled().unwrap_or(false)).then(|| {
+            match info.AutoRepeatMode().ok().and_then(|r| r.Value().ok()) {
+                Some(Repeat::Track) => "track",
+                Some(Repeat::List) => "list",
+                _ => "none",
+            }
+            .to_string()
+        });
 
         let (mut position, duration) = match session.GetTimelineProperties() {
             Ok(timeline) => {
@@ -96,7 +115,36 @@ mod smtc {
             position_ms: (position / 10_000) as u64,
             duration_ms: (duration / 10_000) as u64,
             thumbnail: if with_thumbnail { thumbnail(&session) } else { None },
+            shuffle,
+            repeat,
         })
+    }
+
+    /// Only the cover of the current track.
+    pub fn read_thumbnail() -> Option<String> {
+        thumbnail(&current_session()?)
+    }
+
+    /// The app that owns the current session (its AppUserModelID, e.g. "Spotify.exe" or "Chrome").
+    pub fn source_app() -> Option<String> {
+        Some(current_session()?.SourceAppUserModelId().ok()?.to_string())
+    }
+
+    pub fn set_shuffle(on: bool) {
+        if let Some(s) = current_session() {
+            let _ = s.TryChangeShuffleActiveAsync(on).and_then(|op| op.get());
+        }
+    }
+
+    pub fn set_repeat(mode: &str) {
+        let mode = match mode {
+            "track" => Repeat::Track,
+            "list" => Repeat::List,
+            _ => Repeat::None,
+        };
+        if let Some(s) = current_session() {
+            let _ = s.TryChangeAutoRepeatModeAsync(mode).and_then(|op| op.get());
+        }
     }
 
     pub fn toggle() {
@@ -136,6 +184,14 @@ mod smtc {
     pub fn next() {}
     pub fn previous() {}
     pub fn seek(_: u64) {}
+    pub fn read_thumbnail() -> Option<String> {
+        None
+    }
+    pub fn source_app() -> Option<String> {
+        None
+    }
+    pub fn set_shuffle(_: bool) {}
+    pub fn set_repeat(_: &str) {}
 }
 
 #[tauri::command]
@@ -144,6 +200,9 @@ pub async fn media_control(action: String) -> Result<(), String> {
         "toggle" => smtc::toggle(),
         "next" => smtc::next(),
         "previous" => smtc::previous(),
+        "shuffle-on" => smtc::set_shuffle(true),
+        "shuffle-off" => smtc::set_shuffle(false),
+        "repeat-none" | "repeat-track" | "repeat-list" => smtc::set_repeat(&action["repeat-".len()..]),
         other => return Err(format!("ação desconhecida: {other}")),
     }
     Ok(())
@@ -160,6 +219,39 @@ pub async fn media_seek(position_ms: u64) {
     smtc::seek(position_ms);
 }
 
+/// Brings the app that is playing to the front (or opens it, when it has no window).
+#[tauri::command]
+pub async fn media_open_app() -> Result<(), String> {
+    let app = smtc::source_app().ok_or("nada tocando")?;
+    if crate::focus::focus_by_name(&app_id_name(&app)) {
+        return Ok(());
+    }
+    std::process::Command::new("explorer.exe")
+        .arg(format!("shell:AppsFolder\\{app}"))
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+/// The program name hidden in a media AppUserModelID: "Spotify.exe" → "spotify", a Store id
+/// "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify" → "spotify", "Chrome" → "chrome".
+pub fn app_id_name(app_id: &str) -> String {
+    let last = app_id.rsplit(['!', '\\', '/']).next().unwrap_or(app_id);
+    let last = if last.to_ascii_lowercase().ends_with(".exe") { &last[..last.len() - 4] } else { last };
+    last.to_ascii_lowercase()
+}
+
+/// How many polls (~0.5 s each) the cover keeps being read after a track change. Players often switch the title first
+/// and the cover a moment later; reading only once left the island on the default look.
+const THUMBNAIL_POLLS: u32 = 8;
+
+fn fingerprint(text: &str) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    text.hash(&mut hasher);
+    hasher.finish()
+}
+
 /// Consulta o SMTC e avisa o frontend (evento `media`). Sem sessão, avisa uma vez com `null`.
 pub fn spawn(app: AppHandle) {
     thread::spawn(move || {
@@ -167,6 +259,8 @@ pub fn spawn(app: AppHandle) {
         let mut last: Option<MediaState> = None;
         let mut had_session = false;
         let mut ticks_since_emit = 0u32;
+        let mut thumbnail_polls = 0u32;
+        let mut sent_thumbnail: Option<u64> = None;
 
         loop {
             let track_key = last_track.clone();
@@ -175,8 +269,20 @@ pub fn spawn(app: AppHandle) {
             if let Some(current) = &mut state {
                 let key = format!("{}|{}|{}", current.app, current.title, current.artist);
                 if key != track_key {
-                    current.thumbnail = smtc::read(true).and_then(|s| s.thumbnail);
                     last_track = key;
+                    thumbnail_polls = THUMBNAIL_POLLS;
+                    sent_thumbnail = None;
+                }
+                // Right after a change, keep reading the cover and send it whenever it differs from what went out.
+                if thumbnail_polls > 0 {
+                    thumbnail_polls -= 1;
+                    if let Some(cover) = smtc::read_thumbnail() {
+                        let print = fingerprint(&cover);
+                        if sent_thumbnail != Some(print) {
+                            sent_thumbnail = Some(print);
+                            current.thumbnail = Some(cover);
+                        }
+                    }
                 }
             }
 
@@ -188,6 +294,8 @@ pub fn spawn(app: AppHandle) {
                         || a.playing != b.playing
                         || a.duration_ms != b.duration_ms
                         || a.app != b.app
+                        || a.shuffle != b.shuffle
+                        || a.repeat != b.repeat
                         || a.position_ms.abs_diff(b.position_ms) > 2500
                         || a.thumbnail.is_some()
                 }
@@ -209,4 +317,18 @@ pub fn spawn(app: AppHandle) {
             thread::sleep(Duration::from_millis(500));
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::app_id_name;
+
+    #[test]
+    fn nome_do_programa_no_id_do_app() {
+        assert_eq!(app_id_name("Spotify.exe"), "spotify");
+        assert_eq!(app_id_name("SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify"), "spotify");
+        assert_eq!(app_id_name("Chrome"), "chrome");
+        assert_eq!(app_id_name("MSEdge"), "msedge");
+        assert_eq!(app_id_name(r"C:\Apps\foobar2000.exe"), "foobar2000");
+    }
 }

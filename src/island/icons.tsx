@@ -346,3 +346,24 @@ export function Equalizer({ playing }: { playing: boolean }) {
     </div>
   );
 }
+
+export const ShuffleIcon = (p: IconProps) => (
+  <Stroke size={18} {...p}>
+    <path d="M16 4h4v4M4 20 20 4M20 16v4h-4M15 15l5 5M4 4l5 5" />
+  </Stroke>
+);
+
+/** Repetir; `one` desenha o 1 no meio (repetir a faixa). */
+export const RepeatIcon = ({ one = false, ...p }: IconProps & { one?: boolean }) => (
+  <Stroke size={18} {...p}>
+    <path d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4" />
+    {one && <path d="M11.2 10.6 12.6 9.6v5" strokeWidth={1.6} />}
+  </Stroke>
+);
+
+/** O mixer: três controles deslizantes. */
+export const MixerIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M5 20v-6M5 10V4M12 20v-8M12 8V4M19 20v-4M19 12V4M2.5 14h5M9.5 8h5M16.5 16h5" />
+  </Stroke>
+);
