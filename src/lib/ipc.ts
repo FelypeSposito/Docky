@@ -51,6 +51,17 @@ let devClips: ClipItem[] = [
 ];
 const devClipsChanged = () => window.dispatchEvent(new CustomEvent("docky:clipboard", { detail: devClips }));
 
+/** A quick reminder ("15 min tirar a pizza"), kept on the Rust side until it fires. */
+export interface Reminder {
+  id: number;
+  text: string;
+  /** Unix ms */
+  at: number;
+}
+
+let devReminders: Reminder[] = [];
+const devRemindersChanged = () => window.dispatchEvent(new CustomEvent("docky:reminders", { detail: [...devReminders] }));
+
 /** Bluetooth headphones just connected (with their charge), or their charge just ran low. */
 export interface BatteryNotice {
   name: string;
@@ -406,6 +417,40 @@ export const ipc = {
 
   setMicMuted(muted: boolean): void {
     if (isTauri) void invoke("set_mic_muted", { muted });
+  },
+
+  async reminderList(): Promise<Reminder[]> {
+    return isTauri ? invoke<Reminder[]>("reminder_list") : [...devReminders];
+  },
+
+  async reminderAdd(text: string, at: number): Promise<Reminder> {
+    if (isTauri) return invoke<Reminder>("reminder_add", { text, at });
+    const reminder = { id: Date.now(), text, at };
+    devReminders = [...devReminders, reminder].sort((a, b) => a.at - b.at);
+    devRemindersChanged();
+    setTimeout(() => {
+      if (!devReminders.some((r) => r.id === reminder.id)) return;
+      devReminders = devReminders.filter((r) => r.id !== reminder.id);
+      devRemindersChanged();
+      window.dispatchEvent(new CustomEvent("docky:reminder", { detail: reminder }));
+    }, Math.max(0, at - Date.now()));
+    return reminder;
+  },
+
+  async reminderCancel(id: number): Promise<void> {
+    if (isTauri) return invoke<void>("reminder_cancel", { id });
+    devReminders = devReminders.filter((r) => r.id !== id);
+    devRemindersChanged();
+  },
+
+  /** The pending reminders, whenever the list changes. */
+  onReminders(handler: (list: Reminder[]) => void): Unlisten {
+    return isTauri ? subscribe("reminders", handler) : devListen("docky:reminders", handler);
+  },
+
+  /** A reminder that just came due. */
+  onReminder(handler: (reminder: Reminder) => void): Unlisten {
+    return isTauri ? subscribe("reminder", handler) : devListen("docky:reminder", handler);
   },
 
   onBluetoothBattery(handler: (notice: BatteryNotice) => void): Unlisten {

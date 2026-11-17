@@ -1,6 +1,6 @@
 /** Estados visuais da ilha e seus tamanhos (pixels lógicos). Cresce a cada fase. */
-export type Overlay = "charge" | "volume" | "done" | "timer" | "game" | "download" | "bluetooth";
-export type Mode = "idle" | "lyric" | "charge" | "volume" | "done" | "timer" | "game" | "download" | "bluetooth" | "work" | "ask" | "peek" | "expanded";
+export type Overlay = "charge" | "volume" | "done" | "timer" | "game" | "download" | "bluetooth" | "reminder";
+export type Mode = "idle" | "lyric" | "charge" | "volume" | "done" | "timer" | "game" | "download" | "bluetooth" | "reminder" | "work" | "ask" | "peek" | "expanded";
 
 /** O que o Claude Code está pedindo da ilha agora. */
 export type ClaudeActivity = "ask" | "work" | null;
@@ -24,6 +24,8 @@ export const SIZES: Record<Mode, Size> = {
   download: { w: 400, h: 36 },
   /** "UGREEN Studio Pro · 80%" and a small battery, when headphones connect or run low. */
   bluetooth: { w: 330, h: 36 },
+  /** "Lembrete · tirar a pizza", with Clawd waving. */
+  reminder: { w: 420, h: 36 },
   work: { w: 380, h: 36 },
   ask: { w: 456, h: 156 },
   /** O mouse sobre a pílula: o player de música ou o resumo, numa ilha um pouco maior. */

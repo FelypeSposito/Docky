@@ -255,6 +255,29 @@
   background: #1fd15a;
   color: #04230f;
 }
+/* Pending reminders lead the notes: an accent ring, no hover lift (a click does nothing but cancel). */
+.nlist .ncard.rcard {
+  cursor: default;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 55%, transparent);
+}
+.nlist .ncard.rcard:active {
+  transform: none;
+}
+.nlist .ncard.rcard p {
+  padding-right: 20px;
+}
+.ncard.rcard em {
+  color: var(--accent, #ff5c7a);
+}
+.ncard.rcard .nact button {
+  font-size: 15px;
+  line-height: 1;
+}
+/* The note field's key hint becomes "lembrete às 18:45" when the text starts with a time. */
+.hsearch kbd.hint {
+  color: var(--accent, #ff5c7a);
+}
+
 /* The welcome card (first run): over the page and the dock, under the header. */
 .welcome {
   position: absolute;

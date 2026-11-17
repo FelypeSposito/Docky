@@ -100,6 +100,11 @@ centro.
 Quando um fone Bluetooth conecta, a pílula mostra a carga dele por alguns segundos, e avisa de novo quando ela fica em
 20%. Vale para fones que informam a carga ao Windows (a mesma que aparece em Configurações, Bluetooth).
 
+Lembretes rápidos: no campo da nota, comece com um tempo, como "15 min tirar a pizza", "em 2h ligar pro banco" ou
+"às 18h buscar as crianças", e o Enter cria um lembrete (Shift+Enter salva como nota). Os lembretes esperando aparecem
+no começo das Notas, com um × para cancelar, e na hora a pílula mostra o lembrete com um toque. Eles continuam depois
+de reiniciar o PC; um que venceu com o Docky fechado aparece assim que ele abre.
+
 A página Copiados guarda os últimos 10 textos que você copiou; um clique põe um deles de volta na área de
 transferência. O histórico fica só na memória (some quando o Docky fecha) e ignora o que os gerenciadores de senha
 marcam como privado, como o histórico do Windows (Win+V) faz. Dá para desligar em Configurações, Geral.

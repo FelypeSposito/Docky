@@ -1,10 +1,14 @@
 import { create } from "zustand";
-import { type BatteryNotice, type Call, type DiscordState, type DownloadDone, type FullscreenSummary, ipc } from "../lib/ipc";
+import { useConfigStore } from "../config/useConfig";
+import { playChime } from "../focus/chime";
+import { type BatteryNotice, type Call, type DiscordState, type DownloadDone, type FullscreenSummary, ipc, type Reminder } from "../lib/ipc";
 import { useIslandStore } from "./store";
 
 const DOWNLOAD_NOTICE_MS = 6000;
 const GAME_NOTICE_MS = 7000;
 const HEADSET_NOTICE_MS = 4000;
+/** A reminder stays on the pill longer: it is something you asked not to miss. */
+const REMINDER_NOTICE_MS = 12000;
 
 /** What the pill shows about the rest of the computer: a finished download, a call, the end of a game. */
 interface ActivityStore {
@@ -17,6 +21,9 @@ interface ActivityStore {
   discord: DiscordState | null;
   /** Headphones that just connected or ran low (for the notice). */
   headset: BatteryNotice | null;
+  /** Pending reminders, soonest first, and the one that just came due (for the notice). */
+  reminders: Reminder[];
+  reminder: Reminder | null;
   toggleMic: () => void;
 }
 
@@ -30,6 +37,8 @@ export const useActivityStore = create<ActivityStore>((set, get) => ({
   game: null,
   discord: null,
   headset: null,
+  reminders: [],
+  reminder: null,
   toggleMic: () => {
     const muted = !get().micMuted;
     ipc.setMicMuted(muted);
@@ -44,12 +53,20 @@ export function startActivitySync(): () => void {
     useActivityStore.setState({ call });
     if (call) readMic();
   });
+  void ipc.reminderList().then((reminders) => useActivityStore.setState({ reminders }));
   void ipc.discordState().then((discord) => useActivityStore.setState({ discord })).catch(() => {});
   const offs = [
     ipc.onDiscord((discord) => useActivityStore.setState({ discord })),
     ipc.onDownloadDone((finished) => {
       useActivityStore.setState({ finished });
       useIslandStore.getState().showOverlay("download", DOWNLOAD_NOTICE_MS);
+    }),
+    ipc.onReminders((reminders) => useActivityStore.setState({ reminders })),
+    ipc.onReminder((reminder) => {
+      useActivityStore.setState({ reminder });
+      useIslandStore.getState().showOverlay("reminder", REMINDER_NOTICE_MS);
+      // One chime, from the main screen's island only, if sounds are on.
+      if (useConfigStore.getState().config.timerSound && document.body.dataset.window === "island") playChime();
     }),
     ipc.onBluetoothBattery((headset) => {
       useActivityStore.setState({ headset });

@@ -18,5 +18,8 @@ export function noticeEnabled(overlay: Overlay, config: Pick<Config, "noticeChar
       return config.noticeDownload;
     case "bluetooth":
       return config.noticeBluetooth;
+    case "reminder":
+      // You asked for it: a reminder always shows.
+      return true;
   }
 }

@@ -4,6 +4,8 @@ import { formatNoteDate } from "../../lib/format";
 import { ipc, type Note } from "../../lib/ipc";
 import { NOTE_COLORS, noteColor, paintNote } from "../../notes/colors";
 import { nextNoteOrder, splitNotes, togglePinned } from "../../notes/order";
+import { formatWhen, parseReminder } from "../../notes/reminder";
+import { useActivityStore } from "../activity";
 import { EmptyState } from "../EmptyState";
 import { HeaderField } from "../HeaderField";
 import { NoteIcon, PinIcon, TrashIcon } from "../icons";
@@ -39,6 +41,10 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
   const update = useConfigStore((s) => s.update);
   const [notes, setNotes] = useState<Note[]>([]);
   const [text, setText] = useState("");
+  const reminders = useActivityStore((s) => s.reminders);
+  const twelveHour = useConfigStore((s) => s.config.clock12h);
+  // "15 min tirar a pizza": Enter makes a reminder instead of a note (Shift+Enter keeps it a note).
+  const draft = parseReminder(text);
   const [error, setError] = useState<string | null>(null);
   /** A nota que está pedindo confirmação para ser excluída. */
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -72,9 +78,17 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
     if (active) refresh();
   }, [active, folder, refresh]);
 
-  const save = () => {
+  const save = (asNote = false) => {
     const value = text.trim();
     if (!value) return;
+    const reminder = asNote ? null : parseReminder(value);
+    if (reminder) {
+      ipc
+        .reminderAdd(reminder.text, reminder.at)
+        .then(() => setText(""))
+        .catch((e) => setError(message(e)));
+      return;
+    }
     ipc
       .notesSave(stamp(new Date()), value)
       .then(() => {
@@ -118,7 +132,8 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
         label="Nota rápida"
         placeholder={notes.length > 0 ? `Nota rápida · ${notes.length} salvas` : "Nota rápida"}
         onChange={setText}
-        onEnter={save}
+        onEnter={(shift) => save(shift)}
+        hint={draft ? `lembrete ${formatWhen(draft.at, new Date(), twelveHour).startsWith("amanhã") ? "" : "às "}${formatWhen(draft.at, new Date(), twelveHour)}` : undefined}
         typeToFocus
       />
 
@@ -128,10 +143,21 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
           text={error}
           action={{ label: "Abrir configurações", onClick: () => ipc.openSettings("geral") }}
         />
-      ) : notes.length === 0 ? (
+      ) : notes.length === 0 && reminders.length === 0 ? (
         <EmptyState title="Nenhuma nota ainda" text="Comece a digitar: a nota vai para o campo lá em cima, e Enter salva." />
       ) : (
         <div className="nlist" ref={listRef}>
+          {reminders.map((r) => (
+            <div key={`r${r.id}`} className="tile ncard rcard" style={{ order: -1 }} title={`Lembrete: ${r.text}`}>
+              <p>{r.text}</p>
+              <em>lembrete · {formatWhen(r.at, new Date(), twelveHour)}</em>
+              <div className="nact">
+                <button className="del on" aria-label="Cancelar o lembrete" title="Cancelar o lembrete" onClick={() => void ipc.reminderCancel(r.id)}>
+                  ×
+                </button>
+              </div>
+            </div>
+          ))}
           {ordered.map((note) => {
             const isPinned = pinned.includes(note.file);
             const color = noteColor(colors, note.file);

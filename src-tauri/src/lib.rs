@@ -25,6 +25,7 @@ mod mixer;
 mod notes;
 mod pointer;
 mod power;
+mod reminders;
 mod settings_window;
 mod shell_icon;
 mod shelf;
@@ -90,6 +91,9 @@ pub fn run() {
             shelf::recycle_bin_count,
             shelf::open_recycle_bin,
             logfile::log_write,
+            reminders::reminder_list,
+            reminders::reminder_add,
+            reminders::reminder_cancel,
             updates::update_available,
             logfile::open_logs,
             clipboard::clipboard_history,
@@ -141,6 +145,7 @@ pub fn run() {
             }
             app.manage(claude::ClaudeState::load(&handle));
             app.manage(clipboard::ClipboardState::new());
+            app.manage(reminders::ReminderState::load(&handle));
             // Os atalhos que ficaram sem ícone ganham o do app, em segundo plano.
             icons::schedule(&handle);
 
@@ -163,6 +168,7 @@ pub fn run() {
             clipboard::spawn(handle.clone());
             bluetooth::spawn(handle.clone());
             updates::spawn(handle.clone());
+            reminders::spawn(handle.clone());
             fullscreen::spawn(handle);
             Ok(())
         })

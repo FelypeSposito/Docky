@@ -14,18 +14,21 @@ interface HeaderFieldProps {
   placeholder: string;
   label: string;
   onChange: (value: string) => void;
-  onEnter: () => void;
+  /** Enter (with Shift held, `shift` is true). */
+  onEnter: (shift: boolean) => void;
   /** Outras teclas no campo (as setas, para andar numa lista de resultados). */
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   /** Com a página aberta, qualquer tecla de letra já começa a digitar aqui. */
   typeToFocus?: boolean;
+  /** What Enter will do, in place of the plain "Enter" key hint (the note field: "lembrete às 18:45"). */
+  hint?: string;
 }
 
 /**
  * O campo do cabeçalho (a busca dos Atalhos, a nota rápida): o mesmo desenho em todas as páginas.
  * Enter confirma; Esc com algo digitado só limpa, e vazio deixa a ilha recolher como sempre.
  */
-export function HeaderField({ icon, value, placeholder, label, onChange, onEnter, onKeyDown, typeToFocus = false }: HeaderFieldProps) {
+export function HeaderField({ icon, value, placeholder, label, onChange, onEnter, onKeyDown, typeToFocus = false, hint }: HeaderFieldProps) {
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -56,7 +59,7 @@ export function HeaderField({ icon, value, placeholder, label, onChange, onEnter
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             onKeyDown?.(e);
-            if (e.key === "Enter") onEnter();
+            if (e.key === "Enter") onEnter(e.shiftKey);
             if (e.key === "Escape" && value) {
               e.stopPropagation();
               e.nativeEvent.stopImmediatePropagation();
@@ -64,7 +67,7 @@ export function HeaderField({ icon, value, placeholder, label, onChange, onEnter
             }
           }}
         />
-        {value && <kbd>Enter</kbd>}
+        {value && <kbd className={hint ? "hint" : undefined}>{hint ?? "Enter"}</kbd>}
       </label>
     </InHeader>
   );

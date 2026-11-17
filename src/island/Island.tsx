@@ -185,6 +185,7 @@ export function Island() {
   const finishedDownload = useActivityStore((s) => s.finished);
   const game = useActivityStore((s) => s.game);
   const headset = useActivityStore((s) => s.headset);
+  const reminder = useActivityStore((s) => s.reminder);
   const discord = useActivityStore((s) => s.discord);
   const discordCall = inDiscordCall(discord) ? discord : null;
   const focusMode = useFocusStore((s) => s.mode);
@@ -360,7 +361,7 @@ export function Island() {
   // End of a Foco: Clawd takes a coffee (or does yoga before a long break); end of a break: back to coding.
   const alarmClawd = timerFinished === "focus" ? (focusMode === "long" ? yogaSvg : coffeeSvg) : timerFinished === "short" || timerFinished === "long" ? codingSvg : null;
   const volumeLevel = volume?.muted ? 0 : (volume?.level ?? 0);
-  const eyesMood: EyesMood = mode === "ask" ? "ask" : mode === "work" ? "work" : mode === "charge" || mode === "done" || mode === "timer" ? "wide" : "normal";
+  const eyesMood: EyesMood = mode === "ask" ? "ask" : mode === "work" ? "work" : mode === "charge" || mode === "done" || mode === "timer" || mode === "reminder" ? "wide" : "normal";
   const workSeconds = useSeconds(mode === "work" ? running[0]?.since : undefined);
   const work = currentWork(running);
   // With the eyes turned off, Clawd takes their place while Claude Code works (or waits for you). It is an animation,
@@ -509,6 +510,20 @@ export function Island() {
               <span className="txt sub">{game ? (game.video ? `${formatMinutes(game.minutes)} em tela cheia` : `jogou ${formatMinutes(game.minutes)}`) : ""}</span>
             </div>
             <div className="r">{!game?.video && <ClawdMini src={gamingSvg} show={mode === "game"} />}</div>
+          </div>
+        </div>
+
+        <div className={`layer${mode === "reminder" ? " on" : ""}`} style={{ width: SIZES.reminder.w }}>
+          <div className="strip">
+            <div className="c pad roomy">
+              <span className="txt" title={reminder?.text}>
+                {reminder?.text}
+              </span>
+              <span className="txt sub">lembrete</span>
+            </div>
+            <div className="r">
+              <ClawdMini src={WAIT_CLAWD} show={mode === "reminder"} />
+            </div>
           </div>
         </div>
 
