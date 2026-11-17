@@ -85,7 +85,7 @@ export function ClaudeSection() {
         <Row label="Faixa “Claude trabalhando”" hint="Mostra o projeto e o tempo na ilha recolhida enquanto o Claude Code roda">
           <Toggle label="Faixa Claude trabalhando" value={config.claudeWorkStrip} onChange={(v) => update({ claudeWorkStrip: v })} />
         </Row>
-        <Row label="Aviso “Claude terminou”" hint="Um aviso curto quando a última sessão termina">
+        <Row label="Aviso “Claude terminou”" hint="Um aviso curto quando cada sessão termina, com o projeto e o que ela fez">
           <Toggle label="Aviso Claude terminou" value={config.noticeClaudeDone} onChange={(v) => update({ noticeClaudeDone: v })} />
         </Row>
       </Group>

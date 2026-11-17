@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { currentWork, WAIT_CLAWD, WORK_CLAWD } from "../claude/clawd";
-import { runningSessions } from "../claude/sessions";
+import { describeTurn, runningSessions } from "../claude/sessions";
 import { startClaudeSync, useClaudeStore } from "../claude/store";
 import { useConfigStore } from "../config/useConfig";
 import { useFocusStore } from "../focus/store";
@@ -196,6 +196,7 @@ export function Island() {
   const sessions = useClaudeStore((s) => s.sessions);
   const permissions = useClaudeStore((s) => s.permissions);
   const denials = useClaudeStore((s) => s.denials);
+  const finishedSession = useClaudeStore((s) => s.finished);
   const running = useMemo(() => runningSessions(sessions), [sessions]);
   const asking = permissions[0] ?? null;
   const claude: ClaudeActivity = asking ? "ask" : running.length > 0 && config.claudeWorkStrip ? "work" : null;
@@ -472,8 +473,17 @@ export function Island() {
 
         <div className={`layer${mode === "done" ? " on" : ""}`} style={{ width: SIZES.done.w }}>
           <div className="strip">
-            <div className="c pad">
-              <span className="txt">Claude terminou</span>
+            <div className="c pad done-c">
+              {finishedSession ? (
+                <>
+                  <span className="txt done-p" title={finishedSession.project}>
+                    {finishedSession.project}
+                  </span>
+                  <span className="txt sub">terminou{finishedSession.last ? ` · ${describeTurn(finishedSession.last)}` : ""}</span>
+                </>
+              ) : (
+                <span className="txt">Claude terminou</span>
+              )}
             </div>
             <div className="r">
               {/* Clawd celebrating (clawd-pet, MIT), cropped to the pill; only mounted while the notice shows. */}

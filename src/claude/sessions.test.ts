@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEvent, describeTurn, formatDuration, justFinished, projectName, runningSessions, workKind, type ClaudeEvent, type Sessions } from "./sessions";
+import { applyEvent, describeTurn, formatDuration, finishedSessions, projectName, runningSessions, workKind, type ClaudeEvent, type Sessions } from "./sessions";
 
 const event = (name: string, sessionId = "s1", cwd = "C:\\dev\\docky"): ClaudeEvent => ({
   event: name,
@@ -90,13 +90,19 @@ describe("runningSessions e justFinished", () => {
     expect(runningSessions(s).map((x) => x.id)).toEqual(["a", "b"]);
   });
 
-  it("avisa o fim só quando a última sessão para", () => {
-    let before = applyEvent({}, event("UserPromptSubmit", "a"), 1);
+  it("avisa o fim de cada sessão, mesmo com outras rodando", () => {
+    let before = applyEvent({}, event("UserPromptSubmit", "a", "C:\\dev\\site"), 1);
     before = applyEvent(before, event("UserPromptSubmit", "b"), 2);
-    const oneStopped = applyEvent(before, event("Stop", "a"), 3);
-    expect(justFinished(before, oneStopped)).toBe(false);
+    const oneStopped = applyEvent(before, event("Stop", "a", "C:\\dev\\site"), 3);
+    expect(finishedSessions(before, oneStopped).map((s) => s.project)).toEqual(["site"]);
     const allStopped = applyEvent(oneStopped, event("Stop", "b"), 4);
-    expect(justFinished(oneStopped, allStopped)).toBe(true);
+    expect(finishedSessions(oneStopped, allStopped).map((s) => s.project)).toEqual(["docky"]);
+  });
+
+  it("uma sessão que já estava parada não avisa de novo", () => {
+    const stopped = applyEvent(applyEvent({}, event("UserPromptSubmit"), 1), event("Stop"), 2);
+    const started = applyEvent(stopped, event("SessionStart", "c"), 3);
+    expect(finishedSessions(stopped, started)).toEqual([]);
   });
 });
 

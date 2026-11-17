@@ -233,6 +233,18 @@
   color: var(--ink2);
   font-variant-numeric: tabular-nums;
 }
+/* "Claude terminou": a long project name gives way to the summary next to it. */
+.strip .c.pad.done-c {
+  padding-left: 56px;
+  padding-right: 48px;
+}
+.done-p {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .bolt {
   width: 18px;
   height: 18px;

@@ -15,7 +15,8 @@ export const SIZES: Record<Mode, Size> = {
   lyric: { w: 410, h: 36 },
   charge: { w: 252, h: 36 },
   volume: { w: 270, h: 36 },
-  done: { w: 262, h: 36 },
+  /** "docky terminou · editou 4 arquivos em 3 min", with Clawd celebrating. */
+  done: { w: 412, h: 36 },
   timer: { w: 296, h: 36 },
   /** "Valorant · jogou 1h 23min", with Clawd playing. */
   game: { w: 320, h: 36 },

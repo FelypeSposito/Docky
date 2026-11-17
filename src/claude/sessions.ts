@@ -140,8 +140,12 @@ export function runningSessions(sessions: Sessions): Session[] {
     .sort((a, b) => a.since - b.since);
 }
 
-/** Há sessões que acabaram de passar de "rodando" para "parada" e nenhuma outra continua rodando? */
-export function justFinished(before: Sessions, after: Sessions): boolean {
-  const wasRunning = Object.values(before).some((s) => s.state === "running");
-  return wasRunning && runningSessions(after).length === 0;
+/**
+ * The sessions that just went from running to stopped, the last one to stop first. Each gets its own "terminou"
+ * notice, even while other sessions keep running.
+ */
+export function finishedSessions(before: Sessions, after: Sessions): Session[] {
+  return Object.values(after)
+    .filter((s) => s.state === "idle" && before[s.id]?.state === "running")
+    .sort((a, b) => b.since - a.since);
 }

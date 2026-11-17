@@ -90,7 +90,8 @@ Agenda (clima com chuva, sensação, umidade, vento, UV e sol), Atalhos (apps, j
 próprio e confirmação ao abrir), e Claude. Com os olhinhos desligados, o Clawd aparece no lugar deles enquanto o
 Claude Code trabalha. Com sessões abertas e nada rodando, a página Claude mostra o Clawd conforme a hora: dormindo
 de madrugada, tomando café de manhã e jogando à noite. Quando um turno acaba, cada sessão diz o que ele fez: "editou 4 arquivos em
-3 min" ou "respondeu em 42 s".
+3 min" ou "respondeu em 42 s". O aviso na pílula vem a cada sessão que termina, com o nome do projeto, mesmo
+com outras ainda rodando.
 
 A ilha fica no centro do topo ou em qualquer ponto dele, até encostada num canto: arraste pela pílula (ou pelo
 cabeçalho, com ela aberta) ou escolha em Configurações, Aparência. Duplo clique numa parte vazia a traz de volta ao

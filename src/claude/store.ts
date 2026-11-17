@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { ipc } from "../lib/ipc";
 import { useIslandStore } from "../island/store";
-import { applyEvent, type ClaudeEvent, justFinished, type PermissionRequest, type Sessions } from "./sessions";
+import { applyEvent, type ClaudeEvent, finishedSessions, type PermissionRequest, type Session, type Sessions } from "./sessions";
 
 const DONE_NOTICE_MS = 4200;
 /** How long Clawd celebrates a finished session or sulks after you deny. */
@@ -17,6 +17,8 @@ interface ClaudeStore {
   denials: number;
   /** Clawd's latest reaction (a session finished, you denied), until `until` (performance.now). */
   reaction: Reaction | null;
+  /** The session the "terminou" notice is about: its project and what the turn did. */
+  finished: Session | null;
   onEvent: (event: ClaudeEvent) => void;
   addPermission: (request: PermissionRequest) => void;
   dropPermission: (id: number) => void;
@@ -30,14 +32,17 @@ export const useClaudeStore = create<ClaudeStore>((set, get) => ({
   permissions: [],
   denials: 0,
   reaction: null,
+  finished: null,
 
   onEvent: (event) => {
     const before = get().sessions;
     const after = applyEvent(before, event, performance.now());
     if (after === before) return;
     set({ sessions: after });
-    if (justFinished(before, after) && get().permissions.length === 0) {
-      set({ reaction: { kind: "celebrate", until: performance.now() + REACTION_MS } });
+    // Every session that finishes gets its notice, naming its project, even while others keep running.
+    const [finished] = finishedSessions(before, after);
+    if (finished && get().permissions.length === 0) {
+      set({ finished, reaction: { kind: "celebrate", until: performance.now() + REACTION_MS } });
       useIslandStore.getState().showOverlay("done", DONE_NOTICE_MS);
     }
   },
