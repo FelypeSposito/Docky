@@ -33,8 +33,18 @@ const ICONS: Record<AreaId, ComponentType<{ size?: number }>> = {
 /** A área pedida por `?section=` ou pela ilha (os ids continuam os mesmos das versões anteriores). */
 const areaFrom = (value: string | null): AreaId | null => (isArea(value) ? value : null);
 
+/** The newer release GitHub has, if any (read once when Settings opens). */
+function useUpdate() {
+  const [update, setUpdate] = useState<{ version: string; url: string } | null>(null);
+  useEffect(() => {
+    void ipc.updateAvailable().then(setUpdate).catch(() => {});
+  }, []);
+  return update;
+}
+
 function AreaContent({ id }: { id: AreaId }) {
   const { config, update } = useConfigStore();
+  const newer = useUpdate();
 
   switch (id) {
     case "geral":
@@ -94,10 +104,22 @@ function AreaContent({ id }: { id: AreaId }) {
           </Group>
           <HotkeysGroup />
           <Group title="Sobre">
-            <Row label={`Docky ${__APP_VERSION__}`} hint="Código aberto: veja as novidades, relate um problema ou sugira uma ideia">
-              <button className="btn" onClick={() => ipc.openUrl(REPO_URL)}>
-                Abrir no GitHub
-              </button>
+            <Row
+              label={`Docky ${__APP_VERSION__}`}
+              hint={newer ? `A versão ${newer.version} saiu: baixe o instalador e rode por cima, suas configurações ficam` : "Código aberto: veja as novidades, relate um problema ou sugira uma ideia"}
+            >
+              {newer ? (
+                <button className="btn primary" onClick={() => ipc.openUrl(newer.url)}>
+                  Baixar a {newer.version}
+                </button>
+              ) : (
+                <button className="btn" onClick={() => ipc.openUrl(REPO_URL)}>
+                  Abrir no GitHub
+                </button>
+              )}
+            </Row>
+            <Row label="Procurar atualizações" hint="Duas vezes por dia, o Docky olha no GitHub se saiu versão nova. Nada sobre você é enviado">
+              <Toggle label="Procurar atualizações" value={config.checkUpdates} onChange={(v) => update({ checkUpdates: v })} />
             </Row>
             <Row label="Registros" hint="Um arquivo com os erros do Docky, só no seu computador. Anexe ao relatar um problema">
               <button className="btn" onClick={() => void ipc.openLogs()}>

@@ -29,6 +29,7 @@ mod settings_window;
 mod shell_icon;
 mod shelf;
 mod tray;
+mod updates;
 mod volume;
 mod weather;
 
@@ -54,6 +55,7 @@ pub fn run() {
         .manage(pointer::PointerState::default())
         .plugin(tauri_plugin_opener::init())
         .manage(island::Visibility::default())
+        .manage(updates::UpdateState::default())
         .manage(google::GoogleState::default())
         .invoke_handler(tauri::generate_handler![
             config::get_config,
@@ -88,6 +90,7 @@ pub fn run() {
             shelf::recycle_bin_count,
             shelf::open_recycle_bin,
             logfile::log_write,
+            updates::update_available,
             logfile::open_logs,
             clipboard::clipboard_history,
             clipboard::clipboard_copy,
@@ -159,6 +162,7 @@ pub fn run() {
             downloads::spawn(handle.clone());
             clipboard::spawn(handle.clone());
             bluetooth::spawn(handle.clone());
+            updates::spawn(handle.clone());
             fullscreen::spawn(handle);
             Ok(())
         })

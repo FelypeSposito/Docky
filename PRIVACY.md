@@ -1,6 +1,6 @@
 # Docky privacy policy
 
-Last updated: 2026-11-02
+Last updated: 2026-11-17
 
 Docky is a desktop app for Windows 11, developed by Felype Sposito for personal use. This page explains what the
 app does with your data. The short version: everything stays on your computer.
@@ -44,6 +44,10 @@ Docky can show your upcoming events if you connect your Google account in Settin
   Discord app **you** created; the secret and the token stay in the Windows Credential Manager. Nothing about your
   calls is stored or sent anywhere else. "Desconectar" deletes the token.
 
+- **Update check (can be turned off in Settings → Geral → Sobre):** twice a day Docky reads the public list of its
+  releases at `api.github.com` to tell you when a newer version is out. Nothing about you or your PC is sent, only a
+  generic `User-Agent`.
+
 No other request is made. The interface font (Inter) ships with the app; it is not downloaded.
 
 **Installed apps and games (only after you click Permitir in Settings → Atalhos):** to suggest shortcuts, Docky reads
@@ -79,5 +83,7 @@ análise de uso nem telemetria, e não envia seus dados ao desenvolvedor nem a t
 - **Apps e jogos instalados (só depois de clicar em Permitir, em Configurações → Atalhos):** para sugerir atalhos, o
   Docky lê o Menu Iniciar, os apps da Loja, a biblioteca da Steam e os manifestos da Epic Games. Nada disso sai do
   computador, e dá para desligar em "Não procurar".
+- **Atualizações (dá para desligar em Configurações → Geral → Sobre):** duas vezes por dia o Docky lê a lista pública
+  das versões dele no `api.github.com` para avisar quando sai uma nova. Nada sobre você ou o seu PC é enviado.
 - Notas, arquivos do Shelf, timers e configurações ficam no seu computador.
 - Contato: pelo perfil do desenvolvedor no GitHub, <https://github.com/FelypeSposito>.

@@ -132,6 +132,8 @@ pub struct Config {
     pub clipboard_history: bool,
     /// The welcome card was seen (or closed). Off only on a brand-new install: see `ConfigState::load`.
     pub onboarded: bool,
+    /// Asks GitHub, twice a day, whether a newer Docky was released (Settings, Geral, Sobre).
+    pub check_updates: bool,
     pub reduce_motion: bool,
     /// Mostra a linha atual da letra na pílula quando a ilha está recolhida.
     pub lyric_pill: bool,
@@ -236,6 +238,7 @@ impl Default for Config {
             clock_12h: false,
             clipboard_history: true,
             onboarded: false,
+            check_updates: true,
             reduce_motion: false,
             lyric_pill: true,
             lyric_delay_ms: 0,

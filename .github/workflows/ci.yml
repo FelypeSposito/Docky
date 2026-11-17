@@ -1,0 +1,43 @@
+# Checks every push and pull request: types, the interface tests and the Rust tests, on Windows (Docky's only target).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Types and interface tests
+        run: |
+          npx tsc --noEmit -p .
+          npx vitest run
+
+      # The Rust side embeds the built interface, so it has to exist before cargo compiles.
+      - name: Build the interface
+        run: npx vite build
+
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test --lib --locked

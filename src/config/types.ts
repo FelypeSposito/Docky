@@ -37,6 +37,8 @@ export interface Config {
   clipboardHistory: boolean;
   /** The welcome card was seen (or closed); off only on a brand-new install. */
   onboarded: boolean;
+  /** Asks GitHub, twice a day, whether a newer Docky was released. */
+  checkUpdates: boolean;
   reduceMotion: boolean;
   lyricPill: boolean;
   lyricDelayMs: number;
@@ -124,6 +126,7 @@ export const DEFAULT_CONFIG: Config = {
   clock12h: false,
   clipboardHistory: true,
   onboarded: false,
+  checkUpdates: true,
   reduceMotion: false,
   lyricPill: true,
   lyricDelayMs: 0,

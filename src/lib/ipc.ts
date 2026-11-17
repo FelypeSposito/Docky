@@ -540,6 +540,11 @@ export const ipc = {
     else console[level === "info" ? "log" : level](`[docky] ${message}`);
   },
 
+  /** A newer release found on GitHub (null: up to date, not checked yet, or the check is off). */
+  async updateAvailable(): Promise<{ version: string; url: string } | null> {
+    return isTauri ? invoke<{ version: string; url: string } | null>("update_available") : null;
+  },
+
   /** Opens the folder with Docky's log file, to attach it to a bug report. */
   openLogs(): Promise<void> {
     return isTauri ? invoke<void>("open_logs") : Promise.resolve();
