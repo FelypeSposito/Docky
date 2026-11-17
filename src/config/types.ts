@@ -67,6 +67,8 @@ export interface Config {
   pageOrder: string[];
   /** Notas fixadas no topo da lista (nomes de arquivo). */
   pinnedNotes: string[];
+  /** Color of each note (file name to color id, see notes/colors.ts); notes without one stay plain. */
+  noteColors: Record<string, string>;
   /** Ordem das notas escolhida arrastando (nomes de arquivo). As notas novas, que não estão aqui, ficam no topo. */
   noteOrder: string[];
   /** Ordem dos medidores da página Sistema (ids). Vazio = ordem original. */
@@ -136,6 +138,7 @@ export const DEFAULT_CONFIG: Config = {
   shortcuts: [],
   pageOrder: [],
   pinnedNotes: [],
+  noteColors: {},
   noteOrder: [],
   timerCustomMinutes: 10,
   screens: [],

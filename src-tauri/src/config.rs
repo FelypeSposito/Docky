@@ -177,6 +177,8 @@ pub struct Config {
     pub page_order: Vec<String>,
     /// Notas fixadas no topo da lista (nomes de arquivo).
     pub pinned_notes: Vec<String>,
+    /// Color of each note (file name to color id, see `notes/colors.ts`); notes without one stay plain.
+    pub note_colors: std::collections::BTreeMap<String, String>,
     /// Ordem das notas escolhida arrastando (nomes de arquivo). As notas novas, que não estão aqui, ficam no topo.
     pub note_order: Vec<String>,
     /// Duração do contador personalizado do Foco, em minutos.
@@ -248,6 +250,7 @@ impl Default for Config {
             shortcuts: Vec::new(),
             page_order: Vec::new(),
             pinned_notes: Vec::new(),
+            note_colors: Default::default(),
             note_order: Vec::new(),
             timer_custom_minutes: 10,
             screens: Vec::new(),

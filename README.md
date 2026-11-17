@@ -85,7 +85,7 @@ para criar o ID do cliente está em Configurações → Integrações. Veja tamb
 
 ## Páginas
 
-Música (com letra sincronizada), Foco (Pomodoro e contador livre), Notas (fixar e excluir para a Lixeira), Shelf (pastas de destino e a Lixeira do Windows),
+Música (com letra sincronizada), Foco (Pomodoro e contador livre), Notas (fixar, colorir e excluir para a Lixeira), Shelf (pastas de destino e a Lixeira do Windows),
 Agenda (clima com chuva, sensação, umidade, vento, UV e sol), Atalhos (apps, jogos, pastas, sites e grupos, com ícone
 próprio e confirmação ao abrir), e Claude. Com os olhinhos desligados, o Clawd aparece no lugar deles enquanto o
 Claude Code trabalha.

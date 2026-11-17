@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { formatNoteDate } from "../../lib/format";
 import { ipc, type Note } from "../../lib/ipc";
+import { NOTE_COLORS, noteColor, paintNote } from "../../notes/colors";
 import { nextNoteOrder, splitNotes, togglePinned } from "../../notes/order";
 import { EmptyState } from "../EmptyState";
 import { HeaderField } from "../HeaderField";
@@ -29,12 +30,15 @@ export function NotesLarge({ active }: { active: boolean }) {
 export function NotesPage({ active, large = false }: { active: boolean; large?: boolean }) {
   const folder = useConfigStore((s) => s.config.notesFolder);
   const pinned = useConfigStore((s) => s.config.pinnedNotes);
+  const colors = useConfigStore((s) => s.config.noteColors) ?? {};
   const update = useConfigStore((s) => s.update);
   const [notes, setNotes] = useState<Note[]>([]);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   /** A nota que está pedindo confirmação para ser excluída. */
   const [confirming, setConfirming] = useState<string | null>(null);
+  /** The note whose color palette is open. */
+  const [painting, setPainting] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const manual = useConfigStore((s) => s.config.noteOrder);
   const groups = useMemo(() => splitNotes(notes, pinned, manual), [notes, pinned, manual]);
@@ -82,6 +86,7 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
       .notesDelete(file)
       .then(() => {
         if (pinned.includes(file)) update({ pinnedNotes: togglePinned(pinned, file) });
+        if (colors[file]) update({ noteColors: paintNote(colors, file, null) });
         refresh();
       })
       .catch((e) => setError(message(e)));
@@ -89,8 +94,16 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
 
   // Sair da página ou mexer na lista cancela uma exclusão que ficou esperando.
   useEffect(() => {
-    if (!active) setConfirming(null);
+    if (!active) {
+      setConfirming(null);
+      setPainting(null);
+    }
   }, [active]);
+
+  const paint = (file: string, color: string | null) => {
+    setPainting(null);
+    update({ noteColors: paintNote(colors, file, color) });
+  };
 
   return (
     <div className={`bento nt${large ? " big" : ""}`}>
@@ -116,6 +129,7 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
         <div className="nlist" ref={listRef}>
           {ordered.map((note) => {
             const isPinned = pinned.includes(note.file);
+            const color = noteColor(colors, note.file);
             const sorter = isPinned ? dragPinned : dragRest;
             const stop = (e: React.SyntheticEvent) => e.stopPropagation();
             const open = () => ipc.notesOpen(note.file).catch((e) => setError(message(e)));
@@ -123,9 +137,10 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
               <div
                 key={note.file}
                 ref={sorter.tileRef(note.file)}
-                className={`tile ncard${isPinned ? " pinned" : ""}${sorter.dragId === note.file ? " drag" : ""}`}
-                style={{ order: (isPinned ? 0 : GROUP_GAP) + (sorter.position.get(note.file) ?? 0) }}
+                className={`tile ncard${isPinned ? " pinned" : ""}${color ? " tinted" : ""}${sorter.dragId === note.file ? " drag" : ""}`}
+                style={{ order: (isPinned ? 0 : GROUP_GAP) + (sorter.position.get(note.file) ?? 0), ...(color ? { "--nc": color.hex } : {}) } as React.CSSProperties}
                 onPointerDown={(e) => sorter.down(e, note.file)}
+                onMouseLeave={() => painting === note.file && setPainting(null)}
                 role="button"
                 tabIndex={0}
                 title={`${note.text}\n\nClique para abrir no Obsidian`}
@@ -145,11 +160,43 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
                       </button>
                     </div>
                   </div>
+                ) : painting === note.file ? (
+                  <div className="npaint" onClick={stop}>
+                    <b>Cor da nota</b>
+                    <div role="radiogroup" aria-label="Cor da nota">
+                      <button
+                        className={`nsw none${color ? "" : " on"}`}
+                        role="radio"
+                        aria-checked={!color}
+                        aria-label="Sem cor"
+                        title="Sem cor"
+                        onClick={() => paint(note.file, null)}
+                      />
+                      {NOTE_COLORS.map((c) => (
+                        <button
+                          key={c.id}
+                          className={`nsw${color?.id === c.id ? " on" : ""}`}
+                          role="radio"
+                          aria-checked={color?.id === c.id}
+                          aria-label={c.label}
+                          title={c.label}
+                          style={{ "--sw": c.hex } as React.CSSProperties}
+                          onClick={() => paint(note.file, c.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <p>{note.text}</p>
                     <em>{formatNoteDate(note.modifiedMs)}</em>
                     <div className="nact" onClick={stop}>
+                      <button aria-label="Mudar a cor da nota" title="Cor" onClick={() => setPainting(note.file)}>
+                        <i className="ndot" />
+                      </button>
+                      <button className="del" aria-label="Excluir nota" title="Excluir" onClick={() => setConfirming(note.file)}>
+                        <TrashIcon />
+                      </button>
                       <button
                         className={isPinned ? "on" : ""}
                         aria-label={isPinned ? "Desafixar nota" : "Fixar nota no topo"}
@@ -157,9 +204,6 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
                         onClick={() => update({ pinnedNotes: togglePinned(pinned, note.file) })}
                       >
                         <PinIcon />
-                      </button>
-                      <button aria-label="Excluir nota" title="Excluir" onClick={() => setConfirming(note.file)}>
-                        <TrashIcon />
                       </button>
                     </div>
                   </>

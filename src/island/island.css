@@ -1678,6 +1678,10 @@
 .nlist .ncard.pinned {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 55%, transparent);
 }
+/* The pin of a pinned note stays in view at the right end: the text keeps clear of it. */
+.nlist .ncard.pinned p {
+  padding-right: 20px;
+}
 /* Fixar e excluir: aparecem ao passar o mouse; o pino de uma nota fixada fica sempre à vista */
 .nact {
   position: absolute;
@@ -1709,8 +1713,79 @@
 .nact button.on {
   color: var(--accent, #ff5c7a);
 }
-.nact button:last-child:hover {
+.nact button.del:hover {
   color: #ff6b6b;
+}
+/* Note colors: the card takes a tint of its color, the date picks it up, and the pin ring follows it. */
+.nlist .ncard.tinted {
+  background: color-mix(in srgb, var(--nc) 17%, rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nc) 30%, transparent);
+}
+.nlist .ncard.tinted:hover {
+  background: color-mix(in srgb, var(--nc) 25%, rgba(255, 255, 255, 0.06));
+}
+.nlist .ncard.tinted.pinned {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nc) 70%, transparent);
+}
+.ncard.tinted em {
+  color: color-mix(in srgb, var(--nc) 55%, #fff 20%);
+}
+/* The color button: a dot of the note's color, or an empty ring for a plain note. */
+.ndot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.ncard.tinted .ndot {
+  background: var(--nc);
+  box-shadow: none;
+}
+.npaint {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  height: 100%;
+  cursor: default;
+}
+.npaint b {
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.npaint div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-left: 2px;
+}
+.nsw {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sw);
+  transition: transform 0.15s var(--ease), box-shadow 0.15s;
+}
+.nsw:hover {
+  transform: scale(1.15);
+}
+.nsw:active {
+  transform: scale(0.92);
+}
+.nsw.none {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+}
+.nsw.on {
+  box-shadow: 0 0 0 2px #000, 0 0 0 3.5px #fff;
+}
+.nsw.none.on {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4), 0 0 0 2px #000, 0 0 0 3.5px #fff;
+}
+.nsw:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 .nconfirm {
   display: flex;
