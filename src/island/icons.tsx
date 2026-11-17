@@ -107,6 +107,20 @@ export const CheckIcon = (p: IconProps) => (
   </Stroke>
 );
 
+export const CloseIcon = (p: IconProps) => (
+  <Stroke size={12} stroke={2.4} {...p}>
+    <path d="M7 7l10 10M17 7L7 17" />
+  </Stroke>
+);
+
+/** A clipboard with two lines of text on it: the Copiados page. */
+export const ClipboardIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <rect x="5.5" y="4.5" width="13" height="16" rx="3" />
+    <path d="M9.5 3h5a1 1 0 0 1 1 1v1.5h-7V4a1 1 0 0 1 1-1zM9 11h6M9 15h4" />
+  </Stroke>
+);
+
 export const BellIcon = (p: IconProps) => (
   <Stroke size={12} stroke={2.4} {...p}>
     <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15L6 16.5zM10 20.5a2.2 2.2 0 0 0 4 0" />

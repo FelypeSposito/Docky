@@ -1,7 +1,8 @@
 import type { ComponentType } from "react";
-import { CalendarIcon, GridIcon, MixerIcon, MusicIcon, NoteIcon, SparkIcon, TimerIcon, TrayIcon } from "../icons";
+import { CalendarIcon, ClipboardIcon, GridIcon, MixerIcon, MusicIcon, NoteIcon, SparkIcon, TimerIcon, TrayIcon } from "../icons";
 import { AgendaLarge, AgendaPage } from "./AgendaPage";
 import { ClaudePage } from "./ClaudePage";
+import { ClipboardPage } from "./ClipboardPage";
 import { LauncherLarge, LauncherPage } from "./LauncherPage";
 import { MixerPage } from "./MixerPage";
 import { MusicPage } from "./MusicPage";
@@ -27,6 +28,7 @@ export const PAGES: PageDef[] = [
   { id: "timer", label: "Foco", Icon: TimerIcon, Component: TimerPage, area: "foco" },
   { id: "note", label: "Notas", Icon: NoteIcon, Component: NotesPage, Large: NotesLarge, area: "foco" },
   { id: "tray", label: "Shelf", Icon: TrayIcon, Component: ShelfPage, area: "shelf" },
+  { id: "clip", label: "Copiados", Icon: ClipboardIcon, Component: ClipboardPage, area: "geral" },
   { id: "cal", label: "Agenda", Icon: CalendarIcon, Component: AgendaPage, Large: AgendaLarge, area: "integracoes" },
   { id: "launch", label: "Atalhos", Icon: GridIcon, Component: LauncherPage, Large: LauncherLarge, area: "atalhos" },
   { id: "claude", label: "Claude", Icon: SparkIcon, Component: ClaudePage, area: "claude" },

@@ -1,5 +1,6 @@
 mod apps;
 mod claude;
+mod clipboard;
 mod claude_hooks;
 mod config;
 mod fullscreen;
@@ -79,6 +80,10 @@ pub fn run() {
             shelf::shelf_trash,
             shelf::recycle_bin_count,
             shelf::open_recycle_bin,
+            clipboard::clipboard_history,
+            clipboard::clipboard_copy,
+            clipboard::clipboard_remove,
+            clipboard::clipboard_clear,
             weather::weather,
             claude::claude_decide,
             claude::claude_status,
@@ -122,6 +127,7 @@ pub fn run() {
                 let _ = app.autolaunch().enable();
             }
             app.manage(claude::ClaudeState::load(&handle));
+            app.manage(clipboard::ClipboardState::new());
             // Os atalhos que ficaram sem ícone ganham o do app, em segundo plano.
             icons::schedule(&handle);
 
@@ -141,6 +147,7 @@ pub fn run() {
             volume::spawn(handle.clone());
             call::spawn(handle.clone());
             downloads::spawn(handle.clone());
+            clipboard::spawn(handle.clone());
             fullscreen::spawn(handle);
             Ok(())
         })

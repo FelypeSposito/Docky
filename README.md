@@ -94,6 +94,10 @@ A ilha fica no centro do topo ou em qualquer ponto dele, até encostada num cant
 cabeçalho, com ela aberta) ou escolha em Configurações, Aparência. Duplo clique numa parte vazia a traz de volta ao
 centro.
 
+A página Copiados guarda os últimos 10 textos que você copiou; um clique põe um deles de volta na área de
+transferência. O histórico fica só na memória (some quando o Docky fecha) e ignora o que os gerenciadores de senha
+marcam como privado, como o histórico do Windows (Win+V) faz. Dá para desligar em Configurações, Geral.
+
 Em Configurações, Aparência, a ilha pode seguir a cor da capa da música ou ficar sempre numa cor (rosa, âmbar, verde,
 azul, lilás ou grafite), com o brilho ambiente mais forte ou mais fraco, com ou sem a borda de vidro, e o relógio em
 24 ou 12 horas.

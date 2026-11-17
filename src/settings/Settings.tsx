@@ -57,6 +57,21 @@ function AreaContent({ id }: { id: AreaId }) {
               <Toggle label="Chamada na pílula" value={config.callPill} onChange={(v) => update({ callPill: v })} />
             </Row>
           </Group>
+          <Group title="Copiados">
+            <Row
+              label="Histórico do que você copia"
+              hint="Os últimos 10 textos, só na memória: somem quando o Docky fecha. Senhas copiadas de gerenciadores ficam de fora"
+            >
+              <Toggle
+                label="Histórico do que você copia"
+                value={config.clipboardHistory}
+                onChange={(v) => {
+                  update({ clipboardHistory: v });
+                  if (!v) void ipc.clipboardClear();
+                }}
+              />
+            </Row>
+          </Group>
           <Group title="Avisos curtos">
             <Row label="Aviso do carregador" hint="Quando você liga o carregador">
               <Toggle label="Aviso do carregador" value={config.noticeCharge} onChange={(v) => update({ noticeCharge: v })} />

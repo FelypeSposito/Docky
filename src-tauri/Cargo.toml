@@ -1,6 +1,6 @@
 [package]
 name = "docky"
-version = "0.2.17"
+version = "0.2.18"
 description = "Docky — uma ilha dinâmica para o Windows"
 authors = ["Docky"]
 edition = "2024"
@@ -44,6 +44,8 @@ windows = { version = "0.61", features = [
   "Win32_Graphics_Gdi",
   "Win32_Media_Audio_Endpoints",
   "Win32_System_Com",
+  "Win32_System_DataExchange",
+  "Win32_System_Memory",
   "Win32_System_Com_StructuredStorage",
   "Win32_System_Ole",
   "Win32_System_SystemServices",

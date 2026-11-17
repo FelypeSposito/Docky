@@ -128,6 +128,8 @@ pub struct Config {
     pub glass_edge: bool,
     /// The clock on the pill and in the header on a 12-hour dial.
     pub clock_12h: bool,
+    /// Keeps the last texts you copied (in memory only) for the Copiados page.
+    pub clipboard_history: bool,
     pub reduce_motion: bool,
     /// Mostra a linha atual da letra na pílula quando a ilha está recolhida.
     pub lyric_pill: bool,
@@ -228,6 +230,7 @@ impl Default for Config {
             island_color: String::new(),
             glass_edge: true,
             clock_12h: false,
+            clipboard_history: true,
             reduce_motion: false,
             lyric_pill: true,
             lyric_delay_ms: 0,

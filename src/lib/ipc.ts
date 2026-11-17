@@ -34,6 +34,23 @@ export interface Media {
 
 export type RepeatMode = "none" | "track" | "list";
 
+/** One text in the clipboard history (Copiados). The whole text stays on the Rust side. */
+export interface ClipItem {
+  id: number;
+  /** The start of the text, spacing tidied for a short card. */
+  preview: string;
+  chars: number;
+  /** Unix ms */
+  at: number;
+}
+
+let devClips: ClipItem[] = [
+  { id: 3, preview: "https://github.com/FelypeSposito/Docky", chars: 38, at: Date.now() - 40_000 },
+  { id: 2, preview: "Reunião remarcada para quinta às 15h, mesmo link do Meet.", chars: 58, at: Date.now() - 12 * 60_000 },
+  { id: 1, preview: "npm run tauri build", chars: 19, at: Date.now() - 3 * 3_600_000 },
+];
+const devClipsChanged = () => window.dispatchEvent(new CustomEvent("docky:clipboard", { detail: devClips }));
+
 export interface DownloadDone {
   name: string;
   path: string;
@@ -504,6 +521,35 @@ export const ipc = {
   async shelfTrash(paths: string[]): Promise<{ sent: number; skipped: number }> {
     if (isTauri) return invoke("shelf_trash", { paths });
     return { sent: paths.length, skipped: 0 };
+  },
+
+  async clipboardHistory(): Promise<ClipItem[]> {
+    return isTauri ? invoke<ClipItem[]>("clipboard_history") : devClips;
+  },
+
+  onClipboard(handler: (items: ClipItem[]) => void): Unlisten {
+    return isTauri ? subscribe("clipboard", handler) : devListen("docky:clipboard", handler);
+  },
+
+  /** Puts an older text back on the clipboard; it moves to the top of the history. */
+  async clipboardCopy(id: number): Promise<void> {
+    if (isTauri) return invoke<void>("clipboard_copy", { id });
+    const item = devClips.find((c) => c.id === id);
+    if (!item) throw new Error("Esse texto não está mais no histórico");
+    devClips = [{ ...item, at: Date.now() }, ...devClips.filter((c) => c.id !== id)];
+    devClipsChanged();
+  },
+
+  async clipboardRemove(id: number): Promise<void> {
+    if (isTauri) return invoke<void>("clipboard_remove", { id });
+    devClips = devClips.filter((c) => c.id !== id);
+    devClipsChanged();
+  },
+
+  async clipboardClear(): Promise<void> {
+    if (isTauri) return invoke<void>("clipboard_clear");
+    devClips = [];
+    devClipsChanged();
   },
 
   /** How many items the Recycle Bin holds; null when Windows cannot tell. */

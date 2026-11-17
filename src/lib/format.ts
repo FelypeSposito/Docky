@@ -15,6 +15,15 @@ export function formatDate(date: Date, withYear = true): string {
   return withYear ? `${day} ${date.getFullYear()}` : day;
 }
 
+/** "agora", "há 5 min", "há 2 h" or, from yesterday on, the date: how long ago something was copied. */
+export function formatAgo(ms: number, now: Date = new Date()): string {
+  const minutes = Math.floor((now.getTime() - ms) / 60_000);
+  if (minutes < 1) return "agora";
+  if (minutes < 60) return `há ${minutes} min`;
+  if (minutes < 24 * 60) return `há ${Math.floor(minutes / 60)} h`;
+  return formatNoteDate(ms, now);
+}
+
 /** "hoje · 16:30", "ontem · 09:05" ou "28 out · 18:10": quando uma nota foi alterada, em poucas palavras. */
 export function formatNoteDate(ms: number, now: Date = new Date()): string {
   const date = new Date(ms);

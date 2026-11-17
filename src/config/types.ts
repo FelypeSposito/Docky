@@ -33,6 +33,8 @@ export interface Config {
   glassEdge: boolean;
   /** The clock on the pill and in the header on a 12-hour dial. */
   clock12h: boolean;
+  /** Keeps the last texts you copied (in memory only) for the Copiados page. */
+  clipboardHistory: boolean;
   reduceMotion: boolean;
   lyricPill: boolean;
   lyricDelayMs: number;
@@ -116,6 +118,7 @@ export const DEFAULT_CONFIG: Config = {
   islandColor: "",
   glassEdge: true,
   clock12h: false,
+  clipboardHistory: true,
   reduceMotion: false,
   lyricPill: true,
   lyricDelayMs: 0,

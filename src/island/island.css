@@ -1722,6 +1722,42 @@
 .nact button.del:hover {
   color: #ff6b6b;
 }
+/* Copiados: the notes' cards, two lines of text each. The one on the clipboard now is ringed; the last cell clears. */
+.clist .ccard p {
+  -webkit-line-clamp: 2;
+  padding-right: 18px;
+  overflow-wrap: anywhere;
+}
+.clist .ccard.current {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 45%, transparent);
+}
+.clist .ccard.copied {
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 16%, rgba(255, 255, 255, 0.04));
+}
+.ccard .cok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent, #ff5c7a);
+  font-weight: 600;
+}
+.ccard .cerr {
+  color: #ff7b80;
+}
+.clist .cclear {
+  justify-content: center;
+  align-items: center;
+  color: var(--ink3);
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.clist .cclear:hover {
+  color: #ff7b80;
+  background: rgba(255, 92, 122, 0.08);
+}
+
 /* Note colors: the card takes a tint of its color, the date picks it up, and the pin ring follows it. */
 .nlist .ncard.tinted {
   background: color-mix(in srgb, var(--nc) 17%, rgba(255, 255, 255, 0.04));

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, formatDate, formatNoteDate } from "./format";
+import { formatAgo, formatClock, formatDate, formatNoteDate } from "./format";
 
 describe("format", () => {
   it("formata a hora com zero à esquerda", () => {
@@ -17,6 +17,26 @@ describe("format", () => {
   it("formata a data em português", () => {
     expect(formatDate(new Date(2026, 9, 30))).toBe("sex 30 out 2026");
     expect(formatDate(new Date(2026, 0, 4))).toBe("dom 04 jan 2026");
+  });
+});
+
+describe("formatAgo", () => {
+  const now = new Date(2026, 9, 31, 18, 0);
+  const ago = (minutes: number) => now.getTime() - minutes * 60_000;
+
+  it("diz agora, minutos ou horas", () => {
+    expect(formatAgo(ago(0.5), now)).toBe("agora");
+    expect(formatAgo(ago(5), now)).toBe("há 5 min");
+    expect(formatAgo(ago(59), now)).toBe("há 59 min");
+    expect(formatAgo(ago(125), now)).toBe("há 2 h");
+  });
+
+  it("depois de um dia, mostra a data", () => {
+    expect(formatAgo(ago(26 * 60), now)).toBe("ontem · 16:00");
+  });
+
+  it("um relógio adiantado não vira tempo negativo", () => {
+    expect(formatAgo(now.getTime() + 60_000, now)).toBe("agora");
   });
 });
 
