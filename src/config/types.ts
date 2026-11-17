@@ -55,6 +55,8 @@ export interface Config {
   timerSound: boolean;
   /** Data e hora no cabeçalho da ilha aberta. */
   headerClock: boolean;
+  /** Where the island sits along the top edge: 0 = flush left, 0.5 = centered, 1 = flush right. */
+  islandPosition: number;
   claudeWorkStrip: boolean;
   hiddenPages: string[];
   weatherUnit: "c" | "f";
@@ -123,6 +125,7 @@ export const DEFAULT_CONFIG: Config = {
   callPill: true,
   timerSound: true,
   headerClock: true,
+  islandPosition: 0.5,
   claudeWorkStrip: true,
   hiddenPages: [],
   weatherUnit: "c",

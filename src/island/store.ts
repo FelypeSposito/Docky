@@ -13,6 +13,8 @@ interface IslandStore {
   /** O mouse está sobre a pílula recolhida (com "abrir ao passar o mouse" desligado): mostra o player ou o resumo. */
   peek: boolean;
   setPeek: (peek: boolean) => void;
+  /** The island is being dragged along the top edge: hovering must not open or close it meanwhile. */
+  moving: boolean;
   page: string;
   /** O lugar no cabeçalho da ilha aberta onde a página põe o campo dela (a busca, a nota rápida). */
   headerSlot: HTMLElement | null;
@@ -33,6 +35,7 @@ export const useIslandStore = create<IslandStore>((set) => ({
   large: false,
   overlay: null,
   peek: false,
+  moving: false,
   setPeek: (peek) => set((s) => (s.peek === peek ? s : { peek })),
   page: "music",
   headerSlot: null,

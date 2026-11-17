@@ -37,6 +37,7 @@ pub struct Shortcut {
 
 /// Arruma a configuração antes de usar e de gravar: ids dos atalhos, caminhos de pasta e membros das seções.
 pub fn normalize(config: &mut Config) {
+    config.island_position = if config.island_position.is_finite() { config.island_position.clamp(0.0, 1.0) } else { 0.5 };
     normalize_shortcuts(&mut config.shortcuts);
     normalize_paths(config);
     normalize_sections(&mut config.shortcut_sections, &config.shortcuts);
@@ -154,6 +155,8 @@ pub struct Config {
     pub call_pill: bool,
     /// Data e hora no cabeçalho da ilha aberta.
     pub header_clock: bool,
+    /// Where the island sits along the top edge: 0 = flush left, 0.5 = centered, 1 = flush right.
+    pub island_position: f64,
     /// Faixa "Claude trabalhando" na ilha recolhida.
     pub claude_work_strip: bool,
     /// Páginas escondidas do dock (ids).
@@ -234,6 +237,7 @@ impl Default for Config {
             notice_download: true,
             call_pill: true,
             header_clock: true,
+            island_position: 0.5,
             claude_work_strip: true,
             hidden_pages: Vec::new(),
             weather_unit: "c".into(),

@@ -89,6 +89,20 @@ function AreaContent({ id }: { id: AreaId }) {
               <Toggle label="Seguir o cursor" value={config.followCursor} onChange={(v) => update({ followCursor: v })} />
             </Row>
           </Group>
+          <Group title="Posição">
+            <Row label="Lugar no topo" hint="Ou arraste a ilha para os lados, pela pílula ou pelo cabeçalho quando aberta">
+              <Segmented
+                label="Lugar no topo"
+                value={config.islandPosition === 0 ? "left" : config.islandPosition === 1 ? "right" : config.islandPosition === 0.5 ? "center" : "custom"}
+                options={[
+                  { value: "left", label: "Esquerda" },
+                  { value: "center", label: "Centro" },
+                  { value: "right", label: "Direita" },
+                ]}
+                onChange={(v) => update({ islandPosition: v === "left" ? 0 : v === "right" ? 1 : 0.5 })}
+              />
+            </Row>
+          </Group>
           <Group title="Ilha aberta">
             <Row label="Data e hora no topo" hint="Desligado, a busca dos atalhos ocupa o cabeçalho inteiro">
               <Toggle label="Data e hora no topo" value={config.headerClock} onChange={(v) => update({ headerClock: v })} />

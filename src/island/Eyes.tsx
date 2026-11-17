@@ -19,9 +19,15 @@ const MAX_HEAD_SHIFT = 1.6;
 const GLANCE_AFTER_MS = 4500;
 const SLEEP_AFTER_MS = 60_000;
 
+/** The middle of the island, in window pixels (the window spans the screen and the island can sit anywhere on it). */
+function islandCenter(): number {
+  const box = document.querySelector(".island")?.getBoundingClientRect();
+  return box ? box.left + box.width / 2 : window.innerWidth / 2;
+}
+
 /** Para onde olhar, conforme o humor: lendo (de um lado a outro), no botão Permitir, ou no cursor. */
 function lookTarget(mood: EyesMood, now: number, follow: boolean, glance: { x: number; y: number }, sleeping: boolean) {
-  const center = window.innerWidth / 2;
+  const center = islandCenter();
   if (mood === "work") return { x: center + Math.sin(now / 1000 * 1.7) * 170, y: 40 + Math.sin(now / 1000 * 0.6) * 8 };
   if (mood === "ask") {
     const button = document.getElementById("docky-allow")?.getBoundingClientRect();
@@ -52,7 +58,7 @@ export const Eyes = memo(function Eyes({ mood, follow, shake, phase = "open" }: 
     const pupils = eyes.map((eye) => eye.querySelector<HTMLElement>(".pupil")!);
     const offsets = eyes.map(() => ({ x: 0, y: 0 }));
     const shift = { x: 0, y: 0 };
-    let glance = { x: window.innerWidth / 2, y: 140 };
+    let glance = { x: islandCenter(), y: 140 };
     let raf = 0;
     let last = performance.now();
     let sleeping = false;
@@ -109,7 +115,7 @@ export const Eyes = memo(function Eyes({ mood, follow, shake, phase = "open" }: 
     let glanceTimer: ReturnType<typeof setTimeout>;
     const scheduleGlance = () => {
       glanceTimer = setTimeout(() => {
-        glance = { x: Math.random() * window.innerWidth, y: Math.random() * 260 };
+        glance = { x: islandCenter() + (Math.random() - 0.5) * 720, y: Math.random() * 260 };
         start();
         scheduleGlance();
       }, 1700 + Math.random() * 3400);

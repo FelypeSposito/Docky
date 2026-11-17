@@ -22,6 +22,7 @@ import { BatteryIcon, BellIcon, BoltIcon, ClaudeSpinner, MicIcon, MicOffIcon, Eq
 import { bodyHeight, CHIP_WIDTH, type ClaudeActivity, claudeBadge, EXPANDED_LARGE, type Mode, resolveMode, SIZES } from "./modes";
 import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
+import { useIslandDrag } from "./useIslandDrag";
 import { visiblePages } from "./pageOrder";
 import { useIslandStore } from "./store";
 import celebrateSvg from "../assets/clawd/clawd-celebrating.svg";
@@ -238,10 +239,13 @@ export function Island() {
   useEffect(() => {
     const controller = createHoverController({
       canExpand: () =>
-        hoverOpen.current && !useIslandStore.getState().expanded && useClaudeStore.getState().permissions.length === 0,
+        hoverOpen.current &&
+        !useIslandStore.getState().expanded &&
+        !useIslandStore.getState().moving &&
+        useClaudeStore.getState().permissions.length === 0,
       canCollapse: () => {
-        const { expanded, pinned } = useIslandStore.getState();
-        return expanded && !pinned;
+        const { expanded, pinned, moving } = useIslandStore.getState();
+        return expanded && !pinned && !moving;
       },
       expand: () => useIslandStore.getState().expand(),
       collapse: () => useIslandStore.getState().collapse(),
@@ -251,8 +255,11 @@ export function Island() {
       expandDelay: 220,
       collapseDelay: 260,
       canExpand: () =>
-        !hoverOpen.current && !useIslandStore.getState().expanded && useClaudeStore.getState().permissions.length === 0,
-      canCollapse: () => useIslandStore.getState().peek,
+        !hoverOpen.current &&
+        !useIslandStore.getState().expanded &&
+        !useIslandStore.getState().moving &&
+        useClaudeStore.getState().permissions.length === 0,
+      canCollapse: () => useIslandStore.getState().peek && !useIslandStore.getState().moving,
       expand: () => useIslandStore.getState().setPeek(true),
       collapse: () => useIslandStore.getState().setPeek(false),
     });
@@ -285,18 +292,41 @@ export function Island() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Where the island sits along the top edge (0 flush left, 0.5 centered, 1 flush right); the window spans the screen.
+  const spot = Number.isFinite(config.islandPosition) ? Math.min(1, Math.max(0, config.islandPosition)) : 0.5;
+  /** The island's target box in the window at `pos`: the Rust side only takes clicks over it. */
+  const rectAt = (pos: number) => ({ x: pos * (window.innerWidth - size.w), y: 0, w: size.w, h: size.h });
+  const rectFor = useRef(rectAt);
+  rectFor.current = rectAt;
+
   // Diz ao Rust onde a ilha vai ficar (alvo), para ele aceitar cliques só em cima dela.
   useEffect(() => {
-    const report = () => ipc.setIslandRect({ x: (window.innerWidth - size.w) / 2, y: 0, w: size.w, h: size.h });
+    const report = () => ipc.setIslandRect(rectFor.current(spot));
     report();
     window.addEventListener("resize", report);
     return () => window.removeEventListener("resize", report);
-  }, [size.w, size.h]);
+  }, [size.w, size.h, spot]);
+
+  const drag = useIslandDrag(notchRef, spot, {
+    // Open, only the header moves it (the pages have sliders and tiles to drag); closed, the whole pill does.
+    canStart: (target) => !useIslandStore.getState().expanded || !!target.closest(".hdr"),
+    onStart: () => {
+      useIslandStore.setState({ moving: true });
+      // While dragging, the whole strip takes the mouse, so a fast move never slips out of the window.
+      ipc.setIslandRect({ x: 0, y: 0, w: window.innerWidth, h: window.innerHeight });
+    },
+    onEnd: (next) => {
+      useIslandStore.setState({ moving: false });
+      ipc.setIslandRect(rectFor.current(next));
+      if (next !== spot) useConfigStore.getState().update({ islandPosition: next });
+    },
+  });
 
   const clock = useMemo(() => formatClock(now), [now]);
   const date = useMemo(() => formatDate(now, false), [now]);
 
   const onIslandClick = (e: React.MouseEvent) => {
+    if (drag.justDragged()) return;
     if ((e.target as HTMLElement).closest("button, input, .track, [role=button]")) return;
     useIslandStore.getState().togglePin();
   };
@@ -328,7 +358,7 @@ export function Island() {
     <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}`} data-mode={mode}>
       <div className="ear l" />
       <div className="ear r" />
-      <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick}>
+      <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick} onPointerDown={drag.onPointerDown}>
         <div className={`glow${mode === "expanded" ? " on" : ""}`} />
         {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
         {clawdInEyes && (

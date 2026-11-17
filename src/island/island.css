@@ -10,14 +10,27 @@
   initial-value: #7a3cff;
 }
 
+/* The window spans the top of the screen; --pos puts the island along it (0 flush left, 0.5 centered, 1 flush right).
+   The island's left side lands on --pos x (screen width - island width): the ears hang off the screen at the edges. */
 .notch {
+  --pos: 0.5;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: calc(var(--pos) * (100% + 32px) - 16px);
+  transform: translateX(calc(var(--pos) * -100%));
   width: 246px;
   height: 36px;
   pointer-events: none;
+  transition: left 0.55s var(--ease), transform 0.55s var(--ease);
+}
+.notch.moving {
+  transition: none;
+}
+.notch.moving .island {
+  cursor: grabbing;
+}
+.reduce-motion .notch {
+  transition: none;
 }
 
 .island {

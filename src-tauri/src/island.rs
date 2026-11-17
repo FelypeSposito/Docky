@@ -10,8 +10,9 @@ use tauri::{AppHandle, Emitter, LogicalSize, Manager, Monitor, PhysicalPosition,
 
 use crate::config::ConfigState;
 
-/// A janela é um painel transparente fixo no topo da tela; a ilha em si é desenhada pelo frontend.
-/// Cabe a ilha na versão maior das páginas (640 x 400 mais as orelhas); fora da ilha a janela não recebe cliques.
+/// A janela é um painel transparente que cobre a faixa de cima da tela, de ponta a ponta; a ilha em si é desenhada
+/// pelo frontend, centralizada ou arrastada para um dos lados. Cabe a ilha na versão maior das páginas (640 x 400
+/// mais as orelhas); fora da ilha a janela não recebe cliques.
 const WINDOW_WIDTH: f64 = 720.0;
 const WINDOW_HEIGHT: f64 = 440.0;
 
@@ -123,14 +124,19 @@ fn create(app: &AppHandle, label: &str) -> tauri::Result<WebviewWindow> {
         .build()
 }
 
-/// Centraliza a janela no topo da tela, sem capturar cliques.
+/// Logical width of the island window on a screen: the whole screen, so the island can sit anywhere along the top
+/// edge, and never narrower than the island itself.
+fn strip_width(monitor_width: u32, scale: f64) -> f64 {
+    (monitor_width as f64 / scale).floor().max(WINDOW_WIDTH)
+}
+
+/// Põe a janela na faixa de cima da tela, de ponta a ponta, sem capturar cliques.
 fn place_on(window: &WebviewWindow, monitor: &Monitor) -> tauri::Result<()> {
-    let scale = monitor.scale_factor();
-    let width = (WINDOW_WIDTH * scale).round() as i32;
-    let at = PhysicalPosition::new(monitor.position().x + (monitor.size().width as i32 - width) / 2, monitor.position().y);
+    let width = strip_width(monitor.size().width, monitor.scale_factor());
+    let at = PhysicalPosition::new(monitor.position().x, monitor.position().y);
     // Posição, tamanho, posição: o tamanho lógico depende da escala da tela onde a janela está.
     window.set_position(at)?;
-    window.set_size(LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT))?;
+    window.set_size(LogicalSize::new(width, WINDOW_HEIGHT))?;
     window.set_position(at)?;
     window.set_always_on_top(true)?;
     window.set_ignore_cursor_events(true)
@@ -215,7 +221,16 @@ fn apply(app: &AppHandle) {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_island, pick_screens};
+    use super::{is_island, pick_screens, strip_width};
+
+    #[test]
+    fn a_janela_cobre_a_tela_toda_em_qualquer_escala() {
+        assert_eq!(strip_width(1920, 1.0), 1920.0);
+        assert_eq!(strip_width(3840, 1.5), 2560.0);
+        assert_eq!(strip_width(2560, 1.25), 2048.0);
+        // A tiny or very scaled screen still fits the large island.
+        assert_eq!(strip_width(800, 2.0), 720.0);
+    }
 
     fn ids(list: &[&str]) -> Vec<String> {
         list.iter().map(|s| s.to_string()).collect()
