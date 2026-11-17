@@ -124,6 +124,16 @@ janelas e faria uma ilha abrir e fechar a outra. Apps, links, notas e configura�
 Com a letra da música ativa e o Claude Code trabalhando, a letra continua e um selo animado do Claude aparece no
 canto da pílula; sem letra, a faixa "Claude trabalhando" aparece como antes.
 
+## Licença
+
+MIT: veja [LICENSE](LICENSE). As animações do Clawd vêm do clawd-pet, também MIT (`src/assets/clawd/LICENSE`).
+
+## Desinstalar
+
+O desinstalador tira os hooks do Docky do `~/.claude/settings.json` (só os do Docky; os seus ficam). As
+configurações ficam em `%APPDATA%\com.docky.desktop`, e o registro de erros em `%LOCALAPPDATA%\com.docky.desktop\logs`
+(Configurações, Geral, Sobre, Registros).
+
 ## Teclas globais
 
 Ctrl+Alt+D abre e fecha a ilha, Ctrl+Alt+←/→ trocam de página e Ctrl+Alt+N abre a nota rápida.

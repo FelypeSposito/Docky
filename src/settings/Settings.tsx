@@ -99,6 +99,11 @@ function AreaContent({ id }: { id: AreaId }) {
                 Abrir no GitHub
               </button>
             </Row>
+            <Row label="Registros" hint="Um arquivo com os erros do Docky, só no seu computador. Anexe ao relatar um problema">
+              <button className="btn" onClick={() => void ipc.openLogs()}>
+                Abrir a pasta
+              </button>
+            </Row>
           </Group>
         </>
       );

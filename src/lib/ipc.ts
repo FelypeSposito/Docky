@@ -534,6 +534,17 @@ export const ipc = {
     return { sent: paths.length, skipped: 0 };
   },
 
+  /** Writes a line to Docky's log file (errors the interface catches). */
+  log(level: "error" | "warn" | "info", message: string): void {
+    if (isTauri) void invoke("log_write", { level, message }).catch(() => {});
+    else console[level === "info" ? "log" : level](`[docky] ${message}`);
+  },
+
+  /** Opens the folder with Docky's log file, to attach it to a bug report. */
+  openLogs(): Promise<void> {
+    return isTauri ? invoke<void>("open_logs") : Promise.resolve();
+  },
+
   async clipboardHistory(): Promise<ClipItem[]> {
     return isTauri ? invoke<ClipItem[]>("clipboard_history") : devClips;
   },

@@ -64,7 +64,18 @@ export function CalendarSection() {
               Desconectar
             </button>
           ) : (
-            <button className="btn primary" disabled={busy || !status?.configured} onClick={() => run(() => ipc.calendarConnect())}>
+            <button
+              className="btn primary"
+              disabled={busy || !status?.configured}
+              onClick={() =>
+                run(async () => {
+                  await ipc.calendarConnect();
+                  // Connected: the Agenda page comes into the dock, if it was hidden (new installs start without it).
+                  const hidden = useConfigStore.getState().config.hiddenPages;
+                  if (hidden.includes("cal")) useConfigStore.getState().update({ hiddenPages: hidden.filter((id) => id !== "cal") });
+                })
+              }
+            >
               {busy ? "Aguardando o login…" : "Conectar"}
             </button>
           )}

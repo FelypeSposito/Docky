@@ -402,6 +402,21 @@ pub fn claude_hooks_install(state: State<ClaudeState>) -> Result<(), String> {
     write_settings(&path, &settings)
 }
 
+/// On uninstall: takes Docky's hooks out of Claude Code's settings, if they are there. A missing settings file
+/// stays missing.
+pub fn remove_hooks_if_installed() -> Result<(), String> {
+    let path = settings_path().ok_or("não achei a pasta do usuário")?;
+    if !path.exists() {
+        return Ok(());
+    }
+    let mut settings = read_settings(&path)?;
+    if !claude_hooks::is_installed(&settings) {
+        return Ok(());
+    }
+    claude_hooks::remove(&mut settings);
+    write_settings(&path, &settings)
+}
+
 #[tauri::command]
 pub fn claude_hooks_remove() -> Result<(), String> {
     let path = settings_path().ok_or("não achei a pasta do usuário")?;

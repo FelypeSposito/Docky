@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Docky",
-  "version": "0.2.22",
+  "version": "0.2.23",
   "identifier": "com.docky.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -51,7 +51,8 @@
         "installMode": "currentUser",
         "displayLanguageSelector": false,
         "languages": ["PortugueseBR", "English"],
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "installerHooks": "windows/hooks.nsh"
       }
     }
   }

@@ -146,7 +146,7 @@ export const DEFAULT_CONFIG: Config = {
   headerClock: true,
   islandPosition: 0.5,
   claudeWorkStrip: true,
-  hiddenPages: [],
+  hiddenPages: ["cal"],
   weatherUnit: "c",
   shelfMove: false,
   shelfTrash: true,

@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { useConfigStore, useConfigSync } from "./config/useConfig";
-import { isTauri } from "./lib/ipc";
+import { ipc, isTauri } from "./lib/ipc";
 import { Island } from "./island/Island";
 import { Settings } from "./settings/Settings";
 import "@fontsource-variable/inter/wght.css";
@@ -25,6 +25,10 @@ function Root({ label }: { label: string }) {
   }, [reduceMotion]);
   return label === "settings" ? <Settings /> : <Island />;
 }
+
+// Errors nobody caught go to Docky's log file, so a bug report can carry them.
+window.addEventListener("error", (e) => ipc.log("error", `${e.message} (${e.filename}:${e.lineno})`));
+window.addEventListener("unhandledrejection", (e) => ipc.log("error", `promessa sem tratamento: ${e.reason instanceof Error ? e.reason.message : String(e.reason)}`));
 
 windowLabel().then((label) => {
   document.body.dataset.window = label;

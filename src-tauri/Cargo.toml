@@ -1,8 +1,10 @@
 [package]
 name = "docky"
-version = "0.2.22"
+version = "0.2.23"
 description = "Docky — uma ilha dinâmica para o Windows"
-authors = ["Docky"]
+authors = ["Felype Sposito"]
+license = "MIT"
+repository = "https://github.com/FelypeSposito/Docky"
 edition = "2024"
 
 [lib]
@@ -25,7 +27,7 @@ base64 = "0.22"
 ureq = "3"
 sha2 = "0.10"
 keyring = { version = "3", features = ["windows-native"] }
-time = { version = "0.3", features = ["parsing", "formatting", "macros"] }
+time = { version = "0.3", features = ["parsing", "formatting", "macros", "local-offset"] }
 sysinfo = "0.37"
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"

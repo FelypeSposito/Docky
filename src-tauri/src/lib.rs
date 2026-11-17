@@ -15,6 +15,7 @@ mod island;
 mod picker;
 mod placement;
 mod launcher;
+mod logfile;
 mod lyrics;
 mod call;
 mod discord;
@@ -34,6 +35,11 @@ mod weather;
 use tauri::Manager;
 use tauri::Emitter;
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
+
+/// What the uninstaller asks for before the files go: Docky's Claude Code hooks come out of `~/.claude/settings.json`.
+pub fn uninstall_cleanup() {
+    let _ = claude::remove_hooks_if_installed();
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -81,6 +87,8 @@ pub fn run() {
             shelf::shelf_trash,
             shelf::recycle_bin_count,
             shelf::open_recycle_bin,
+            logfile::log_write,
+            logfile::open_logs,
             clipboard::clipboard_history,
             clipboard::clipboard_copy,
             clipboard::clipboard_remove,
@@ -122,6 +130,7 @@ pub fn run() {
         })
         .setup(|app| {
             let handle = app.handle().clone();
+            logfile::init(&handle);
             app.manage(config::ConfigState::load(&handle));
             // O início com o Windows guarda o caminho do exe; renova para o app que está rodando agora.
             if app.state::<config::ConfigState>().get().start_with_windows {

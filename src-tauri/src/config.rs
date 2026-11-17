@@ -258,7 +258,8 @@ impl Default for Config {
             header_clock: true,
             island_position: 0.5,
             claude_work_strip: true,
-            hidden_pages: Vec::new(),
+            // The Agenda needs a Google account: a new install starts without it (Settings, or connecting, shows it).
+            hidden_pages: vec!["cal".into()],
             weather_unit: "c".into(),
             shelf_move: false,
             shelf_trash: true,
