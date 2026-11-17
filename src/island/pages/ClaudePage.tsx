@@ -4,15 +4,18 @@ import { useClaudeStore } from "../../claude/store";
 import { ipc } from "../../lib/ipc";
 import { CheckIcon, ClaudeSpinner } from "../icons";
 import celebrateSvg from "../../assets/clawd/clawd-celebrating.svg";
+import coffeeSvg from "../../assets/clawd/clawd-coffee.svg";
+import gamingSvg from "../../assets/clawd/clawd-gaming.svg";
 import idleSvg from "../../assets/clawd/clawd-idle-living.svg";
 import sadSvg from "../../assets/clawd/clawd-sad.svg";
 import waitSvg from "../../assets/clawd/clawd-notification.svg";
 import sleepSvg from "../../assets/clawd/clawd-sleeping.svg";
 import buildingSvg from "../../assets/clawd/clawd-working-building.svg";
 import { currentWork, WORK_CLAWD as WORK } from "../../claude/clawd";
+import { restAt } from "../../claude/rest";
 import { workKind } from "../../claude/sessions";
 
-type Mood = "work" | "wait" | "idle" | "sleep" | "celebrate" | "sad";
+type Mood = "work" | "wait" | "idle" | "sleep" | "coffee" | "gaming" | "celebrate" | "sad";
 
 /**
  * Clawd for each mood: ready-made animated SVGs from clawd-pet (MIT), see src/assets/clawd/README.md. Their canvas is
@@ -24,6 +27,8 @@ const CLAWD: Record<Mood, { src: string; label: string; box: number; dx: number 
   wait: { src: waitSvg, label: "Clawd chamando você", box: 45, dx: 0 },
   idle: { src: idleSvg, label: "Clawd à toa", box: 45, dx: 0 },
   sleep: { src: sleepSvg, label: "Clawd dormindo", box: 40, dx: 2.5 },
+  coffee: { src: coffeeSvg, label: "Clawd tomando café", box: 45, dx: 0 },
+  gaming: { src: gamingSvg, label: "Clawd jogando", box: 45, dx: 0 },
   celebrate: { src: celebrateSvg, label: "Clawd comemorando", box: 45, dx: 0 },
   sad: { src: sadSvg, label: "Clawd triste", box: 45, dx: 0 },
 };
@@ -78,7 +83,8 @@ export function ClaudePage({ active }: { active: boolean }) {
 
   // A reaction (session finished, permission denied) shows for a few seconds, unless a new request is waiting.
   const reacting = !waiting && reaction && now < reaction.until ? reaction.kind : null;
-  const mood: Mood = reacting ?? (waiting ? "wait" : running.length > 0 ? "work" : list.length > 0 ? "idle" : "sleep");
+  // Sessions open and nothing running: what Clawd does depends on the hour (asleep late at night, coffee in the morning).
+  const mood: Mood = reacting ?? (waiting ? "wait" : running.length > 0 ? "work" : list.length > 0 ? restAt(new Date().getHours()) : "sleep");
   // What the most recent running session is doing picks Clawd's work animation.
   const work = currentWork(running);
   const stopped = list.length - running.length;

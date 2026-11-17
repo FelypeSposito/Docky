@@ -88,7 +88,8 @@ para criar o ID do cliente está em Configurações → Integrações. Veja tamb
 Música (com letra sincronizada), Foco (Pomodoro e contador livre), Notas (fixar, colorir e excluir para a Lixeira), Shelf (pastas de destino e a Lixeira do Windows),
 Agenda (clima com chuva, sensação, umidade, vento, UV e sol), Atalhos (apps, jogos, pastas, sites e grupos, com ícone
 próprio e confirmação ao abrir), e Claude. Com os olhinhos desligados, o Clawd aparece no lugar deles enquanto o
-Claude Code trabalha.
+Claude Code trabalha. Com sessões abertas e nada rodando, a página Claude mostra o Clawd conforme a hora: dormindo
+de madrugada, tomando café de manhã e jogando à noite.
 
 A ilha fica no centro do topo ou em qualquer ponto dele, até encostada num canto: arraste pela pílula (ou pelo
 cabeçalho, com ela aberta) ou escolha em Configurações, Aparência. Duplo clique numa parte vazia a traz de volta ao
