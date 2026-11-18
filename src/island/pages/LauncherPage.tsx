@@ -153,7 +153,7 @@ export function LauncherPage({ active }: { active: boolean }) {
     return (
       <>
         {search}
-        <div className="tile lc-empty">{error}</div>
+        <div className="tile lc-empty">{t(error)}</div>
       </>
     );
   }
@@ -755,7 +755,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
       ) : (
         <>
           <div className="lcx-scroll" ref={scrollRef}>
-            {error && <div className="tile lc-empty lcx-err">{error}</div>}
+            {error && <div className="tile lc-empty lcx-err">{t(error)}</div>}
             {matches.length === 0 && !error && (
               <div className="tile lc-empty">{t(shortcuts.length === 0 ? "Nenhum atalho ainda. Toque em Editar para criar." : "Nenhum atalho com esse nome.")}</div>
             )}

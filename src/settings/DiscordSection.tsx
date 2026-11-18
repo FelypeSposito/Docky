@@ -96,7 +96,7 @@ export function DiscordSection() {
         </Row>
       </Group>
 
-      {shownError && <div className="error">{shownError}</div>}
+      {shownError && <div className="error">{t(shownError)}</div>}
 
       <Group>
         <Row label={t("Como criar o app do Discord")} hint={t("Leva uns 3 minutos e só precisa ser feito uma vez")}>

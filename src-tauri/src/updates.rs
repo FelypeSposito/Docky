@@ -12,6 +12,8 @@ use crate::config::ConfigState;
 const LATEST: &str = "https://api.github.com/repos/FelypeSposito/Docky/releases/latest";
 const FIRST_CHECK: Duration = Duration::from_secs(45);
 const EVERY: Duration = Duration::from_secs(12 * 60 * 60);
+/// A network that never answers must not stop the checks for good.
+const TIMEOUT: Duration = Duration::from_secs(20);
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -51,7 +53,9 @@ pub fn newer(current: &str, tag: &str) -> bool {
 }
 
 fn check() -> Result<Option<UpdateInfo>, String> {
-    let mut response = ureq::get(LATEST)
+    let agent = ureq::Agent::new_with_config(ureq::Agent::config_builder().timeout_global(Some(TIMEOUT)).build());
+    let mut response = agent
+        .get(LATEST)
         .header("User-Agent", "Docky-update-check")
         .header("Accept", "application/vnd.github+json")
         .call()

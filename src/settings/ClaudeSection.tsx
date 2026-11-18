@@ -77,7 +77,7 @@ export function ClaudeSection() {
         </div>
       )}
 
-      {error && <div className="error">{error}</div>}
+      {error && <div className="error">{t(error)}</div>}
 
       <Group>
         <Row label={t("Faixa “Claude trabalhando”")} hint={t("Mostra o projeto e o tempo na ilha recolhida enquanto o Claude Code roda")}>

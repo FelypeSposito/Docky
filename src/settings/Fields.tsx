@@ -277,7 +277,7 @@ function AutoIconsGroup() {
         </button>
       </Row>
       <Row label={t("Ícones que faltam")} hint={missing === 0 ? "Todos os atalhos têm ícone" : plural(missing, "atalho sem ícone", "atalhos sem ícone")}>
-        {note && <span className="hint">{note}</span>}
+        {note && <span className="hint">{t(note)}</span>}
         <button className="btn primary" disabled={busy || missing === 0} onClick={fetchNow}>
           {t(busy ? "Procurando…" : "Buscar agora")}
         </button>

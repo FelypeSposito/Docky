@@ -98,7 +98,7 @@ export function ShelfPage({ active }: { active: boolean }) {
       <div className={`tile drop${dragging ? " over" : ""}`}>
         {notice ? (
           <div className="dz">
-            <b>{notice}</b>
+            <b>{t(notice)}</b>
           </div>
         ) : paths.length > 0 ? (
           <div className="files">

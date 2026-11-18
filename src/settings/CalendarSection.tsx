@@ -100,7 +100,7 @@ export function CalendarSection() {
         </Row>
       </Group>
 
-      {error && <div className="error">{error}</div>}
+      {error && <div className="error">{t(error)}</div>}
 
       <Group>
         <Row label={t("Como criar o ID do cliente")} hint={t("Leva uns 5 minutos e só precisa ser feito uma vez")}>
