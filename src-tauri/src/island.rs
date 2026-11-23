@@ -232,6 +232,7 @@ fn apply(app: &AppHandle) {
         let _ = if hidden { window.hide() } else { window.show() };
     }
     crate::dock::set_visible(app, !hidden);
+    crate::glass::island_shown(app, !hidden);
     // A faixa reservada no topo acompanha as telas da ilha e o esconder pela bandeja.
     reserve::sync(app);
 }

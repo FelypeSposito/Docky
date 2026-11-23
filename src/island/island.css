@@ -71,20 +71,34 @@
   /* No drop shadow: the window is cut to the island's outline (glass.rs), so it would be clipped anyway. */
   box-shadow:
     inset 0 -1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -16px 24px -18px rgba(255, 255, 255, 0.24),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
+    inset 0 -16px 24px -18px rgba(255, 255, 255, 0.24);
   /* The gel stretch (hooks.ts) hangs from the top edge, like the island itself. */
   transform-origin: 50% 0;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
+/* The ears are the same glass: the same fill, and the rim of light running on along their curve into the island's
+   sides, which in glass are lit from where the ears end (16px) down. */
+.notch.glass {
+  --ear-rim: rgba(255, 255, 255, 0.2);
+}
 .notch.glass .ear.l {
-  background: radial-gradient(circle at 0 100%, transparent 15.4px, var(--glass-fill) 16px);
+  background:
+    radial-gradient(circle at 0 100%, transparent 15.5px, var(--ear-rim) 16.3px, transparent 17.3px),
+    radial-gradient(circle at 0 100%, transparent 15.4px, var(--glass-fill) 16px);
 }
 .notch.glass .ear.r {
-  background: radial-gradient(circle at 100% 100%, transparent 15.4px, var(--glass-fill) 16px);
+  background:
+    radial-gradient(circle at 100% 100%, transparent 15.5px, var(--ear-rim) 16.3px, transparent 17.3px),
+    radial-gradient(circle at 100% 100%, transparent 15.4px, var(--glass-fill) 16px);
+}
+.notch.glass .island::after {
+  background: linear-gradient(180deg, transparent 0 16px, var(--ear-rim) 16px, rgba(255, 255, 255, 0.24) 100%);
+}
+.notch.glass.no-glass .ear {
+  --ear-rim: transparent;
 }
 /* The specular rim: brightest where the light is (--light, 0deg = up), a softer bounce on the far side, and nothing
-   along the top, where the island meets the screen's edge. */
+   along the top, where the island meets the screen's edge and its ears. */
 .notch.glass .island::before {
   content: "";
   position: absolute;
@@ -106,7 +120,7 @@
     rgba(255, 255, 255, 0.95) 360deg
   );
   mask:
-    linear-gradient(180deg, transparent 0, #000 45%) intersect,
+    linear-gradient(180deg, transparent 0 14px, #000 60%) intersect,
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
   opacity: 0.6;

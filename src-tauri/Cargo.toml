@@ -1,6 +1,6 @@
 [package]
 name = "docky"
-version = "0.4.0"
+version = "0.4.1"
 description = "Docky — uma ilha dinâmica para o Windows"
 authors = ["Felype Sposito"]
 license = "MIT"
@@ -36,8 +36,20 @@ tauri-plugin-global-shortcut = "2"
 [target.'cfg(windows)'.dependencies]
 # The `implement` macro of `windows` expands to paths in `windows_core`, so it has to be a direct dependency.
 windows-core = "0.61"
+windows-numerics = "0.2"
 windows = { version = "0.61", features = [
   "Foundation",
+  "Foundation_Numerics",
+  "Graphics",
+  "System",
+  "UI",
+  "UI_Composition",
+  "UI_Composition_Desktop",
+  "Win32_Graphics_Direct2D",
+  "Win32_Graphics_Direct2D_Common",
+  "Win32_System_WinRT",
+  "Win32_System_WinRT_Composition",
+  "Win32_System_WinRT_Graphics_Direct2D",
   "Devices_Bluetooth",
   "Media_Control",
   "Storage_Streams",

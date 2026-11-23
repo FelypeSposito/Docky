@@ -136,6 +136,44 @@ body[data-window="dock"] {
   background: radial-gradient(circle at 0 100%, transparent 15.4px, var(--fill) 16px);
 }
 
+/* In glass, the ears carry the slab's rim of light along their curve. */
+.td-root.glass {
+  --ear-rim: rgba(255, 255, 255, 0.2);
+}
+.td-root.glass.no-edge {
+  --ear-rim: transparent;
+}
+.td-root.glass.side-bottom .td-ear.a {
+  background:
+    radial-gradient(circle at 0 0, transparent 15.5px, var(--ear-rim) 16.3px, transparent 17.3px),
+    radial-gradient(circle at 0 0, transparent 15.4px, var(--fill) 16px);
+}
+.td-root.glass.side-bottom .td-ear.b {
+  background:
+    radial-gradient(circle at 100% 0, transparent 15.5px, var(--ear-rim) 16.3px, transparent 17.3px),
+    radial-gradient(circle at 100% 0, transparent 15.4px, var(--fill) 16px);
+}
+.td-root.glass.side-left .td-ear.a {
+  background:
+    radial-gradient(circle at 100% 0, transparent 15.5px, var(--ear-rim) 16.3px, transparent 17.3px),
+    radial-gradient(circle at 100% 0, transparent 15.4px, var(--fill) 16px);
+}
+.td-root.glass.side-left .td-ear.b {
+  background:
+    radial-gradient(circle at 100% 100%, transparent 15.5px, var(--ear-rim) 16.3px, transparent 17.3px),
+    radial-gradient(circle at 100% 100%, transparent 15.4px, var(--fill) 16px);
+}
+.td-root.glass.side-right .td-ear.a {
+  background:
+    radial-gradient(circle at 0 0, transparent 15.5px, var(--ear-rim) 16.3px, transparent 17.3px),
+    radial-gradient(circle at 0 0, transparent 15.4px, var(--fill) 16px);
+}
+.td-root.glass.side-right .td-ear.b {
+  background:
+    radial-gradient(circle at 0 100%, transparent 15.5px, var(--ear-rim) 16.3px, transparent 17.3px),
+    radial-gradient(circle at 0 100%, transparent 15.4px, var(--fill) 16px);
+}
+
 /* The content at its natural size, held to the edge's centre; the slab grows and shrinks around it. */
 .td-in {
   position: absolute;

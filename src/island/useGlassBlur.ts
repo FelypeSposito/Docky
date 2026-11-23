@@ -2,8 +2,8 @@ import { type RefObject, useEffect } from "react";
 import { isTauri } from "../lib/ipc";
 
 /**
- * Real blur behind the liquid glass (glass.rs): Windows' acrylic on the island's window, with the window cut to the
- * island's outline so only the glass is frosted, not the whole top strip.
+ * Real blur behind the liquid glass (glass.rs): a blur window just under the island's, clipped to the island's
+ * outline (body and ears) so only the glass is frosted, not the whole top strip.
  *
  * The outline is sent while it changes (springs, the gel stretch, a press, dragging and gliding) and the loop stops
  * once it has held still for a few frames, so a resting island costs nothing.
