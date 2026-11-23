@@ -36,6 +36,8 @@ import codingSvg from "../assets/clawd/clawd-coding.svg";
 import coffeeSvg from "../assets/clawd/clawd-coffee.svg";
 import gamingSvg from "../assets/clawd/clawd-gaming.svg";
 import yogaSvg from "../assets/clawd/clawd-yoga.svg";
+import dancingSvg from "../assets/clawd/clawd-dancing.svg";
+import musicSvg from "../assets/clawd/clawd-music.svg";
 import { formatElapsed, formatMinutes, startActivitySync, useActivityStore } from "./activity";
 import { ClawdMini } from "./ClawdMini";
 import { DiscordButtons, DiscordCall } from "./DiscordCall";
@@ -377,9 +379,12 @@ export function Island() {
   const eyesMood: EyesMood = mode === "ask" ? "ask" : mode === "work" ? "work" : mode === "charge" || mode === "done" || mode === "timer" || mode === "reminder" ? "wide" : "normal";
   const workSeconds = useSeconds(mode === "work" ? running[0]?.since : undefined);
   const work = currentWork(running);
-  // With the eyes turned off, Clawd takes their place while Claude Code works (or waits for you). It is an animation,
+  // With the eyes turned off, Clawd takes their place while Claude Code works (or waits for you). The rest of the time
+  // (Settings, Aparência, "Clawd sempre visível") he dances, or listens along while music plays. It is an animation,
   // so "reduce motion" keeps the spot empty.
-  const clawdInEyes = eyesPhase === "gone" && !config.reduceMotion ? (asking ? WAIT_CLAWD : running.length > 0 ? WORK_CLAWD[work].src : null) : null;
+  const restingClawd = config.clawdAlways ? (playing ? musicSvg : dancingSvg) : null;
+  const clawdInEyes = eyesPhase === "gone" && !config.reduceMotion ? (asking ? WAIT_CLAWD : running.length > 0 ? WORK_CLAWD[work].src : restingClawd) : null;
+  const clawdTitle = asking ? t("O Claude espera você") : running.length > 0 ? `Claude ${t(WORK_CLAWD[work].doing)}` : t(playing ? "O Clawd ouvindo junto" : "O Clawd dançando");
 
   const islandStyle = {
     "--glow-opacity": glowOpacity(config.glow),
@@ -403,7 +408,7 @@ export function Island() {
         {glass && <i className="lq-glow" aria-hidden="true" />}
         {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
         {clawdInEyes && (
-          <span className="eyes-clawd" title={asking ? t("O Claude espera você") : `Claude ${t(WORK_CLAWD[work].doing)}`}>
+          <span className="eyes-clawd" title={clawdTitle}>
             <ClawdMini key={clawdInEyes} src={clawdInEyes} show />
           </span>
         )}

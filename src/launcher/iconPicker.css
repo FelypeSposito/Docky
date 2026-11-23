@@ -81,7 +81,7 @@
   color: #fff;
 }
 .ip-grid button:active {
-  transform: scale(0.92);
+  transform: scale(0.96);
 }
 .ip-grid button.on {
   background: var(--accent, #ff5c7a);

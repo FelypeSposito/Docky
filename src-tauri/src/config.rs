@@ -122,6 +122,9 @@ pub struct Config {
     /// Reserva uma faixa no topo das telas da ilha: as janelas maximizadas começam abaixo da pílula.
     pub reserve_space: bool,
     pub eyes: bool,
+    /// With the eyes off, Clawd stays in their place all the time (dancing, or listening when music plays), not
+    /// only while Claude Code works.
+    pub clawd_always: bool,
     pub follow_cursor: bool,
     pub glow: u8,
     /// The island's color (see `island/theme.ts`); empty = taken from the album cover of what is playing.
@@ -241,6 +244,7 @@ impl Default for Config {
             hide_in_fullscreen: true,
             reserve_space: false,
             eyes: true,
+            clawd_always: true,
             follow_cursor: true,
             glow: 70,
             island_color: String::new(),

@@ -205,9 +205,14 @@ function AreaContent({ id }: { id: AreaId }) {
             </Row>
           </Group>
           <Group title={t("Olhinhos")}>
-            <Row label={t("Olhinhos")} hint={t(config.eyes ? "O mascote no canto da ilha" : "Desligados, o Clawd aparece no lugar deles enquanto o Claude Code trabalha")}>
+            <Row label={t("Olhinhos")} hint={t(config.eyes ? "O mascote no canto da ilha" : "Desligados, o Clawd aparece no lugar deles")}>
               <Toggle label={t("Olhinhos")} value={config.eyes} onChange={(v) => update({ eyes: v })} />
             </Row>
+            {!config.eyes && (
+              <Row label={t("Clawd sempre visível")} hint={t("No lugar dos olhos o tempo todo: dança sem música e ouve junto quando toca alguma. Desligado, só aparece enquanto o Claude Code trabalha")}>
+                <Toggle label={t("Clawd sempre visível")} value={config.clawdAlways} onChange={(v) => update({ clawdAlways: v })} />
+              </Row>
+            )}
             <Row label={t("Seguir o cursor")} hint={t("Se desligado, olham para a frente")}>
               <Toggle label={t("Seguir o cursor")} value={config.followCursor} onChange={(v) => update({ followCursor: v })} />
             </Row>

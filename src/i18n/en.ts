@@ -830,4 +830,9 @@ export const EN: Record<string, string> = {
   "•••••••••••• (salva)": "•••••••••••• (saved)",
   "•••••••••••• (salvo)": "•••••••••••• (saved)",
   "✦ Sugestões": "✦ Suggestions",
+  "Clawd sempre visível": "Clawd always visible",
+  "No lugar dos olhos o tempo todo: dança sem música e ouve junto quando toca alguma. Desligado, só aparece enquanto o Claude Code trabalha": "In place of the eyes all the time: he dances with no music and listens along when something plays. Off, he only shows while Claude Code works",
+  "Desligados, o Clawd aparece no lugar deles": "When off, Clawd takes their place",
+  "O Clawd ouvindo junto": "Clawd listening along",
+  "O Clawd dançando": "Clawd dancing",
 };

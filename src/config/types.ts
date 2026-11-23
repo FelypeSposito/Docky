@@ -27,6 +27,8 @@ export interface Config {
   /** Reserva uma faixa no topo das telas da ilha: as janelas maximizadas começam abaixo da pílula. */
   reserveSpace: boolean;
   eyes: boolean;
+  /** With the eyes off, Clawd stays in their place all the time (dancing, or listening when music plays). */
+  clawdAlways: boolean;
   followCursor: boolean;
   glow: number;
   /** The island's color (see island/theme.ts); empty = taken from the album cover of what is playing. */
@@ -128,6 +130,7 @@ export const DEFAULT_CONFIG: Config = {
   hideInFullscreen: true,
   reserveSpace: false,
   eyes: true,
+  clawdAlways: true,
   followCursor: true,
   glow: 70,
   islandColor: "",

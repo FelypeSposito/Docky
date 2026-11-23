@@ -94,7 +94,7 @@ body[data-window="settings"]:has(.sa.glass) {
 }
 .sa.glass :is(.btn, .seg2 button, .icb, .sa-nav button):active {
   transform: none;
-  scale: 1.06;
+  scale: 1.03;
 }
 .reduce-motion .sa.glass :is(.btn, .seg2 button, .icb, .sa-nav button):active,
 .reduce-motion .sa.glass .tg:active i {
@@ -542,7 +542,7 @@ body[data-window="settings"]:has(.sa.glass) {
   background: rgba(255, 255, 255, 0.2);
 }
 .sa .btn:active:not(:disabled) {
-  transform: scale(0.94);
+  transform: scale(0.97);
 }
 .sa .btn:disabled {
   opacity: 0.4;
@@ -615,7 +615,7 @@ body[data-window="settings"]:has(.sa.glass) {
   background: rgba(255, 255, 255, 0.2);
 }
 .sa .step button:active {
-  transform: scale(0.9);
+  transform: scale(0.95);
 }
 .sa .kc {
   display: flex;
@@ -724,7 +724,7 @@ body[data-window="settings"]:has(.sa.glass) {
   cursor: default;
 }
 .sa .pg-move button:active:not(:disabled) {
-  transform: scale(0.9);
+  transform: scale(0.95);
 }
 
 /* Aviso de "chega numa fase" */
@@ -810,7 +810,7 @@ body[data-window="settings"]:has(.sa.glass) {
   transform: scale(1.12);
 }
 .sa .sw:active {
-  transform: scale(0.92);
+  transform: scale(0.96);
 }
 .sa .sw.auto {
   background: conic-gradient(from 200deg, #ff5c7a, #f5b14c, #34d399, #4c8dff, #a78bfa, #ff5c7a);
@@ -879,7 +879,7 @@ body[data-window="settings"]:has(.sa.glass) {
   background: rgba(255, 255, 255, 0.14);
 }
 .sa .sico:active {
-  transform: scale(0.94);
+  transform: scale(0.97);
 }
 .sa .sico .li {
   display: grid;
@@ -952,7 +952,7 @@ body[data-window="settings"]:has(.sa.glass) {
   color: #fff;
 }
 .sa .icb:active:not(:disabled) {
-  transform: scale(0.92);
+  transform: scale(0.96);
 }
 .sa .icb.on {
   color: var(--accent);
