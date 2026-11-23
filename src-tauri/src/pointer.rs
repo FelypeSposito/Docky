@@ -14,11 +14,10 @@ pub struct Rect {
     pub h: f64,
 }
 
-/// Cada tela tem a sua janela e a sua ilha, então o retângulo é guardado por janela. The first rect is the one the
-/// mouse hovers (the island grows over it); the others only take clicks (the dock's show-desktop corner).
+/// Cada tela tem a sua janela e a sua ilha, então o retângulo é guardado por janela.
 #[derive(Default)]
 pub struct PointerState {
-    rects: Mutex<HashMap<String, Vec<Rect>>>,
+    rects: Mutex<HashMap<String, Rect>>,
 }
 
 #[derive(Serialize, Clone)]
@@ -46,20 +45,7 @@ fn mouse_button_down() -> bool {
 
 #[tauri::command]
 pub fn set_island_rect(window: WebviewWindow, state: State<PointerState>, rect: Rect) {
-    state.rects.lock().unwrap().insert(window.label().to_string(), vec![rect]);
-}
-
-/// Several areas of a window that take clicks: the first is hovered, the rest only clicked.
-#[tauri::command]
-pub fn set_hit_rects(window: WebviewWindow, state: State<PointerState>, rects: Vec<Rect>) {
-    state.rects.lock().unwrap().insert(window.label().to_string(), rects);
-}
-
-/// Whether (x, y) is over `rect`. An island hangs from the top edge, so its area reaches up to the screen's edge (the
-/// mouse pushed against the top still counts); the dock's does not, or the whole strip above it would eat clicks.
-fn hits(rect: &Rect, x: f64, y: f64, reach_top: bool) -> bool {
-    let top = if reach_top { rect.y.min(0.0) } else { rect.y };
-    rect.w > 0.0 && rect.h > 0.0 && x >= rect.x - HIT_MARGIN && x <= rect.x + rect.w + HIT_MARGIN && y >= top - HIT_MARGIN && y <= rect.y + rect.h + HIT_MARGIN
+    state.rects.lock().unwrap().insert(window.label().to_string(), rect);
 }
 
 /// How many ticks (~0.5 s) the window list, their position and scale stay cached: every Tauri window getter is a
@@ -84,8 +70,6 @@ fn global_cursor(app: &AppHandle) -> Option<(f64, f64)> {
 struct Seen {
     /// Whether the mouse was over the island last time (None = not known yet, or the window is hidden).
     inside: Option<bool>,
-    /// Whether the window took clicks last time (over any of its areas).
-    clickable: Option<bool>,
     /// Last cursor position sent to the frontend.
     sent: (f64, f64),
     visible: bool,
@@ -109,7 +93,6 @@ pub fn spawn(app: AppHandle) {
             tick = tick.wrapping_add(1);
             if refresh {
                 windows = island::windows(&app);
-                windows.extend(app.get_webview_window(crate::dock::LABEL));
                 follow = app.try_state::<crate::config::ConfigState>().map(|c| c.eyes_follow()).unwrap_or(true);
             }
             let down = mouse_button_down();
@@ -123,7 +106,6 @@ pub fn spawn(app: AppHandle) {
                 let fresh = !seen.contains_key(&label);
                 let entry = seen.entry(label.clone()).or_insert(Seen {
                     inside: None,
-                    clickable: None,
                     sent: (f64::NAN, f64::NAN),
                     visible: false,
                     origin: (0.0, 0.0),
@@ -140,7 +122,6 @@ pub fn spawn(app: AppHandle) {
                 }
                 if !entry.visible {
                     entry.inside = None;
-                    entry.clickable = None;
                     continue;
                 }
 
@@ -155,54 +136,21 @@ pub fn spawn(app: AppHandle) {
                     let _ = app.emit_to(label.as_str(), "pointer-cursor", Cursor { x, y });
                 }
 
-                let rects = app.state::<PointerState>().rects.lock().unwrap().get(&label).cloned().unwrap_or_default();
-                let reach_top = label != crate::dock::LABEL;
-                let inside = rects.first().is_some_and(|r| hits(r, x, y, reach_top));
-                let clickable = inside || rects.iter().skip(1).any(|r| hits(r, x, y, reach_top));
+                let rect = app.state::<PointerState>().rects.lock().unwrap().get(&label).copied().unwrap_or_default();
+                let inside = x >= rect.x - HIT_MARGIN && x <= rect.x + rect.w + HIT_MARGIN && y >= 0.0 && y <= rect.y + rect.h + HIT_MARGIN;
 
                 // Um clique que começa fora da ilha, em qualquer app, avisa o frontend (ele recolhe a ilha).
                 if down && !last_down && !inside {
                     let _ = app.emit_to(label.as_str(), "island-outside-click", ());
                 }
 
-                if entry.clickable != Some(clickable) {
-                    entry.clickable = Some(clickable);
-                    let _ = window.set_ignore_cursor_events(!clickable);
-                }
                 if entry.inside != Some(inside) {
                     entry.inside = Some(inside);
+                    let _ = window.set_ignore_cursor_events(!inside);
                     let _ = app.emit_to(label.as_str(), "island-hover", inside);
                 }
             }
             last_down = down;
         }
     });
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const DOCK: Rect = Rect { x: 500.0, y: 220.0, w: 600.0, h: 60.0 };
-
-    /// 0.4.4: the dock's strip took every click above the dock, as tall as the strip (the island's reach to the top).
-    #[test]
-    fn o_dock_nao_pega_cliques_acima_dele() {
-        assert!(!hits(&DOCK, 700.0, 40.0, false));
-        assert!(!hits(&DOCK, 700.0, 200.0, false));
-        assert!(hits(&DOCK, 700.0, 250.0, false));
-        assert!(hits(&DOCK, 700.0, 216.0, false));
-    }
-
-    #[test]
-    fn a_ilha_alcanca_a_borda_de_cima() {
-        let island = Rect { x: 800.0, y: 4.0, w: 200.0, h: 36.0 };
-        assert!(hits(&island, 900.0, -3.0, true));
-        assert!(!hits(&island, 700.0, 10.0, true));
-    }
-
-    #[test]
-    fn area_vazia_nao_pega_nada() {
-        assert!(!hits(&Rect::default(), 0.0, 0.0, true));
-    }
 }

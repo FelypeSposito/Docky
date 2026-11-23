@@ -2,7 +2,7 @@ use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, Theme, WebviewUrl, We
 
 use crate::placement::Screen;
 
-pub const LABEL: &str = "settings";
+const LABEL: &str = "settings";
 
 /// Só aceita letras minúsculas, para o nome da seção ir com segurança dentro do endereço da janela.
 fn clean_section(section: Option<&str>) -> Option<&str> {

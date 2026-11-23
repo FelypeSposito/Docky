@@ -37,14 +37,6 @@ export interface Config {
   material: string;
   /** With the glass material: "clear" (more see-through) or "tinted" (more opaque, more contrast), like Apple's. */
   glassStyle: string;
-  /** Docky's own taskbar (the dock) on the main screen. */
-  dockEnabled: boolean;
-  /** Which edge the dock sits on: "bottom", "left" or "right". */
-  dockSide: string;
-  /** While the dock is on, Windows' taskbar is hidden. */
-  dockHideTaskbar: boolean;
-  /** Programs pinned to the dock (paths to their .exe), in order. */
-  dockPinned: string[];
   /** The clock on the pill and in the header on a 12-hour dial. */
   clock12h: boolean;
   /** Keeps the last texts you copied (in memory only) for the Copiados page. */
@@ -142,10 +134,6 @@ export const DEFAULT_CONFIG: Config = {
   glassEdge: true,
   material: "solid",
   glassStyle: "clear",
-  dockEnabled: false,
-  dockSide: "bottom",
-  dockHideTaskbar: true,
-  dockPinned: [],
   clock12h: false,
   clipboardHistory: true,
   onboarded: false,

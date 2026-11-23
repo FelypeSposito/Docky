@@ -21,7 +21,6 @@ mod logfile;
 mod lyrics;
 mod call;
 mod discord;
-mod dock;
 mod downloads;
 mod media;
 mod mixer;
@@ -46,7 +45,7 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 /// What the uninstaller asks for before the files go: Docky's Claude Code hooks come out of `~/.claude/settings.json`.
 pub fn uninstall_cleanup() {
     let _ = claude::remove_hooks_if_installed();
-    // If the dock had hidden Windows' taskbar, it comes back as it was.
+    // An old dock (0.4.0 to 0.5.1) may have left Windows' taskbar hidden.
     taskbar::restore_taskbar();
 }
 
@@ -64,29 +63,16 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(island::Visibility::default())
         .manage(updates::UpdateState::default())
-        .manage(taskbar::DockState::default())
         .manage(google::GoogleState::default())
         .invoke_handler(tauri::generate_handler![
             config::get_config,
             config::set_config,
             pointer::set_island_rect,
-            pointer::set_hit_rects,
             island::list_monitors,
             power::get_power,
             settings_window::open_settings,
             settings_window::settings_acrylic,
             glass::island_glass,
-            taskbar::dock_apps,
-            taskbar::dock_activate,
-            taskbar::dock_focus_window,
-            taskbar::dock_close_window,
-            taskbar::dock_launch,
-            taskbar::dock_pin,
-            taskbar::dock_shortcut,
-            taskbar::dock_reorder,
-            taskbar::dock_reveal,
-            dock::dock_previews,
-            taskbar::dock_peek_taskbar,
             glass::island_glass_shape,
             lyrics::lrclib,
             lyrics::netease,
@@ -197,8 +183,8 @@ pub fn run() {
             updates::spawn(handle.clone());
             reminders::spawn(handle.clone());
             audio::spawn(handle.clone());
-            taskbar::spawn(handle.clone());
-            dock::sync(&handle);
+            // Docky's old dock (0.4.0 to 0.5.1) could hide Windows' taskbar: it comes back as it was.
+            taskbar::restore_taskbar();
             fullscreen::spawn(handle);
             Ok(())
         })
@@ -208,8 +194,6 @@ pub fn run() {
             // Devolve a faixa do topo antes de sair (se o Docky travar, o Windows devolve sozinho).
             if let tauri::RunEvent::Exit = event {
                 reserve::release();
-                // Windows' taskbar comes back as it was before the dock hid it.
-                taskbar::restore_taskbar();
             }
         });
 }

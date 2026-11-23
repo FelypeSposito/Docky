@@ -167,24 +167,6 @@ export function Preview({ area }: { area: AreaId }) {
         </Open>
       );
       break;
-    case "dock":
-      island = (
-        <>
-          <Pill width={220}>
-            <b>{clock}</b>
-          </Pill>
-          {config.dockEnabled && (
-            <div className={`pv-dockbar side-${config.dockSide === "left" || config.dockSide === "right" ? config.dockSide : "bottom"}`}>
-              {["C", "S", "D", "W", "O"].map((letter, i) => (
-                <span key={letter} className={i === 0 ? "on" : i === 4 ? "idle" : ""}>
-                  {letter}
-                </span>
-              ))}
-            </div>
-          )}
-        </>
-      );
-      break;
     case "integracoes":
       island = (
         <Open width={360} height={88}>

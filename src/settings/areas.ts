@@ -1,7 +1,7 @@
 import { t } from "../i18n";
 /** As áreas da janela de Configurações, como a barra lateral as mostra, e o índice que a busca usa. */
 
-export type AreaId = "atalhos" | "paginas" | "dock" | "aparencia" | "musica" | "foco" | "claude" | "integracoes" | "shelf" | "geral";
+export type AreaId = "atalhos" | "paginas" | "aparencia" | "musica" | "foco" | "claude" | "integracoes" | "shelf" | "geral";
 
 export interface Area {
   id: AreaId;
@@ -23,13 +23,6 @@ export const AREAS: Area[] = [
     options: ["Sugestões de atalhos", "Atalhos", "Confirmar antes de abrir", "Trazer para a frente se já estiver aberto", "Seções", "Organizar automaticamente", "Grupos", "Ícones automáticos", "Pasta dos ícones", "Ícones que faltam", "steam", "epic", "jogos"],
   },
   { id: "paginas", label: "Páginas e dock", lead: "O que aparece no dock da ilha, e em que ordem.", group: "", options: ["Páginas", "Ordem das páginas", "Voltar à ordem original", "dock"] },
-  {
-    id: "dock",
-    label: "Dock",
-    lead: "Uma barra de tarefas no estilo do Docky, no lugar da do Windows.",
-    group: "",
-    options: ["Usar o dock", "Lado da tela", "Esconder a barra do Windows", "Fixados no dock", "barra de tarefas", "taskbar", "apps abertos", "iniciar"],
-  },
   { id: "aparencia", label: "Aparência", lead: "Como a ilha se mostra.", group: "", options: ["Material", "Vidro líquido", "Aparência do vidro", "Transparente", "Tingido", "liquid glass", "transparente", "Cor da ilha", "Brilho ambiente", "Borda de vidro", "Formato da hora", "12 horas", "24 horas", "relógio", "tema", "Olhinhos", "Seguir o cursor", "Lugar no topo", "posição", "esquerda", "direita", "mover", "arrastar", "Data e hora no topo", "Reduzir movimento", "cor", "animação"] },
   { id: "musica", label: "Música e letras", lead: "Letra sincronizada e o que está tocando.", group: "", options: ["Letra na pílula", "Atraso da letra", "Fonte das letras", "Players", "spotify", "lrclib", "mixer", "som", "volume por app", "aleatório", "repetir"] },
   { id: "foco", label: "Foco e notas", lead: "O Pomodoro, o contador livre e onde as notas são salvas.", group: "", options: ["Foco", "Pausa curta", "Pausa longa", "Focos por ciclo", "Aviso ao terminar", "Som ao terminar", "Pasta das notas", "pomodoro", "timer", "obsidian"] },
