@@ -148,6 +148,15 @@ export const NoteIcon = (p: IconProps) => (
   </Stroke>
 );
 
+/** A slab on the screen's bottom edge with three apps: the dock. */
+export const DockBarIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M4 20h16" />
+    <rect x="5" y="13" width="14" height="5" rx="2" />
+    <path d="M9 15.5h.01M12 15.5h.01M15 15.5h.01" />
+  </Stroke>
+);
+
 export const TrayIcon = (p: IconProps) => (
   <Stroke {...p}>
     <path d="M4 14l2-8h12l2 8M4 14v5h16v-5M4 14h4.5l1 2h5l1-2H20" />

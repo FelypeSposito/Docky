@@ -139,6 +139,19 @@ trabalho, então o vidro escurece o fundo mas não o distorce. "Reduzir moviment
 Com o vidro, o menu inteiro vira vidro (cartões, dock, busca e botões, que crescem ao toque), e as Configurações ganham
 acrílico de verdade atrás no Windows 11. Como na Apple, dá para escolher **Transparente** ou **Tingido** (mais opaco).
 
+## Dock (barra de tarefas do Docky)
+
+Em Configurações, Dock, o Docky pode trocar a barra de tarefas do Windows por um dock próprio, embaixo, à esquerda ou
+à direita da tela (em cima fica a ilha). Parado, é uma pílula com os apps abertos: um traço marca os abertos e o app
+da frente ganha a cor de destaque. Ao passar o mouse, ele cresce como a ilha, com o Iniciar, os nomes, os apps fixados
+e um canto do sistema (microfone, volume, a bandeja do Windows e o relógio). Clicar num app traz ele para a frente, ou
+minimiza se ele já estiver na frente; com várias janelas, aparece a lista delas. Botão do meio abre uma janela nova e o
+direito mostra Nova janela, Fixar no dock e Fechar.
+
+Enquanto o dock estiver ligado, a barra do Windows fica escondida (com o ocultar automático ligado, para as janelas
+maximizadas usarem a tela toda). O estado de antes fica salvo e volta quando o dock desliga, quando o Docky fecha,
+na próxima vez que ele abrir depois de um travamento e ao desinstalar.
+
 ## Idiomas
 
 A interface fala português (Brasil) e inglês. Em Configurações, Geral, Idioma, "Automático" segue o idioma do Windows.

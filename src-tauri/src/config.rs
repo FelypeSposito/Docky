@@ -133,6 +133,14 @@ pub struct Config {
     /// With the glass material: "clear" (more see-through) or "tinted" (more opaque, more contrast), like Apple's
     /// Liquid Glass setting.
     pub glass_style: String,
+    /// Docky's own taskbar (the dock) on the main screen.
+    pub dock_enabled: bool,
+    /// Which edge the dock sits on: "bottom", "left" or "right" (the island owns the top).
+    pub dock_side: String,
+    /// While the dock is on, Windows' taskbar is hidden (and comes back when the dock is off or Docky quits).
+    pub dock_hide_taskbar: bool,
+    /// Programs pinned to the dock (paths to their .exe), in order.
+    pub dock_pinned: Vec<String>,
     /// The clock on the pill and in the header on a 12-hour dial.
     pub clock_12h: bool,
     /// Keeps the last texts you copied (in memory only) for the Copiados page.
@@ -247,6 +255,10 @@ impl Default for Config {
             glass_edge: true,
             material: "solid".into(),
             glass_style: "clear".into(),
+            dock_enabled: false,
+            dock_side: "bottom".into(),
+            dock_hide_taskbar: true,
+            dock_pinned: Vec::new(),
             clock_12h: false,
             clipboard_history: true,
             onboarded: false,
@@ -393,6 +405,13 @@ pub fn set_config(
     state.save(&config).map_err(|e| e.to_string())?;
     *state.current.lock().unwrap() = config.clone();
     app.emit("config-changed", &config).map_err(|e| e.to_string())?;
+    if previous.dock_enabled != config.dock_enabled || previous.dock_side != config.dock_side {
+        // Creating and closing windows off this command: on Windows, doing it here can hang.
+        let handle = app.clone();
+        tauri::async_runtime::spawn(async move {
+            crate::dock::sync(&handle);
+        });
+    }
     if previous.material != config.material {
         crate::settings_window::material_changed(&app, &config.material);
     }

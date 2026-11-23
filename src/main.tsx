@@ -4,6 +4,7 @@ import { useConfigStore, useConfigSync } from "./config/useConfig";
 import { ipc, isTauri } from "./lib/ipc";
 import { Island } from "./island/Island";
 import { Settings } from "./settings/Settings";
+import { TaskDock } from "./dock/TaskDock";
 import "@fontsource-variable/inter/wght.css";
 import "./index.css";
 import { resolveLanguage, setLanguage } from "./i18n";
@@ -28,7 +29,9 @@ function Root({ label }: { label: string }) {
   React.useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", reduceMotion);
   }, [reduceMotion]);
-  return label === "settings" ? <Settings key={language} /> : <Island key={language} />;
+  if (label === "settings") return <Settings key={language} />;
+  if (label === "dock") return <TaskDock key={language} />;
+  return <Island key={language} />;
 }
 
 // Errors nobody caught go to Docky's log file, so a bug report can carry them.

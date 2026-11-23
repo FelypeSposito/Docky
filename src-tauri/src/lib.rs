@@ -21,6 +21,7 @@ mod logfile;
 mod lyrics;
 mod call;
 mod discord;
+mod dock;
 mod downloads;
 mod media;
 mod mixer;
@@ -32,6 +33,7 @@ mod reserve;
 mod settings_window;
 mod shell_icon;
 mod shelf;
+mod taskbar;
 mod tray;
 mod updates;
 mod volume;
@@ -44,6 +46,8 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 /// What the uninstaller asks for before the files go: Docky's Claude Code hooks come out of `~/.claude/settings.json`.
 pub fn uninstall_cleanup() {
     let _ = claude::remove_hooks_if_installed();
+    // If the dock had hidden Windows' taskbar, it comes back as it was.
+    taskbar::restore_taskbar();
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -60,6 +64,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(island::Visibility::default())
         .manage(updates::UpdateState::default())
+        .manage(taskbar::DockState::default())
         .manage(google::GoogleState::default())
         .invoke_handler(tauri::generate_handler![
             config::get_config,
@@ -70,6 +75,14 @@ pub fn run() {
             settings_window::open_settings,
             settings_window::settings_acrylic,
             glass::island_glass,
+            taskbar::dock_apps,
+            taskbar::dock_activate,
+            taskbar::dock_focus_window,
+            taskbar::dock_close_window,
+            taskbar::dock_launch,
+            taskbar::dock_pin,
+            taskbar::dock_start_menu,
+            taskbar::dock_peek_taskbar,
             glass::island_glass_shape,
             lyrics::lrclib,
             lyrics::netease,
@@ -180,6 +193,8 @@ pub fn run() {
             updates::spawn(handle.clone());
             reminders::spawn(handle.clone());
             audio::spawn(handle.clone());
+            taskbar::spawn(handle.clone());
+            dock::sync(&handle);
             fullscreen::spawn(handle);
             Ok(())
         })
@@ -189,6 +204,8 @@ pub fn run() {
             // Devolve a faixa do topo antes de sair (se o Docky travar, o Windows devolve sozinho).
             if let tauri::RunEvent::Exit = event {
                 reserve::release();
+                // Windows' taskbar comes back as it was before the dock hid it.
+                taskbar::restore_taskbar();
             }
         });
 }

@@ -214,6 +214,12 @@ pub fn set_fullscreen(app: &AppHandle, value: bool) {
     }
 }
 
+/// The island is hidden now, from the tray or for a fullscreen app (the dock follows it).
+pub fn hidden_now(app: &AppHandle) -> bool {
+    let state = app.state::<Visibility>();
+    state.user_hidden.load(Ordering::SeqCst) || state.fullscreen.load(Ordering::SeqCst)
+}
+
 /// A pessoa escondeu a ilha pela bandeja (não conta o esconder automático da tela cheia).
 pub fn user_hidden(app: &AppHandle) -> bool {
     app.state::<Visibility>().user_hidden.load(Ordering::SeqCst)
@@ -225,6 +231,7 @@ fn apply(app: &AppHandle) {
     for window in windows(app) {
         let _ = if hidden { window.hide() } else { window.show() };
     }
+    crate::dock::set_visible(app, !hidden);
     // A faixa reservada no topo acompanha as telas da ilha e o esconder pela bandeja.
     reserve::sync(app);
 }

@@ -13,6 +13,11 @@
         "rule": "design-system-font",
         "value": "jetbrains mono",
         "createdAt": "2026-11-13T03:56:23.957Z"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "inter variable",
+        "createdAt": "2026-11-23T16:04:38.934Z"
       }
     ]
   }

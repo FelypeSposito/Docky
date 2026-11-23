@@ -1,7 +1,7 @@
 import { type ComponentType, useEffect, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { Eyes } from "../island/Eyes";
-import { CloudIcon, GearIcon, GridIcon, KeyboardIcon, MusicIcon, SearchIcon, SparkIcon, SunIcon, TimerIcon, TrayIcon } from "../island/icons";
+import { CloudIcon, DockBarIcon, GearIcon, GridIcon, KeyboardIcon, MusicIcon, SearchIcon, SparkIcon, SunIcon, TimerIcon, TrayIcon } from "../island/icons";
 import { trackDomCursor } from "../lib/cursor";
 import { ipc } from "../lib/ipc";
 import "../island/island.css";
@@ -22,6 +22,7 @@ const REPO_URL = "https://github.com/FelypeSposito/Docky";
 const ICONS: Record<AreaId, ComponentType<{ size?: number }>> = {
   atalhos: KeyboardIcon,
   paginas: GridIcon,
+  dock: DockBarIcon,
   aparencia: SunIcon,
   musica: MusicIcon,
   foco: TimerIcon,
@@ -33,6 +34,13 @@ const ICONS: Record<AreaId, ComponentType<{ size?: number }>> = {
 
 /** A área pedida por `?section=` ou pela ilha (os ids continuam os mesmos das versões anteriores). */
 const areaFrom = (value: string | null): AreaId | null => (isArea(value) ? value : null);
+
+/** "C:\\…\\Discord.exe" → "Discord": the name a pinned program shows in Settings. */
+const pinnedName = (path: string) => {
+  const file = path.split(/[\\/]/).pop() ?? path;
+  const stem = file.replace(/\.exe$/i, "");
+  return stem.charAt(0).toUpperCase() + stem.slice(1);
+};
 
 /** The newer release GitHub has, if any (read once when Settings opens). */
 function useUpdate() {
@@ -251,6 +259,44 @@ function AreaContent({ id }: { id: AreaId }) {
       );
     case "paginas":
       return <PagesSection />;
+    case "dock":
+      return (
+        <>
+          <Group>
+            <Row label="Usar o dock" hint="Troca a barra de tarefas do Windows por um dock do Docky: os apps abertos numa pílula que cresce ao passar o mouse">
+              <Toggle label="Usar o dock" value={config.dockEnabled} onChange={(v) => update({ dockEnabled: v })} />
+            </Row>
+            <Row label="Lado da tela" hint="Em cima fica a ilha">
+              <Segmented
+                label="Lado da tela"
+                value={config.dockSide === "left" || config.dockSide === "right" ? config.dockSide : "bottom"}
+                options={[
+                  { value: "left", label: "Esquerda" },
+                  { value: "bottom", label: "Embaixo" },
+                  { value: "right", label: "Direita" },
+                ]}
+                onChange={(v) => update({ dockSide: v })}
+              />
+            </Row>
+            <Row
+              label="Esconder a barra do Windows"
+              hint="Enquanto o dock estiver ligado. Ela volta sozinha quando ele desliga ou o Docky fecha. Os ícones da bandeja ficam na seta do dock"
+            >
+              <Toggle label="Esconder a barra do Windows" value={config.dockHideTaskbar} onChange={(v) => update({ dockHideTaskbar: v })} />
+            </Row>
+          </Group>
+          <Group title="Fixados no dock">
+            {config.dockPinned.length === 0 && <p className="grp-note">{t("Clique com o botão direito num app do dock e escolha Fixar no dock.")}</p>}
+            {config.dockPinned.map((path) => (
+              <Row key={path} label={pinnedName(path)} hint={path}>
+                <button className="btn" onClick={() => update({ dockPinned: config.dockPinned.filter((p) => p !== path) })}>
+                  {t("Tirar do dock")}
+                </button>
+              </Row>
+            ))}
+          </Group>
+        </>
+      );
     case "musica":
       return (
         <>

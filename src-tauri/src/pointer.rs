@@ -93,6 +93,7 @@ pub fn spawn(app: AppHandle) {
             tick = tick.wrapping_add(1);
             if refresh {
                 windows = island::windows(&app);
+                windows.extend(app.get_webview_window(crate::dock::LABEL));
                 follow = app.try_state::<crate::config::ConfigState>().map(|c| c.eyes_follow()).unwrap_or(true);
             }
             let down = mouse_button_down();
@@ -137,7 +138,7 @@ pub fn spawn(app: AppHandle) {
                 }
 
                 let rect = app.state::<PointerState>().rects.lock().unwrap().get(&label).copied().unwrap_or_default();
-                let inside = x >= rect.x - HIT_MARGIN && x <= rect.x + rect.w + HIT_MARGIN && y >= 0.0 && y <= rect.y + rect.h + HIT_MARGIN;
+                let inside = x >= rect.x - HIT_MARGIN && x <= rect.x + rect.w + HIT_MARGIN && y >= rect.y.min(0.0) - HIT_MARGIN && y <= rect.y + rect.h + HIT_MARGIN;
 
                 // Um clique que começa fora da ilha, em qualquer app, avisa o frontend (ele recolhe a ilha).
                 if down && !last_down && !inside {

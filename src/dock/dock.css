@@ -1,0 +1,445 @@
+/* The dock: Docky's taskbar. The island's object turned toward another edge: a black slab rising from the bottom (or
+   out of the left or right edge), concave ears joining it to the screen's edge, and the island's lit edge, brightest
+   away from the screen. One accent, on the app in front. */
+body[data-window="dock"] {
+  background: transparent;
+  overflow: hidden;
+}
+.td-root {
+  --fill: #000;
+  --edge-from: 0deg;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  font-family: "Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  color: #fff;
+  user-select: none;
+}
+.td-root.glass {
+  --fill: rgba(12, 12, 17, 0.66);
+}
+
+/* The slab, sized by its spring (TaskDock.tsx), held to its edge. */
+.td {
+  position: absolute;
+  pointer-events: auto;
+}
+.side-bottom .td {
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+}
+.side-left .td {
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+}
+.side-right .td {
+  right: 0;
+  top: 50%;
+  translate: 0 -50%;
+}
+.td-body {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  background: var(--fill);
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.35);
+  transition: border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.side-bottom .td-body {
+  border-radius: 16px 16px 0 0;
+}
+.side-left .td-body {
+  border-radius: 0 16px 16px 0;
+}
+.side-right .td-body {
+  border-radius: 16px 0 0 16px;
+}
+.td-root.open.side-bottom .td-body {
+  border-radius: 22px 22px 0 0;
+}
+.td-root.open.side-left .td-body {
+  border-radius: 0 22px 22px 0;
+}
+.td-root.open.side-right .td-body {
+  border-radius: 22px 0 0 22px;
+}
+/* The lit edge: dim at the screen's edge, brightest on the side that faces the room. */
+.td-body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(var(--edge-from), rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.07) 45%, rgba(255, 255, 255, 0.2) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.side-bottom {
+  --edge-from: 0deg;
+}
+.side-left {
+  --edge-from: 90deg;
+}
+.side-right {
+  --edge-from: 270deg;
+}
+.no-edge .td-body::after {
+  display: none;
+}
+.td-root.glass .td-body {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 14px 24px -18px rgba(255, 255, 255, 0.22),
+    0 -14px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Concave ears joining the slab to the screen's edge. */
+.td-ear {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+.side-bottom .td-ear.a {
+  left: -16px;
+  bottom: 0;
+  background: radial-gradient(circle at 0 0, transparent 15.4px, var(--fill) 16px);
+}
+.side-bottom .td-ear.b {
+  right: -16px;
+  bottom: 0;
+  background: radial-gradient(circle at 100% 0, transparent 15.4px, var(--fill) 16px);
+}
+.side-left .td-ear.a {
+  left: 0;
+  top: -16px;
+  background: radial-gradient(circle at 100% 0, transparent 15.4px, var(--fill) 16px);
+}
+.side-left .td-ear.b {
+  left: 0;
+  bottom: -16px;
+  background: radial-gradient(circle at 100% 100%, transparent 15.4px, var(--fill) 16px);
+}
+.side-right .td-ear.a {
+  right: 0;
+  top: -16px;
+  background: radial-gradient(circle at 0 0, transparent 15.4px, var(--fill) 16px);
+}
+.side-right .td-ear.b {
+  right: 0;
+  bottom: -16px;
+  background: radial-gradient(circle at 0 100%, transparent 15.4px, var(--fill) 16px);
+}
+
+/* The content at its natural size, held to the edge's centre; the slab grows and shrinks around it. */
+.td-in {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 12px 6px;
+  white-space: nowrap;
+}
+.td-in.col {
+  flex-direction: column;
+  padding: 12px 7px;
+}
+.side-bottom .td-in {
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+}
+.side-left .td-in {
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+}
+.side-right .td-in {
+  right: 0;
+  top: 50%;
+  translate: 0 -50%;
+}
+.td-root.open .td-in {
+  gap: 6px;
+  padding: 10px 14px 9px;
+}
+.td-root.open .td-in.col {
+  padding: 14px 10px;
+}
+
+/* An app: its icon, a dot when it is open, the accent when it is in front. */
+.td-app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 5px 7px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.62);
+  transition: background 0.2s, color 0.2s, scale 0.45s linear(0, 0.3 8%, 0.75 18%, 1.06 30%, 1.09 36%, 1.02 50%, 0.99 62%, 1);
+}
+.td-app:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.td-app:active {
+  scale: 0.92;
+}
+.td-app.pop {
+  background: rgba(255, 255, 255, 0.12);
+}
+.td-app.idle .td-img,
+.td-app.idle .td-letter {
+  opacity: 0.55;
+}
+.td-app:focus-visible,
+.td-btn:focus-visible,
+.td-act:focus-visible,
+.td-win-t:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.td-img {
+  display: block;
+  object-fit: contain;
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.td-letter {
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-weight: 650;
+}
+.td-dot {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  width: 4px;
+  height: 3px;
+  border-radius: 2px;
+  translate: -50% 0;
+  background: rgba(255, 255, 255, 0.5);
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s;
+}
+.td-app.on .td-dot {
+  width: 14px;
+  background: var(--accent);
+}
+.td-app.min .td-dot {
+  background: rgba(255, 255, 255, 0.28);
+}
+.td-in.col .td-dot {
+  bottom: 50%;
+  left: 2px;
+  width: 3px;
+  height: 4px;
+  translate: 0 50%;
+}
+.side-right .td-in.col .td-dot {
+  left: auto;
+  right: 2px;
+}
+.td-in.col .td-app.on .td-dot {
+  width: 3px;
+  height: 14px;
+}
+.td-name {
+  max-width: 76px;
+  overflow: hidden;
+  font-size: 10.5px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  color: inherit;
+}
+.td-in.col .td-name {
+  display: none;
+}
+.td-app.on {
+  color: #fff;
+}
+
+/* Start, the system corner, separators. */
+.td-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  color: rgba(255, 255, 255, 0.62);
+  transition: background 0.2s, color 0.2s;
+}
+.td-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.td-btn.start {
+  width: 38px;
+  height: 38px;
+  color: #fff;
+}
+.td-btn.off {
+  color: #ff7b80;
+}
+.td-sep {
+  flex: none;
+  width: 1px;
+  height: 28px;
+  margin: 0 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.td-in.col .td-sep {
+  width: 28px;
+  height: 1px;
+  margin: 4px 0;
+}
+.td-sys {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.td-sys.col {
+  flex-direction: column;
+}
+.td-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0 6px 0 8px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.td-sys.col .td-clock {
+  align-items: center;
+  padding: 6px 0 0;
+}
+.td-clock b {
+  font-size: 13px;
+  font-weight: 650;
+}
+.td-clock em {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 11px;
+  font-style: normal;
+}
+.td-empty {
+  padding: 0 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+/* An app's windows or menu: a small black panel next to it, on the screen's open side. */
+.td-pop {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  max-width: 320px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #141417;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  pointer-events: auto;
+  animation: td-pop 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.td-root.glass .td-pop {
+  background: rgba(20, 20, 26, 0.86);
+  backdrop-filter: blur(16px) saturate(1.3);
+}
+@keyframes td-pop {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+.td-pop-h {
+  padding: 2px 8px 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.62);
+}
+.td-win {
+  display: flex;
+  align-items: center;
+  border-radius: 9px;
+}
+.td-win:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.td-win-t {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px;
+  overflow: hidden;
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff;
+}
+.td-win.min .td-win-t {
+  color: rgba(255, 255, 255, 0.5);
+}
+.td-win-x {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+}
+.td-win:hover .td-win-x,
+.td-win-x:focus-visible {
+  opacity: 1;
+}
+.td-win-x:hover {
+  background: rgba(229, 72, 77, 0.2);
+  color: #ff7b80;
+}
+.td-act {
+  padding: 7px 8px;
+  border-radius: 9px;
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: #fff;
+}
+.td-act:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.td-act.danger {
+  color: #ff7b80;
+}
+.td-error {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  translate: -50% 0;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #141417;
+  color: #ff7b80;
+  font-size: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+
+.reduce-motion .td-app,
+.reduce-motion .td-img,
+.reduce-motion .td-dot,
+.reduce-motion .td-body {
+  transition: none;
+}
+.reduce-motion .td-pop {
+  animation: none;
+}

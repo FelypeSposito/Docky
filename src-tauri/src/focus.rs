@@ -99,7 +99,7 @@ pub fn process_path(pid: u32) -> Option<String> {
 /// Restaura (se minimizada) e põe a janela na frente. O Windows só deixa trocar o foco depois de uma entrada do usuário
 /// neste processo; o clique na ilha costuma bastar, e um toque de Alt sintético destrava os outros casos.
 #[cfg(windows)]
-fn bring_to_front(hwnd: windows::Win32::Foundation::HWND) -> bool {
+pub fn bring_to_front(hwnd: windows::Win32::Foundation::HWND) -> bool {
     use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, VK_MENU};
     use windows::Win32::UI::WindowsAndMessaging::{IsIconic, SW_RESTORE, SetForegroundWindow, ShowWindow};
 

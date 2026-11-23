@@ -51,6 +51,34 @@ let devClips: ClipItem[] = [
 ];
 const devClipsChanged = () => window.dispatchEvent(new CustomEvent("docky:clipboard", { detail: devClips }));
 
+/** A window of an open app, for the dock. */
+export interface DockWindow {
+  id: number;
+  title: string;
+  minimized: boolean;
+}
+
+/** An app on the dock: open (with its windows) or pinned. */
+export interface DockApp {
+  key: string;
+  path: string;
+  name: string;
+  /** PNG data URL of its icon. */
+  icon: string | null;
+  windows: DockWindow[];
+  focused: boolean;
+  pinned: boolean;
+}
+
+let devDock: DockApp[] = [
+  { key: "chrome", path: "C:\chrome.exe", name: "Google Chrome", icon: null, focused: true, pinned: true, windows: [{ id: 1, title: "Docky — GitHub", minimized: false }, { id: 2, title: "Gmail", minimized: false }] },
+  { key: "spotify", path: "C:\Spotify.exe", name: "Spotify", icon: null, focused: false, pinned: false, windows: [{ id: 3, title: "Spotify Premium", minimized: false }] },
+  { key: "discord", path: "C:\Discord.exe", name: "Discord", icon: null, focused: false, pinned: false, windows: [{ id: 4, title: "#geral - Discord", minimized: true }] },
+  { key: "whatsapp", path: "C:\WhatsApp.exe", name: "WhatsApp", icon: null, focused: false, pinned: false, windows: [{ id: 5, title: "WhatsApp", minimized: false }] },
+  { key: "obsidian", path: "C:\Obsidian.exe", name: "Obsidian", icon: null, focused: false, pinned: true, windows: [] },
+];
+const devDockChanged = () => window.dispatchEvent(new CustomEvent("docky:dock-apps", { detail: devDock.map((a) => ({ ...a })) }));
+
 export interface Mic {
   muted: boolean;
 }
@@ -442,6 +470,52 @@ export const ipc = {
 
   setMicMuted(muted: boolean): void {
     if (isTauri) void invoke("set_mic_muted", { muted });
+  },
+
+  /** The dock's apps: open ones and pinned ones, in the dock's order. */
+  async dockApps(): Promise<DockApp[]> {
+    return isTauri ? invoke<DockApp[]>("dock_apps") : devDock.map((a) => ({ ...a }));
+  },
+
+  onDockApps(handler: (apps: DockApp[]) => void): Unlisten {
+    return isTauri ? subscribe("dock-apps", handler) : devListen("docky:dock-apps", handler);
+  },
+
+  /** A click on an app: start it, bring it forward, or minimize it when it is the one in front. */
+  async dockActivate(key: string): Promise<void> {
+    if (isTauri) return invoke<void>("dock_activate", { key });
+    devDock = devDock.map((a) => ({ ...a, focused: a.key === key ? !a.focused && a.windows.length > 0 : false }));
+    devDockChanged();
+  },
+
+  dockFocusWindow(id: number): void {
+    if (isTauri) void invoke("dock_focus_window", { id });
+  },
+
+  dockCloseWindow(id: number): void {
+    if (isTauri) void invoke("dock_close_window", { id });
+    else {
+      devDock = devDock.map((a) => ({ ...a, windows: a.windows.filter((w) => w.id !== id) })).filter((a) => a.pinned || a.windows.length > 0);
+      devDockChanged();
+    }
+  },
+
+  async dockLaunch(path: string): Promise<void> {
+    if (isTauri) return invoke<void>("dock_launch", { path });
+  },
+
+  async dockPin(path: string, pin: boolean): Promise<void> {
+    if (isTauri) return invoke<void>("dock_pin", { path, pin });
+    devDock = devDock.map((a) => (a.path === path ? { ...a, pinned: pin } : a)).filter((a) => a.pinned || a.windows.length > 0);
+    devDockChanged();
+  },
+
+  dockStartMenu(): void {
+    if (isTauri) void invoke("dock_start_menu");
+  },
+
+  dockPeekTaskbar(): void {
+    if (isTauri) void invoke("dock_peek_taskbar");
   },
 
   /** Sound outputs (which one is the default) and the default microphone's mute. */
@@ -884,6 +958,7 @@ export const ipc = {
       const next =
         e.clientX >= lastRect.x - margin &&
         e.clientX <= lastRect.x + lastRect.w + margin &&
+        e.clientY >= lastRect.y - margin &&
         e.clientY <= lastRect.y + lastRect.h + margin;
       if (next !== inside) {
         inside = next;
