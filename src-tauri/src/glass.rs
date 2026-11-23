@@ -126,6 +126,10 @@ mod imp {
     /// DWMWA_USE_HOSTBACKDROPBRUSH: lets the window's composition tree use the host backdrop (Windows 11).
     const USE_HOST_BACKDROP: DWMWINDOWATTRIBUTE = DWMWINDOWATTRIBUTE(17);
 
+    /// How much of the blur shows. Windows' host backdrop blurs hard (acrylic's radius, fixed), so it is laid over
+    /// the clear desktop at half strength: halfway between frosted and clear glass.
+    const BLUR_MIX: f32 = 0.5;
+
     /// A blur window and the visuals in it: the body and the two ears, all filled with the host backdrop.
     struct Backdrop {
         hwnd: HWND,
@@ -271,6 +275,7 @@ mod imp {
                 let target = compositor.cast::<ICompositorDesktopInterop>()?.CreateDesktopWindowTarget(hwnd, false)?;
                 let root = compositor.CreateContainerVisual()?;
                 root.SetRelativeSizeAdjustment(Vector2 { X: 1.0, Y: 1.0 })?;
+                root.SetOpacity(BLUR_MIX)?;
                 target.SetRoot(&root)?;
                 let brush = compositor.CreateHostBackdropBrush()?;
 
