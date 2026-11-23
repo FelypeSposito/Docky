@@ -67,6 +67,7 @@ pub fn run() {
             island::list_monitors,
             power::get_power,
             settings_window::open_settings,
+            settings_window::settings_acrylic,
             lyrics::lrclib,
             lyrics::netease,
             google::google_status,

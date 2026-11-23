@@ -136,6 +136,8 @@ Em Configurações, Aparência, Material, a ilha pode ser preta ou de **vidro l�
 Apple: o fundo aparece escurecido por trás, a luz da borda acompanha o mouse, a ilha se acende e flexiona ao toque,
 estica como gel quando muda de forma e os avisos aparecem a partir da luz. No Windows a janela não enxerga a área de
 trabalho, então o vidro escurece o fundo mas não o distorce. "Reduzir movimento" desliga a parte elástica.
+Com o vidro, o menu inteiro vira vidro (cartões, dock, busca e botões, que crescem ao toque), e as Configurações ganham
+acrílico de verdade atrás no Windows 11. Como na Apple, dá para escolher **Transparente** ou **Tingido** (mais opaco).
 
 ## Idiomas
 

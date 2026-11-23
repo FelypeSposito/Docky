@@ -141,6 +141,75 @@
   filter: none;
   transform: translateX(-50%) scale(1);
 }
+/* The whole open island in glass, the way Apple builds a Liquid Glass menu: the surfaces that group content (cards,
+   the dock, the search field, chips) are frosted panels, and the controls (buttons, keys, menu items) are small glass
+   capsules lit along the top rim. Under a press they swell instead of sinking ("flexing and energizing"), and settle
+   with a little bounce. "Tingido" (Apple's Tinted) makes all of it more opaque, for contrast. */
+.notch.glass {
+  --lq-spring: linear(0, 0.3 8%, 0.75 18%, 1.06 30%, 1.09 36%, 1.02 50%, 0.99 62%, 1);
+  --g-panel: rgba(255, 255, 255, 0.045);
+  --g-panel-top: rgba(255, 255, 255, 0.07);
+  --g-ctl-top: rgba(255, 255, 255, 0.15);
+  --g-ctl-bottom: rgba(255, 255, 255, 0.045);
+  --g-rim: rgba(255, 255, 255, 0.24);
+}
+.notch.glass.tinted {
+  --glass-fill: color-mix(in srgb, var(--accent, #ff5c7a) 7%, rgba(16, 16, 22, calc(0.76 + var(--shadow, 0) * 0.3)));
+  --g-panel: rgba(255, 255, 255, 0.07);
+  --g-panel-top: rgba(255, 255, 255, 0.1);
+  --g-ctl-top: rgba(255, 255, 255, 0.2);
+  --g-ctl-bottom: rgba(255, 255, 255, 0.08);
+  --g-rim: rgba(255, 255, 255, 0.3);
+}
+.notch.glass :is(.tile, .dock, .hsearch, .seg, .pk-chip, .mx-out) {
+  background: linear-gradient(180deg, var(--g-panel-top), transparent 70%), var(--g-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.09),
+    inset 0 -10px 16px -14px rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px) saturate(1.4);
+}
+.notch.glass :is(.tile, .pk-chip):hover,
+.notch.glass .nlist .ncard:hover {
+  background: linear-gradient(180deg, var(--g-ctl-top), transparent 75%), var(--g-panel);
+}
+.notch.glass :is(.btn, .nbtn, .xbtn:hover, .ib:hover, .mx-mute:hover, .lt2:hover, .gs-row.on, .dk:hover:not(.on)) {
+  background: linear-gradient(180deg, var(--g-ctl-top), var(--g-ctl-bottom));
+  box-shadow:
+    inset 0 1px 0 var(--g-rim),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.1),
+    0 2px 10px rgba(0, 0, 0, 0.2);
+}
+/* The accent buttons stay in the accent, as lit glass: brighter at the top, a rim of light. */
+.notch.glass :is(.btn.primary, .nbtn.go, .qs-btn.primary, .btn-allow) {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent, #ff5c7a) 78%, #fff 22%), var(--accent, #ff5c7a));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    0 4px 14px color-mix(in srgb, var(--accent, #ff5c7a) 35%, transparent);
+}
+.notch.glass :is(.btn, .nbtn, .ib, .xbtn, .pk-chip, .dk, .lt2, .mx-mute, .btn-allow, .btn-deny, .nlist .ncard, .lt) {
+  transition-property: background, color, box-shadow, opacity, scale;
+  transition-duration: 0.2s, 0.2s, 0.2s, 0.2s, 0.45s;
+  transition-timing-function: ease, ease, ease, ease, var(--lq-spring);
+}
+.notch.glass :is(.btn, .nbtn, .ib, .xbtn, .pk-chip, .dk, .lt2, .mx-mute, .btn-allow, .btn-deny, .nlist .ncard, .lt):active {
+  transform: none;
+  scale: 1.07;
+}
+/* Cards swell less: they are big. */
+.notch.glass :is(.nlist .ncard, .lt, .lt2):active {
+  scale: 1.03;
+}
+.reduce-motion .notch.glass :is(.btn, .nbtn, .ib, .xbtn, .pk-chip, .dk, .lt2, .mx-mute, .btn-allow, .btn-deny, .nlist .ncard, .lt):active {
+  scale: 1;
+}
+/* The pill's chips (timer, call) get the glass rim too. */
+.notch.glass :is(.tchip, .cchip) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}
+
 /* The welcome card frosts what is under it instead of covering it in black. */
 .notch.glass .welcome,
 .notch.glass .gs {

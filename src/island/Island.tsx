@@ -386,7 +386,7 @@ export function Island() {
   } as React.CSSProperties;
 
   return (
-    <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}${config.glassEdge ? "" : " no-glass"}${glass ? " glass" : ""}`} data-mode={mode}>
+    <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}${config.glassEdge ? "" : " no-glass"}${glass ? " glass" : ""}${glass && config.glassStyle === "tinted" ? " tinted" : ""}`} data-mode={mode}>
       <div className="ear l" />
       <div className="ear r" />
       <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick} onPointerDown={(e) => {

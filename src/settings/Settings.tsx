@@ -184,6 +184,22 @@ function AreaContent({ id }: { id: AreaId }) {
                 onChange={(v) => update({ material: v })}
               />
             </Row>
+            {config.material === "glass" && (
+              <Row
+                label="Aparência do vidro"
+                hint={config.glassStyle === "tinted" ? "Tingido: mais opaco, com mais contraste para ler" : "Transparente: mostra mais do que está por trás"}
+              >
+                <Segmented
+                  label="Aparência do vidro"
+                  value={config.glassStyle === "tinted" ? "tinted" : "clear"}
+                  options={[
+                    { value: "clear", label: "Transparente" },
+                    { value: "tinted", label: "Tingido" },
+                  ]}
+                  onChange={(v) => update({ glassStyle: v })}
+                />
+              </Row>
+            )}
             <Row label={t("Borda de vidro")} hint={t("Um fio de luz na borda da ilha. Desligada, a ilha fica só preta")}>
               <Toggle label={t("Borda de vidro")} value={config.glassEdge} onChange={(v) => update({ glassEdge: v })} />
             </Row>
@@ -382,6 +398,16 @@ const GROUPS: ("" | "Conexões" | "Sistema")[] = ["", "Conexões", "Sistema"];
  * A janela de configurações: a barra lateral acha qualquer área ou opção, e cada área abre sob uma miniatura da ilha
  * que muda na hora com o que você mexe.
  */
+/** The Settings window in liquid glass: only where Windows puts real acrylic behind it, else it stays solid. */
+function useGlassWindow(): boolean {
+  const material = useConfigStore((s) => s.config.material);
+  const [acrylic, setAcrylic] = useState(false);
+  useEffect(() => {
+    void ipc.settingsAcrylic().then(setAcrylic).catch(() => setAcrylic(false));
+  }, []);
+  return acrylic && material === "glass";
+}
+
 export function Settings() {
   // Abre já na área pedida (`?section=atalhos`); se a janela já estava aberta, o Rust avisa e ela troca.
   const [current, setCurrent] = useState<AreaId>(() => areaFrom(new URLSearchParams(location.search).get("section")) ?? "atalhos");
@@ -421,9 +447,11 @@ export function Settings() {
   }, [target, current]);
 
   const go = (id: AreaId) => setCurrent(id);
+  const glassWindow = useGlassWindow();
+  const glassStyle = useConfigStore((s) => s.config.glassStyle);
 
   return (
-    <div className="sa">
+    <div className={`sa${glassWindow ? " glass" : ""}${glassWindow && glassStyle === "tinted" ? " tinted" : ""}`}>
       <aside className="sa-rail">
         <div className="sa-brand" data-tauri-drag-region>
           <span className="sa-eyes">

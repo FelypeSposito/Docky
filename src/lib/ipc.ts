@@ -652,6 +652,11 @@ export const ipc = {
     return isTauri ? invoke<{ version: string; url: string } | null>("update_available") : null;
   },
 
+  /** Whether the Settings window gets real acrylic behind it (Windows 11). */
+  async settingsAcrylic(): Promise<boolean> {
+    return isTauri ? invoke<boolean>("settings_acrylic") : true;
+  },
+
   /** Opens the folder with Docky's log file, to attach it to a bug report. */
   openLogs(): Promise<void> {
     return isTauri ? invoke<void>("open_logs") : Promise.resolve();

@@ -35,6 +35,8 @@ export interface Config {
   glassEdge: boolean;
   /** The island's material: "solid" (black) or "glass" (liquid glass). */
   material: string;
+  /** With the glass material: "clear" (more see-through) or "tinted" (more opaque, more contrast), like Apple's. */
+  glassStyle: string;
   /** The clock on the pill and in the header on a 12-hour dial. */
   clock12h: boolean;
   /** Keeps the last texts you copied (in memory only) for the Copiados page. */
@@ -131,6 +133,7 @@ export const DEFAULT_CONFIG: Config = {
   islandColor: "",
   glassEdge: true,
   material: "solid",
+  glassStyle: "clear",
   clock12h: false,
   clipboardHistory: true,
   onboarded: false,

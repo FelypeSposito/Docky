@@ -130,6 +130,9 @@ pub struct Config {
     pub glass_edge: bool,
     /// The island's material: "solid" (black) or "glass" (liquid glass, see `island/useLiquidGlass.ts`).
     pub material: String,
+    /// With the glass material: "clear" (more see-through) or "tinted" (more opaque, more contrast), like Apple's
+    /// Liquid Glass setting.
+    pub glass_style: String,
     /// The clock on the pill and in the header on a 12-hour dial.
     pub clock_12h: bool,
     /// Keeps the last texts you copied (in memory only) for the Copiados page.
@@ -243,6 +246,7 @@ impl Default for Config {
             island_color: String::new(),
             glass_edge: true,
             material: "solid".into(),
+            glass_style: "clear".into(),
             clock_12h: false,
             clipboard_history: true,
             onboarded: false,
@@ -389,6 +393,9 @@ pub fn set_config(
     state.save(&config).map_err(|e| e.to_string())?;
     *state.current.lock().unwrap() = config.clone();
     app.emit("config-changed", &config).map_err(|e| e.to_string())?;
+    if previous.material != config.material {
+        crate::settings_window::material_changed(&app, &config.material);
+    }
     if previous.language != config.language {
         crate::tray::relabel(&app, &config.language);
     }
