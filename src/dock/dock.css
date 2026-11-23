@@ -179,13 +179,13 @@ body[data-window="dock"] {
   position: absolute;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 7px 12px 6px;
+  gap: 2px;
+  padding: 6px 10px 5px;
   white-space: nowrap;
 }
 .td-in.col {
   flex-direction: column;
-  padding: 12px 7px;
+  padding: 10px 6px;
 }
 .side-bottom .td-in {
   left: 50%;
@@ -203,50 +203,76 @@ body[data-window="dock"] {
   translate: 0 -50%;
 }
 .td-root.open .td-in {
-  gap: 6px;
-  padding: 10px 14px 9px;
+  gap: 3px;
+  padding: 7px 8px 6px;
 }
 .td-root.open .td-in.col {
-  padding: 14px 10px;
+  padding: 8px 7px;
+}
+.td-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.td-group.col {
+  flex-direction: column;
 }
 
-/* An app: its icon, a dot when it is open, the accent when it is in front. */
+/* An app: its icon, a short mark under it while it is open (wide and in the accent when it is in front), a quiet
+   count when it has more than one window. */
 .td-app {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 5px 7px;
-  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
   color: rgba(255, 255, 255, 0.62);
-  transition: background 0.2s, color 0.2s, scale 0.45s linear(0, 0.3 8%, 0.75 18%, 1.06 30%, 1.09 36%, 1.02 50%, 0.99 62%, 1);
+  transition: background 0.18s, box-shadow 0.18s;
+  touch-action: none;
 }
-.td-app:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.td-root.open .td-app {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
 }
-.td-app:active {
-  scale: 0.92;
-}
+.td-app:hover,
 .td-app.pop {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
 }
-.td-app.idle .td-img,
-.td-app.idle .td-letter {
-  opacity: 0.55;
+.td-app.on {
+  background: rgba(255, 255, 255, 0.1);
+}
+.td-app.on:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+.td-img,
+.td-letter {
+  transition: scale 0.32s cubic-bezier(0.22, 1, 0.36, 1), translate 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.td-root.open .td-app:hover .td-img,
+.td-root.open .td-app:hover .td-letter {
+  translate: 0 -1px;
+}
+.td-app:active .td-img,
+.td-app:active .td-letter {
+  scale: 0.86;
+  transition-duration: 0.12s;
 }
 .td-app:focus-visible,
 .td-btn:focus-visible,
+.td-clock:focus-visible,
 .td-act:focus-visible,
-.td-win-t:focus-visible {
+.td-win-t:focus-visible,
+.td-shot-img:focus-visible,
+.td-x:focus-visible,
+.td-corner:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 .td-img {
   display: block;
   object-fit: contain;
-  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .td-letter {
   display: grid;
@@ -260,7 +286,7 @@ body[data-window="dock"] {
   position: absolute;
   bottom: 2px;
   left: 50%;
-  width: 4px;
+  width: 5px;
   height: 3px;
   border-radius: 2px;
   translate: -50% 0;
@@ -268,7 +294,7 @@ body[data-window="dock"] {
   transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s;
 }
 .td-app.on .td-dot {
-  width: 14px;
+  width: 16px;
   background: var(--accent);
 }
 .td-app.min .td-dot {
@@ -278,7 +304,7 @@ body[data-window="dock"] {
   bottom: 50%;
   left: 2px;
   width: 3px;
-  height: 4px;
+  height: 5px;
   translate: 0 50%;
 }
 .side-right .td-in.col .td-dot {
@@ -287,41 +313,71 @@ body[data-window="dock"] {
 }
 .td-in.col .td-app.on .td-dot {
   width: 3px;
+  height: 16px;
+}
+.td-count {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: grid;
+  place-items: center;
+  min-width: 14px;
   height: 14px;
-}
-.td-name {
-  max-width: 76px;
-  overflow: hidden;
-  font-size: 10.5px;
-  font-weight: 550;
-  text-overflow: ellipsis;
-  color: inherit;
-}
-.td-in.col .td-name {
-  display: none;
-}
-.td-app.on {
-  color: #fff;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: #2a2a31;
+  box-shadow: 0 0 0 1.5px var(--fill);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 9.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
-/* Start, the system corner, separators. */
+/* Dragging an app: it lifts and follows the mouse, the others slide out of its way. */
+.td-root.dragging .td-app {
+  transition: translate 0.22s cubic-bezier(0.22, 1, 0.36, 1), background 0.18s;
+}
+.td-root.dragging .td-app.lifted {
+  z-index: 2;
+  transition: none;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  cursor: grabbing;
+}
+.td-in.settle .td-app {
+  transition: none;
+}
+
+/* Start, search, task view and the system corner. */
 .td-btn {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 9px;
   color: rgba(255, 255, 255, 0.62);
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.18s, color 0.18s;
 }
-.td-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.td-btn:hover,
+.td-clock:hover {
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
+}
+.td-btn:active {
+  background: rgba(255, 255, 255, 0.05);
 }
 .td-btn.start {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   color: #fff;
+}
+.td-btn.start svg {
+  transition: scale 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.td-btn.start:active svg {
+  scale: 0.84;
+  transition-duration: 0.12s;
 }
 .td-btn.off {
   color: #ff7b80;
@@ -329,37 +385,35 @@ body[data-window="dock"] {
 .td-sep {
   flex: none;
   width: 1px;
-  height: 28px;
-  margin: 0 4px;
+  height: 26px;
+  margin: 0 5px;
   background: rgba(255, 255, 255, 0.1);
 }
 .td-in.col .td-sep {
-  width: 28px;
+  width: 26px;
   height: 1px;
-  margin: 4px 0;
-}
-.td-sys {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-.td-sys.col {
-  flex-direction: column;
+  margin: 5px 0;
 }
 .td-clock {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  padding: 0 6px 0 8px;
+  justify-content: center;
+  height: 40px;
+  padding: 0 8px;
+  border-radius: 9px;
+  color: #fff;
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
+  line-height: 1.2;
+  transition: background 0.18s;
 }
-.td-sys.col .td-clock {
+.td-group.col .td-clock {
   align-items: center;
-  padding: 6px 0 0;
+  height: auto;
+  padding: 6px 4px;
 }
 .td-clock b {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 650;
 }
 .td-clock em {
@@ -373,22 +427,101 @@ body[data-window="dock"] {
   font-size: 12px;
 }
 
-/* An app's windows or menu: a small black panel next to it, on the screen's open side. */
+/* The show-desktop corner: a sliver at the end of the edge that lights up under the mouse. */
+.td-corner {
+  position: absolute;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+.side-bottom .td-corner {
+  right: 0;
+  width: 12px;
+  height: 48px;
+}
+.side-left .td-corner,
+.side-right .td-corner {
+  width: 48px;
+  height: 12px;
+}
+.side-left .td-corner {
+  left: 0;
+}
+.side-right .td-corner {
+  right: 0;
+}
+.td-corner i {
+  width: 2px;
+  height: 22px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.6);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.side-left .td-corner i,
+.side-right .td-corner i {
+  width: 22px;
+  height: 2px;
+}
+.td-corner:hover i {
+  opacity: 1;
+}
+
+/* The name of what the mouse is over. */
+.td-tip {
+  position: absolute;
+  z-index: 6;
+  max-width: 280px;
+  padding: 5px 9px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #141417;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: td-fade 0.14s ease-out both;
+}
+
+/* What opens next to the dock: window previews, an app's menu, the dock's menu. */
 .td-pop {
   position: absolute;
   z-index: 5;
   display: flex;
   flex-direction: column;
-  min-width: 200px;
+  min-width: 208px;
   max-width: 320px;
-  padding: 8px;
+  padding: 6px;
   border-radius: 14px;
   background: #141417;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   pointer-events: auto;
-  animation: td-pop 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: td-pop 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.td-root.glass .td-pop {
+.side-bottom .td-pop {
+  transform-origin: 50% 100%;
+}
+.side-left .td-pop {
+  transform-origin: 0 50%;
+}
+.side-right .td-pop {
+  transform-origin: 100% 50%;
+}
+/* Previews only fade: Windows draws the live windows at fixed places, so the frame must not move. */
+.td-pop.preview {
+  animation: td-fade 0.16s ease-out both;
+}
+.td-pop.shots {
+  max-width: none;
+  min-width: 0;
+  padding: 4px;
+}
+.td-root.glass .td-pop,
+.td-root.glass .td-tip {
   background: rgba(20, 20, 26, 0.86);
   backdrop-filter: blur(16px) saturate(1.3);
 }
@@ -398,15 +531,105 @@ body[data-window="dock"] {
     scale: 0.96;
   }
 }
+@keyframes td-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.td-shots {
+  display: flex;
+  gap: 2px;
+}
+.td-pop.col .td-shots {
+  flex-direction: column;
+}
+.td-shot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 196px;
+  padding: 4px;
+  border-radius: 11px;
+  transition: background 0.15s;
+}
+.td-shot:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.td-shot-h {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 26px;
+  padding: 0 0 0 5px;
+}
+.td-shot-t {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.td-shot.min .td-shot-t {
+  color: rgba(255, 255, 255, 0.55);
+}
+.td-shot-img {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 112px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: box-shadow 0.15s;
+}
+.td-shot-img > * {
+  opacity: 0.3;
+}
+.td-shot-img:hover {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.3);
+}
+.td-x {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.55);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.td-shot:hover .td-x,
+.td-win:hover .td-x,
+.td-x:focus-visible {
+  opacity: 1;
+}
+.td-x:hover {
+  background: rgba(229, 72, 77, 0.2);
+  color: #ff7b80;
+}
+
 .td-pop-h {
-  padding: 2px 8px 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 8px 6px;
   font-size: 12px;
   font-weight: 650;
   color: rgba(255, 255, 255, 0.62);
 }
+.td-pop-h em {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
 .td-win {
   display: flex;
   align-items: center;
+  padding-right: 3px;
   border-radius: 9px;
 }
 .td-win:hover {
@@ -427,42 +650,52 @@ body[data-window="dock"] {
 .td-win.min .td-win-t {
   color: rgba(255, 255, 255, 0.5);
 }
-.td-win-x {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  margin-right: 4px;
-  border-radius: 7px;
-  color: rgba(255, 255, 255, 0.5);
-  opacity: 0;
+
+.td-pop-app {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 4px;
+  padding: 6px 8px 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
-.td-win:hover .td-win-x,
-.td-win-x:focus-visible {
-  opacity: 1;
-}
-.td-win-x:hover {
-  background: rgba(229, 72, 77, 0.2);
-  color: #ff7b80;
+.td-pop-app b {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .td-act {
-  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
   border-radius: 9px;
   text-align: left;
   font-size: 12.5px;
   font-weight: 550;
   color: #fff;
+  transition: background 0.15s;
+}
+.td-act svg {
+  flex: none;
+  color: rgba(255, 255, 255, 0.55);
 }
 .td-act:hover {
   background: rgba(255, 255, 255, 0.08);
 }
-.td-act.danger {
+.td-act.danger,
+.td-act.danger svg {
   color: #ff7b80;
+}
+.td-act.danger:hover {
+  background: rgba(229, 72, 77, 0.14);
 }
 .td-error {
   position: absolute;
   left: 50%;
-  bottom: 70px;
+  bottom: 76px;
   translate: -50% 0;
   padding: 7px 12px;
   border-radius: 10px;
@@ -474,10 +707,12 @@ body[data-window="dock"] {
 
 .reduce-motion .td-app,
 .reduce-motion .td-img,
+.reduce-motion .td-letter,
 .reduce-motion .td-dot,
 .reduce-motion .td-body {
   transition: none;
 }
-.reduce-motion .td-pop {
+.reduce-motion .td-pop,
+.reduce-motion .td-tip {
   animation: none;
 }

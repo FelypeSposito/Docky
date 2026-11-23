@@ -1,17 +1,28 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { t } from "../i18n";
-import { createHoverController } from "../island/hoverController";
+import { createHoverController, type HoverController } from "../island/hoverController";
 import { useNow } from "../island/hooks";
 import { MicIcon, MicOffIcon, VolumeIcon } from "../island/icons";
 import { islandAccent } from "../island/theme";
 import { formatClock } from "../lib/format";
 import { type DockApp, ipc, type Volume } from "../lib/ipc";
 import { Spring } from "../lib/spring";
+import { DockPopover, type Pop, placeNear, type Side } from "./DockPopover";
+import { AppIcon, QuickIcon, SearchIcon, StartIcon, TaskViewIcon, TrayUpIcon } from "./icons";
+import { dropIndex, moveKey, slideFor } from "./order";
 import "./dock.css";
 
-type Side = "bottom" | "left" | "right";
 const sideOf = (value: string): Side => (value === "left" || value === "right" ? value : "bottom");
+
+/** Hovering an open app this long shows its windows; once one preview is up, the next app's shows at once. */
+const PREVIEW_DELAY = 420;
+/** The name of a button or of a closed app. */
+const TIP_DELAY = 450;
+/** Leaving an app and its preview: how long the preview waits (time to cross the gap between them). */
+const CLOSE_DELAY = 280;
+/** How far the mouse moves with the button down before it is a drag and not a click. */
+const DRAG_START = 6;
 
 /** The dock's size follows its content on the island's spring: a little bounce when it grows, a soft landing back. */
 function useBoxSpring(boxRef: React.RefObject<HTMLDivElement | null>, contentRef: React.RefObject<HTMLDivElement | null>, reduceMotion: boolean) {
@@ -61,40 +72,21 @@ function useBoxSpring(boxRef: React.RefObject<HTMLDivElement | null>, contentRef
   }, [boxRef, contentRef, reduceMotion]);
 }
 
-/** Four small squares: the Start menu. */
-const StartIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-    {[
-      [3.5, 3.5],
-      [13, 3.5],
-      [3.5, 13],
-      [13, 13],
-    ].map(([x, y]) => (
-      <rect key={`${x}-${y}`} x={x} y={y} width="7.5" height="7.5" rx="2.2" fill="currentColor" />
-    ))}
-  </svg>
-);
-
-/** An arrow toward the open screen: Windows' taskbar for a moment, to reach the tray icons. */
-const TrayUpIcon = ({ side }: { side: Side }) => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ rotate: side === "left" ? "90deg" : side === "right" ? "-90deg" : "0deg" }}>
-    <path d="M6 15l6-6 6 6" />
-  </svg>
-);
-
-function AppIcon({ app, size }: { app: DockApp; size: number }) {
-  if (app.icon) return <img className="td-img" src={app.icon} alt="" width={size} height={size} draggable={false} />;
-  return (
-    <span className="td-letter" style={{ width: size, height: size, fontSize: size * 0.42 }}>
-      {(app.name.trim()[0] ?? "?").toUpperCase()}
-    </span>
-  );
+/** A drag in progress: the app's place before (`from`), where it would land (`to`), how far it moved. */
+interface Drag {
+  key: string;
+  from: number;
+  to: number;
+  delta: number;
+  step: number;
 }
 
 /**
- * Docky's taskbar: a black pill on the bottom, left or right edge with the open apps, that grows like the island when
- * the mouse comes over it, with Start, the pinned apps, each app's windows and a small system corner. The window it
- * lives in never takes focus (dock.rs), so clicking an app here behaves like the Windows taskbar.
+ * Docky's taskbar: a black slab on the bottom, left or right edge with the open apps, that grows like the island when
+ * the mouse comes over it. Open, it is a Windows taskbar made calmer: Start, search and task view; the apps, pinned or
+ * open, in an order you drag; live previews of an app's windows on hover; a menu on right click; the system corner;
+ * and the show-desktop corner at the end of the screen's edge (Win+D). The window it lives in never takes focus
+ * (dock.rs), so clicking an app here behaves like the Windows taskbar.
  */
 export function TaskDock() {
   const config = useConfigStore((s) => s.config);
@@ -104,8 +96,11 @@ export function TaskDock() {
   const accent = islandAccent(config.islandColor, null);
   const [apps, setApps] = useState<DockApp[]>([]);
   const [open, setOpen] = useState(false);
-  /** The app whose windows (or menu) are shown next to it. */
-  const [pop, setPop] = useState<{ key: string; kind: "windows" | "menu" } | null>(null);
+  const [pop, setPop] = useState<Pop | null>(null);
+  const [tip, setTip] = useState<{ text: string; el: HTMLElement } | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  /** One frame without transitions after a drop, so the apps land in their new places without sliding again. */
+  const [settling, setSettling] = useState(false);
   const [volume, setVolume] = useState<Volume | null>(null);
   const [mic, setMic] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -114,32 +109,60 @@ export function TaskDock() {
   const rootRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
   useBoxSpring(boxRef, contentRef, config.reduceMotion);
+
+  const openRef = useRef(open);
+  openRef.current = open;
+  const popRef = useRef(pop);
+  popRef.current = pop;
+  const tipShownRef = useRef(tip);
+  tipShownRef.current = tip;
+  const dragRef = useRef<(Drag & { start: number; active: boolean; centers: number[] }) | null>(null);
+  const hoverRef = useRef(false);
+  /** A drop is followed by a click on the same app: that click is not a click. */
+  const droppedRef = useRef(false);
+  const controllerRef = useRef<HoverController | null>(null);
+  const timers = useRef<{ preview?: number; close?: number; tip?: number }>({});
+  const clearTimer = (name: "preview" | "close" | "tip") => {
+    window.clearTimeout(timers.current[name]);
+    timers.current[name] = undefined;
+  };
 
   useEffect(() => {
     void ipc.dockApps().then(setApps);
-    return ipc.onDockApps(setApps);
+    return ipc.onDockApps((next) => {
+      // A drag in progress keeps the order it started with; the drop sends the new one.
+      if (!dragRef.current?.active) setApps(next);
+    });
   }, []);
 
   // Grows when the mouse comes over it, and shrinks back a moment after it leaves (like the island).
-  const openRef = useRef(open);
-  openRef.current = open;
   useEffect(() => {
     const controller = createHoverController({
       expandDelay: 90,
       collapseDelay: 420,
       canExpand: () => !openRef.current,
-      canCollapse: () => openRef.current,
+      canCollapse: () => openRef.current && !dragRef.current?.active,
       expand: () => setOpen(true),
       collapse: () => {
         setOpen(false);
         setPop(null);
+        setTip(null);
       },
     });
-    const off = ipc.onHover((inside) => controller.setHover(inside));
+    controllerRef.current = controller;
+    const offHover = ipc.onHover((inside) => {
+      hoverRef.current = inside;
+      controller.setHover(inside);
+    });
+    // A click anywhere else closes a menu.
+    const offOutside = ipc.onOutsideClick(() => setPop((p) => (p && p.kind !== "preview" ? null : p)));
     return () => {
-      off();
+      offHover();
+      offOutside();
       controller.dispose();
+      for (const id of Object.values(timers.current)) window.clearTimeout(id);
     };
   }, []);
 
@@ -150,7 +173,8 @@ export function TaskDock() {
     void ipc.audioState().then((s) => setMic(s.mic ? s.mic.muted : null));
   }, [open]);
 
-  // Tells Rust where the dock is (dock, ears and any open list), so clicks elsewhere go to the apps underneath.
+  // Tells Rust which parts of the window take clicks: the dock with any open panel (hovered), and the show-desktop
+  // corner (clicked only). Everywhere else, clicks go to the apps underneath.
   const report = useCallback(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -165,7 +189,11 @@ export function TaskDock() {
       right = Math.max(right, r.right + 16);
       bottom = Math.max(bottom, r.bottom + 16);
     });
-    if (Number.isFinite(left)) ipc.setIslandRect({ x: left, y: top, w: right - left, h: bottom - top });
+    if (!Number.isFinite(left)) return;
+    const rects = [{ x: left, y: top, w: right - left, h: bottom - top }];
+    const corner = root.querySelector<HTMLElement>(".td-corner")?.getBoundingClientRect();
+    if (corner) rects.push({ x: corner.left, y: corner.top, w: corner.width, h: corner.height });
+    ipc.setHitRects(rects);
   }, []);
   useEffect(() => {
     report();
@@ -176,7 +204,16 @@ export function TaskDock() {
       observer.disconnect();
       window.removeEventListener("resize", report);
     };
-  }, [report, pop, open]);
+  }, [report, pop, open, side]);
+
+  // The tip sits by its button, on the open side of the screen.
+  useLayoutEffect(() => {
+    const el = tipRef.current;
+    const dock = boxRef.current;
+    if (!el || !tip || !dock) return;
+    const anchor = tip.el.getBoundingClientRect();
+    placeNear(el, anchor, tip.el.closest(".td") ? dock.getBoundingClientRect() : anchor, side, 8);
+  }, [tip, side]);
 
   const flash = (message: string) => {
     setError(message);
@@ -184,76 +221,208 @@ export function TaskDock() {
   };
   const run = (action: Promise<void>) => void action.catch((e) => flash(e instanceof Error ? e.message : String(e)));
 
-  const activate = (app: DockApp) => {
-    if (open && app.windows.length > 1 && !app.focused) {
-      setPop((current) => (current?.key === app.key && current.kind === "windows" ? null : { key: app.key, kind: "windows" }));
-      return;
-    }
-    setPop(null);
-    run(ipc.dockActivate(app.key));
+  const hideTip = () => {
+    clearTimer("tip");
+    setTip(null);
+  };
+  /** The name of what the mouse is over, after a moment (at once when another tip is already up, like Windows). */
+  const showTip = (text: string, el: HTMLElement) => {
+    clearTimer("tip");
+    if (dragRef.current?.active) return;
+    if (tipShownRef.current) setTip({ text, el });
+    else timers.current.tip = window.setTimeout(() => setTip({ text, el }), TIP_DELAY);
+  };
+  const tipProps = (text: string) => ({
+    onPointerEnter: (e: React.PointerEvent<HTMLElement>) => showTip(text, e.currentTarget),
+    onPointerLeave: hideTip,
+  });
+
+  const closePreviewSoon = () => {
+    clearTimer("close");
+    timers.current.close = window.setTimeout(() => setPop((p) => (p?.kind === "preview" ? null : p)), CLOSE_DELAY);
   };
 
-  const shown = pop ? apps.find((a) => a.key === pop.key) ?? null : null;
-  const icon = open ? 30 : 22;
+  const enterApp = (app: DockApp, el: HTMLElement) => {
+    clearTimer("close");
+    clearTimer("preview");
+    if (dragRef.current?.active || (popRef.current && popRef.current.kind !== "preview")) return;
+    if (app.windows.length > 0 && openRef.current) {
+      hideTip();
+      if (popRef.current?.kind === "preview") setPop({ kind: "preview", key: app.key });
+      else timers.current.preview = window.setTimeout(() => setPop({ kind: "preview", key: app.key }), PREVIEW_DELAY);
+    } else {
+      if (popRef.current?.kind === "preview") setPop(null);
+      showTip(app.name, el);
+    }
+  };
+  const leaveApp = () => {
+    clearTimer("preview");
+    hideTip();
+    if (popRef.current?.kind === "preview") closePreviewSoon();
+  };
+
+  const activate = (app: DockApp, e: React.MouseEvent) => {
+    if (droppedRef.current) {
+      droppedRef.current = false;
+      return;
+    }
+    clearTimer("preview");
+    hideTip();
+    setPop(null);
+    // Shift+click opens another window, like on the Windows taskbar.
+    if (e.shiftKey && app.path) run(ipc.dockLaunch(app.path));
+    else run(ipc.dockActivate(app.key));
+  };
+
+  // Drag to reorder: the app follows the mouse along the dock, the others slide out of its way, and the drop keeps
+  // the new order (pinned or not).
+  const axis = (e: { clientX: number; clientY: number }) => (vertical ? e.clientY : e.clientX);
+  const onAppPointerDown = (e: React.PointerEvent<HTMLButtonElement>, index: number, app: DockApp) => {
+    if (e.button !== 0 || !openRef.current) return;
+    dragRef.current = { key: app.key, from: index, to: index, delta: 0, step: 0, start: axis(e), active: false, centers: [] };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onAppPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const moved = axis(e) - d.start;
+    if (!d.active) {
+      if (Math.abs(moved) < DRAG_START) return;
+      const buttons = Array.from(contentRef.current?.querySelectorAll<HTMLElement>(".td-app") ?? []);
+      d.centers = buttons.map((b) => {
+        const r = b.getBoundingClientRect();
+        return vertical ? r.top + r.height / 2 : r.left + r.width / 2;
+      });
+      d.step = d.centers.length > 1 ? d.centers[1] - d.centers[0] : 44;
+      d.active = true;
+      clearTimer("preview");
+      hideTip();
+      setPop(null);
+    }
+    const min = d.centers[0] - d.centers[d.from];
+    const max = d.centers[d.centers.length - 1] - d.centers[d.from];
+    d.delta = Math.max(min, Math.min(max, moved));
+    d.to = dropIndex(d.centers, d.from, d.centers[d.from] + d.delta);
+    setDrag({ key: d.key, from: d.from, to: d.to, delta: d.delta, step: d.step });
+  };
+  const endDrag = (commit: boolean) => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (!d?.active) return;
+    droppedRef.current = commit;
+    // A drop outside the button has no click to swallow.
+    window.setTimeout(() => (droppedRef.current = false), 0);
+    if (commit && d.to !== d.from) {
+      const keys = moveKey(
+        apps.map((a) => a.key),
+        d.from,
+        d.to,
+      );
+      setApps((list) => keys.map((k) => list.find((a) => a.key === k)).filter((a): a is DockApp => !!a));
+      run(ipc.dockReorder(keys));
+    }
+    setSettling(true);
+    setDrag(null);
+    requestAnimationFrame(() => requestAnimationFrame(() => setSettling(false)));
+    // The mouse may have left the dock while dragging: shrink now if it did.
+    if (!hoverRef.current) controllerRef.current?.setHover(false);
+  };
+
+  const preview = pop && pop.kind !== "dock" ? apps.find((a) => a.key === pop.key) ?? null : null;
+  const icon = open ? 26 : 22;
   const clock = formatClock(now, config.clock12h);
   const date = useMemo(() => `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}`, [now]);
+  const volumeTip = volume ? `${t("Volume geral")}: ${volume.muted ? t("mudo") : `${Math.round(volume.level * 100)}%`} · ${t("role para ajustar")}` : "";
 
   return (
     <div
       ref={rootRef}
-      className={`td-root side-${side}${glass ? " glass" : ""}${config.glassEdge ? "" : " no-edge"}${open ? " open" : ""}`}
+      className={`td-root side-${side}${glass ? " glass" : ""}${config.glassEdge ? "" : " no-edge"}${open ? " open" : ""}${drag ? " dragging" : ""}`}
       style={{ "--accent": accent.primary } as React.CSSProperties}
+      onPointerDown={(e) => {
+        // A click on the dock outside an open menu closes it.
+        if (popRef.current && popRef.current.kind !== "preview" && !(e.target as HTMLElement).closest(".td-pop")) setPop(null);
+      }}
     >
       <div ref={boxRef} className="td">
         <i className="td-ear a" aria-hidden="true" />
         <i className="td-ear b" aria-hidden="true" />
         <div className="td-body">
-          <div ref={contentRef} className={`td-in${vertical ? " col" : ""}`} role="toolbar" aria-label={t("Dock")} aria-orientation={vertical ? "vertical" : "horizontal"}>
+          <div
+            ref={contentRef}
+            className={`td-in${vertical ? " col" : ""}${settling ? " settle" : ""}`}
+            role="toolbar"
+            aria-label={t("Dock")}
+            aria-orientation={vertical ? "vertical" : "horizontal"}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              if ((e.target as HTMLElement).closest(".td-app")) return;
+              hideTip();
+              setPop({ kind: "dock", x: e.clientX, y: e.clientY });
+            }}
+          >
             {open && (
-              <>
-                <button className="td-btn start" aria-label={t("Iniciar")} title={t("Iniciar")} onClick={() => ipc.dockStartMenu()}>
+              <div className={`td-group${vertical ? " col" : ""}`}>
+                <button className="td-btn start" aria-label={t("Iniciar")} onClick={() => ipc.dockShortcut("start")} {...tipProps(t("Iniciar"))}>
                   <StartIcon />
                 </button>
-                <i className="td-sep" aria-hidden="true" />
-              </>
+                <button className="td-btn" aria-label={t("Pesquisar")} onClick={() => ipc.dockShortcut("search")} {...tipProps(t("Pesquisar"))}>
+                  <SearchIcon />
+                </button>
+                <button className="td-btn" aria-label={t("Visão de tarefas")} onClick={() => ipc.dockShortcut("taskView")} {...tipProps(t("Visão de tarefas"))}>
+                  <TaskViewIcon />
+                </button>
+              </div>
             )}
+            {open && <i className="td-sep" aria-hidden="true" />}
             {apps.length === 0 && <span className="td-empty">{t("Nenhum app aberto")}</span>}
-            {apps.map((app) => {
+            {apps.map((app, index) => {
               const running = app.windows.length > 0;
               const minimized = running && app.windows.every((w) => w.minimized);
+              const dragged = drag?.key === app.key;
+              const offset = drag ? (dragged ? drag.delta : slideFor(index, drag.from, drag.to, drag.step)) : 0;
+              const shown = pop && pop.kind !== "dock" && pop.key === app.key;
               return (
                 <button
                   key={app.key}
-                  className={`td-app${app.focused ? " on" : ""}${running ? "" : " idle"}${minimized ? " min" : ""}${pop?.key === app.key ? " pop" : ""}`}
-                  aria-label={app.name}
-                  title={open ? undefined : app.name}
+                  className={`td-app${app.focused ? " on" : ""}${running ? " run" : ""}${minimized ? " min" : ""}${shown ? " pop" : ""}${dragged ? " lifted" : ""}`}
+                  aria-label={app.windows.length > 1 ? `${app.name} (${app.windows.length})` : app.name}
                   data-key={app.key}
-                  onClick={() => activate(app)}
+                  style={offset ? { translate: vertical ? `0 ${offset}px` : `${offset}px 0` } : undefined}
+                  onClick={(e) => activate(app, e)}
                   onAuxClick={(e) => {
                     if (e.button === 1 && app.path) run(ipc.dockLaunch(app.path));
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault();
+                    clearTimer("preview");
+                    hideTip();
                     if (!openRef.current) setOpen(true);
-                    setPop({ key: app.key, kind: "menu" });
+                    setPop({ kind: "menu", key: app.key });
                   }}
+                  onPointerEnter={(e) => enterApp(app, e.currentTarget)}
+                  onPointerLeave={leaveApp}
+                  onPointerDown={(e) => onAppPointerDown(e, index, app)}
+                  onPointerMove={onAppPointerMove}
+                  onPointerUp={() => endDrag(true)}
+                  onPointerCancel={() => endDrag(false)}
                 >
                   <AppIcon app={app} size={icon} />
                   {running && <i className="td-dot" aria-hidden="true" />}
-                  {open && <span className="td-name">{app.name}</span>}
+                  {open && app.windows.length > 1 && <b className="td-count" aria-hidden="true">{app.windows.length}</b>}
                 </button>
               );
             })}
             {open && (
               <>
                 <i className="td-sep" aria-hidden="true" />
-                <div className={`td-sys${vertical ? " col" : ""}`}>
+                <div className={`td-group${vertical ? " col" : ""}`}>
                   {mic !== null && (
                     <button
                       className={`td-btn${mic ? " off" : ""}`}
                       aria-pressed={mic}
                       aria-label={t(mic ? "Ativar o microfone" : "Mutar o microfone")}
-                      title={t(mic ? "Ativar o microfone" : "Mutar o microfone")}
+                      {...tipProps(t(mic ? "Ativar o microfone" : "Mutar o microfone"))}
                       onClick={() => {
                         const next = !mic;
                         setMic(next);
@@ -267,7 +436,7 @@ export function TaskDock() {
                     <button
                       className="td-btn"
                       aria-label={t(volume.muted ? "Ativar o som" : "Silenciar tudo")}
-                      title={`${t("Volume geral")}: ${volume.muted ? "—" : `${Math.round(volume.level * 100)}%`}`}
+                      {...tipProps(volumeTip)}
                       onClick={() => {
                         const next = { ...volume, muted: !volume.muted };
                         setVolume(next);
@@ -277,18 +446,27 @@ export function TaskDock() {
                         const level = Math.min(1, Math.max(0, volume.level + (e.deltaY < 0 ? 0.05 : -0.05)));
                         setVolume({ level, muted: false });
                         ipc.setVolume(level);
+                        if (tipShownRef.current) setTip({ text: `${t("Volume geral")}: ${Math.round(level * 100)}% · ${t("role para ajustar")}`, el: e.currentTarget });
                       }}
                     >
                       <VolumeIcon level={volume.level} muted={volume.muted} size={16} />
                     </button>
                   )}
-                  <button className="td-btn" aria-label={t("Bandeja do Windows")} title={t("Bandeja do Windows")} onClick={() => ipc.dockPeekTaskbar()}>
+                  <button className="td-btn" aria-label={t("Configurações rápidas")} onClick={() => ipc.dockShortcut("quickSettings")} {...tipProps(t("Wi-Fi, Bluetooth e brilho"))}>
+                    <QuickIcon />
+                  </button>
+                  <button className="td-btn" aria-label={t("Bandeja do Windows")} onClick={() => ipc.dockPeekTaskbar()} {...tipProps(t("Bandeja do Windows"))}>
                     <TrayUpIcon side={side} />
                   </button>
-                  <span className="td-clock" aria-label={`${clock}, ${date}`}>
+                  <button
+                    className="td-clock"
+                    aria-label={`${clock}, ${date}. ${t("Notificações e calendário")}`}
+                    onClick={() => ipc.dockShortcut("notifications")}
+                    {...tipProps(t("Notificações e calendário"))}
+                  >
                     <b>{clock}</b>
                     <em>{date}</em>
-                  </span>
+                  </button>
                 </div>
               </>
             )}
@@ -296,112 +474,33 @@ export function TaskDock() {
         </div>
       </div>
 
-      {shown && pop && (
+      {/* The show-desktop corner at the end of the edge (Win+D), like the sliver at the end of Windows' taskbar. */}
+      <button className="td-corner" aria-label={t("Mostrar a área de trabalho")} onClick={() => ipc.dockShortcut("desktop")} {...tipProps(t("Mostrar a área de trabalho"))}>
+        <i aria-hidden="true" />
+      </button>
+
+      {pop && (pop.kind === "dock" || preview) && (
         <DockPopover
-          app={shown}
-          kind={pop.kind}
+          key={pop.kind === "dock" ? "dock" : `${pop.kind}:${pop.key}`}
+          pop={pop}
+          app={preview}
           side={side}
           root={rootRef}
           onClose={() => setPop(null)}
-          onPin={(pin) => run(ipc.dockPin(shown.path, pin))}
-          onLaunch={() => run(ipc.dockLaunch(shown.path))}
+          onEnter={() => clearTimer("close")}
+          onLeave={() => {
+            if (popRef.current?.kind === "preview") closePreviewSoon();
+          }}
+          onError={flash}
           onPlaced={report}
         />
       )}
-      {error && <div className="td-error">{t(error)}</div>}
-    </div>
-  );
-}
-
-/** An app's windows (click one to bring it forward, × to close it), or its menu (right click). */
-function DockPopover({
-  app,
-  kind,
-  side,
-  root,
-  onClose,
-  onPin,
-  onLaunch,
-  onPlaced,
-}: {
-  app: DockApp;
-  kind: "windows" | "menu";
-  side: Side;
-  root: React.RefObject<HTMLDivElement | null>;
-  onClose: () => void;
-  onPin: (pin: boolean) => void;
-  onLaunch: () => void;
-  onPlaced: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  // Sits next to its app's button, on the open side of the screen.
-  useLayoutEffect(() => {
-    const el = ref.current;
-    const button = root.current?.querySelector<HTMLElement>(`.td-app[data-key="${CSS.escape(app.key)}"]`);
-    const dock = root.current?.querySelector<HTMLElement>(".td");
-    if (!el || !button || !dock) return;
-    const b = button.getBoundingClientRect();
-    const d = dock.getBoundingClientRect();
-    const gap = 10;
-    if (side === "bottom") {
-      const left = Math.min(window.innerWidth - el.offsetWidth - 8, Math.max(8, b.left + b.width / 2 - el.offsetWidth / 2));
-      el.style.left = `${left}px`;
-      el.style.top = `${d.top - el.offsetHeight - gap}px`;
-    } else {
-      const top = Math.min(window.innerHeight - el.offsetHeight - 8, Math.max(8, b.top + b.height / 2 - el.offsetHeight / 2));
-      el.style.top = `${top}px`;
-      el.style.left = side === "left" ? `${d.right + gap}px` : `${d.left - el.offsetWidth - gap}px`;
-    }
-    onPlaced();
-  });
-
-  return (
-    <div ref={ref} className="td-pop" role="menu" aria-label={app.name}>
-      <b className="td-pop-h">{app.name}</b>
-      {kind === "windows" &&
-        app.windows.map((w) => (
-          <div key={w.id} className={`td-win${w.minimized ? " min" : ""}`} role="menuitem">
-            <button
-              className="td-win-t"
-              title={w.title}
-              onClick={() => {
-                ipc.dockFocusWindow(w.id);
-                onClose();
-              }}
-            >
-              {w.title}
-            </button>
-            <button className="td-win-x" aria-label={t("Fechar esta janela")} title={t("Fechar esta janela")} onClick={() => ipc.dockCloseWindow(w.id)}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
-          </div>
-        ))}
-      {kind === "menu" && (
-        <>
-          {app.windows.length > 0 && (
-            <button className="td-act" role="menuitem" onClick={() => { app.windows.forEach((w) => ipc.dockFocusWindow(w.id)); onClose(); }}>
-              {t("Mostrar")}
-            </button>
-          )}
-          {app.path && (
-            <button className="td-act" role="menuitem" onClick={() => { onLaunch(); onClose(); }}>
-              {t("Nova janela")}
-            </button>
-          )}
-          {app.path && (
-            <button className="td-act" role="menuitem" onClick={() => { onPin(!app.pinned); onClose(); }}>
-              {t(app.pinned ? "Tirar do dock" : "Fixar no dock")}
-            </button>
-          )}
-          {app.windows.length > 0 && (
-            <button className="td-act danger" role="menuitem" onClick={() => { app.windows.forEach((w) => ipc.dockCloseWindow(w.id)); onClose(); }}>
-              {t(app.windows.length > 1 ? "Fechar todas as janelas" : "Fechar a janela")}
-            </button>
-          )}
-        </>
+      {tip && !drag && (
+        <div ref={tipRef} className="td-tip" role="tooltip">
+          {tip.text}
+        </div>
       )}
+      {error && <div className="td-error">{t(error)}</div>}
     </div>
   );
 }

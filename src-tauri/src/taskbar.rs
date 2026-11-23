@@ -101,8 +101,9 @@ pub fn tidy_name(name: &str) -> String {
     name.to_string()
 }
 
-/// Groups windows by program, keeping the order apps were first seen (`order`, updated), pinned programs first and
-/// pinned programs that are not running at the end of the pinned run.
+/// Groups windows by program in the dock's order (`order`, updated): the first time, pinned programs first (in their
+/// pinned order) and then the open ones as they appeared; after that, new apps join at the end, and the person can
+/// drag them anywhere (`dock_reorder`), pinned or not, like the Windows taskbar.
 pub fn group(seen: &[Seen], focused: Option<i64>, pinned: &[String], order: &mut Vec<String>, names: &dyn Fn(&str) -> String) -> Vec<DockApp> {
     let mut apps: HashMap<String, DockApp> = HashMap::new();
     let mut appeared: Vec<String> = Vec::new();
@@ -134,19 +135,10 @@ pub fn group(seen: &[Seen], focused: Option<i64>, pinned: &[String], order: &mut
         app.focused |= focused == Some(window.id);
         app.windows.push(DockWindow { id: window.id, title: window.title.clone(), minimized: window.minimized });
     }
-    // New apps join at the end, in the order Windows lists them (the most recently used first).
-    for key in appeared {
-        if !order.contains(&key) {
-            order.push(key);
-        }
-    }
-    // Apps that closed leave the order, so they come back at the end, like the Windows taskbar.
-    order.retain(|key| apps.contains_key(key));
-
-    let mut result = Vec::new();
-    for path in pinned {
-        let key = path.to_lowercase();
-        let app = apps.remove(&key).unwrap_or_else(|| DockApp {
+    // Pinned programs stay on the dock while closed.
+    let pinned_keys: Vec<String> = pinned.iter().map(|p| p.to_lowercase()).collect();
+    for (path, key) in pinned.iter().zip(&pinned_keys) {
+        let app = apps.entry(key.clone()).or_insert_with(|| DockApp {
             key: key.clone(),
             path: path.clone(),
             name: names(path),
@@ -155,19 +147,54 @@ pub fn group(seen: &[Seen], focused: Option<i64>, pinned: &[String], order: &mut
             focused: false,
             pinned: true,
         });
-        result.push(DockApp { pinned: true, ..app });
+        app.pinned = true;
     }
-    for key in order.iter() {
-        if let Some(app) = apps.remove(key) {
-            result.push(app);
+    // Apps new to the dock join at the end: pinned ones first, then the open ones in the order Windows lists them.
+    for key in pinned_keys.into_iter().chain(appeared) {
+        if !order.contains(&key) {
+            order.push(key);
         }
     }
-    result
+    // Apps that closed (and are not pinned) leave the order, so they come back at the end, like the Windows taskbar.
+    order.retain(|key| apps.contains_key(key));
+    order.iter().filter_map(|key| apps.remove(key)).collect()
+}
+
+/// The dock's apps in the order of `keys` (a drag on the dock); apps missing from `keys` keep their place after them.
+pub fn apply_order(apps: &[DockApp], keys: &[String]) -> Vec<DockApp> {
+    let mut sorted: Vec<DockApp> = keys.iter().filter_map(|k| apps.iter().find(|a| &a.key == k).cloned()).collect();
+    sorted.extend(apps.iter().filter(|a| !keys.contains(&a.key)).cloned());
+    sorted
+}
+
+/// The pinned list in the dock's new order. Pinned paths not on the dock (should not happen) keep their place after.
+pub fn pinned_in_order(pinned: &[String], apps: &[DockApp]) -> Vec<String> {
+    let mut sorted: Vec<String> = apps.iter().filter_map(|a| pinned.iter().find(|p| p.to_lowercase() == a.key).cloned()).collect();
+    let rest: Vec<String> = pinned.iter().filter(|p| !sorted.contains(p)).cloned().collect();
+    sorted.extend(rest);
+    sorted
+}
+
+/// Windows' own shortcuts the dock's buttons press: virtual keys, held in order and let go in reverse.
+pub fn shortcut_keys(name: &str) -> Option<&'static [u16]> {
+    const WIN: u16 = 0x5B;
+    Some(match name {
+        "start" => &[WIN],
+        "desktop" => &[WIN, b'D' as u16],
+        "search" => &[WIN, b'S' as u16],
+        "taskView" => &[WIN, 0x09],
+        "notifications" => &[WIN, b'N' as u16],
+        "quickSettings" => &[WIN, b'A' as u16],
+        "taskManager" => &[0x11, 0x10, 0x1B],
+        _ => return None,
+    })
 }
 
 #[derive(Default)]
 pub struct DockState {
     apps: Mutex<Vec<DockApp>>,
+    /// The dock's order, by app key (see `group`).
+    order: Mutex<Vec<String>>,
 }
 
 /// Icons and names already read, by program path.
@@ -276,10 +303,43 @@ pub fn dock_pin(app: AppHandle, state: State<ConfigState>, path: String, pin: bo
     Ok(())
 }
 
-/// The Start menu, as the Windows key opens it.
+/// One of Windows' own shortcuts: Start, show the desktop (Win+D), search, task view, notifications and calendar,
+/// quick settings, Task Manager.
 #[tauri::command]
-pub fn dock_start_menu() {
-    win::press_windows_key();
+pub fn dock_shortcut(which: String) -> Result<(), String> {
+    let keys = shortcut_keys(&which).ok_or("Atalho desconhecido")?;
+    win::press(keys);
+    Ok(())
+}
+
+/// The dock in a new order (an app dragged to another place). Pinned apps keep that order in Settings too.
+#[tauri::command]
+pub fn dock_reorder(app: AppHandle, state: State<DockState>, config: State<ConfigState>, keys: Vec<String>) -> Result<(), String> {
+    let sorted = {
+        let mut apps = state.apps.lock().map_err(|e| e.to_string())?;
+        let sorted = apply_order(&apps, &keys);
+        *apps = sorted.clone();
+        sorted
+    };
+    if let Ok(mut order) = state.order.lock() {
+        *order = sorted.iter().map(|a| a.key.clone()).collect();
+    }
+    let current = config.get().dock_pinned;
+    let pinned = pinned_in_order(&current, &sorted);
+    if pinned != current {
+        config.modify(&app, |c| c.dock_pinned = pinned.clone())?;
+    }
+    let _ = app.emit_to(crate::dock::LABEL, "dock-apps", sorted);
+    Ok(())
+}
+
+/// Shows the program's file in the Explorer ("Abrir local do arquivo").
+#[tauri::command]
+pub fn dock_reveal(path: String) -> Result<(), String> {
+    if path.is_empty() || is_shell(&path) || path.contains('"') || !std::path::Path::new(&path).is_file() {
+        return Err("Não deu para achar o arquivo desse app".into());
+    }
+    win::reveal(&path)
 }
 
 /// Shows Windows' taskbar for a moment, to reach the tray icons (Wi-Fi, OneDrive…).
@@ -338,7 +398,6 @@ pub fn spawn(app: AppHandle) {
         restore_taskbar();
     }
     thread::spawn(move || {
-        let mut order: Vec<String> = Vec::new();
         let mut last_external: Option<i64> = None;
         let mut hidden = false;
         loop {
@@ -363,11 +422,14 @@ pub fn spawn(app: AppHandle) {
             if let Some(front) = foreground {
                 last_external = Some(front);
             }
-            let mut apps = group(&seen, last_external, &config.dock_pinned, &mut order, &name_for);
+            let state = app.state::<DockState>();
+            let mut apps = {
+                let mut order = state.order.lock().unwrap_or_else(|p| p.into_inner());
+                group(&seen, last_external, &config.dock_pinned, &mut order, &name_for)
+            };
             for a in apps.iter_mut() {
                 a.icon = icon_for(&a.path);
             }
-            let state = app.state::<DockState>();
             let changed = state.apps.lock().map(|old| *old != apps).unwrap_or(true);
             if changed {
                 if let Ok(mut slot) = state.apps.lock() {
@@ -408,7 +470,7 @@ mod win {
             Graphics::Dwm::{DWMWA_CLOAKED, DwmGetWindowAttribute},
             Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW},
             UI::{
-                Input::KeyboardAndMouse::{INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, VK_LWIN},
+                Input::KeyboardAndMouse::{INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, VIRTUAL_KEY},
                 Shell::{ABM_GETSTATE, ABM_SETSTATE, APPBARDATA, SHAppBarMessage},
                 WindowsAndMessaging::{
                     EnumWindows, FindWindowW, GW_OWNER, GWL_EXSTYLE, GetClassNameW, GetForegroundWindow, GetWindow, GetWindowLongW, GetWindowTextLengthW,
@@ -591,14 +653,21 @@ mod win {
         }
     }
 
-    pub fn press_windows_key() {
-        let key = |flags: KEYBD_EVENT_FLAGS| INPUT {
+    /// Presses keys together, like a person would: down in order, up in reverse.
+    pub fn press(keys: &[u16]) {
+        let key = |vk: u16, flags: KEYBD_EVENT_FLAGS| INPUT {
             r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: VK_LWIN, wScan: 0, dwFlags: flags, time: 0, dwExtraInfo: 0 } },
+            Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: VIRTUAL_KEY(vk), wScan: 0, dwFlags: flags, time: 0, dwExtraInfo: 0 } },
         };
+        let inputs: Vec<INPUT> = keys.iter().map(|&k| key(k, KEYBD_EVENT_FLAGS(0))).chain(keys.iter().rev().map(|&k| key(k, KEYEVENTF_KEYUP))).collect();
         unsafe {
-            SendInput(&[key(KEYBD_EVENT_FLAGS(0)), key(KEYEVENTF_KEYUP)], std::mem::size_of::<INPUT>() as i32);
+            SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
         }
+    }
+
+    pub fn reveal(path: &str) -> Result<(), String> {
+        use std::os::windows::process::CommandExt;
+        std::process::Command::new("explorer.exe").raw_arg(format!("/select,\"{path}\"")).spawn().map(|_| ()).map_err(|e| e.to_string())
     }
 
     /// The program's own name ("Google Chrome"), from its version information.
@@ -689,7 +758,10 @@ mod win {
     pub fn focus(_: i64) {}
     pub fn minimize(_: i64) {}
     pub fn close(_: i64) {}
-    pub fn press_windows_key() {}
+    pub fn press(_: &[u16]) {}
+    pub fn reveal(_: &str) -> Result<(), String> {
+        Err("Só no Windows".into())
+    }
     pub fn description(_: &str) -> Option<String> {
         None
     }
@@ -729,6 +801,34 @@ mod tests {
         let pinned = [apps[1].path.clone()];
         let again = group(&[], None, &pinned, &mut order, &names);
         assert_eq!(again[0].key, apps[1].key);
+    }
+
+    #[test]
+    fn arrastar_muda_a_ordem_e_ela_fica() {
+        let mut order = Vec::new();
+        let windows = [seen(1, "Chrome", r"C:\c\chrome.exe"), seen(2, "Spotify", r"C:\s\Spotify.exe")];
+        let pinned = vec![r"C:\d\Discord.exe".to_string(), r"C:\o\Obsidian.exe".to_string()];
+        let apps = group(&windows, None, &pinned, &mut order, &name_from_path);
+        assert_eq!(apps.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), ["Discord", "Obsidian", "Chrome", "Spotify"]);
+        // Spotify dragged to the front, Obsidian after Chrome: pinned and open apps mix freely.
+        let keys: Vec<String> = [3, 0, 2, 1].iter().map(|&i| apps[i].key.clone()).collect();
+        let sorted = apply_order(&apps, &keys);
+        assert_eq!(sorted.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), ["Spotify", "Discord", "Chrome", "Obsidian"]);
+        // The pinned list follows the dock.
+        assert_eq!(pinned_in_order(&pinned, &sorted), [r"C:\d\Discord.exe", r"C:\o\Obsidian.exe"]);
+        let swapped = apply_order(&apps, &[apps[1].key.clone(), apps[0].key.clone()]);
+        assert_eq!(pinned_in_order(&pinned, &swapped), [r"C:\o\Obsidian.exe", r"C:\d\Discord.exe"]);
+        // The next reading keeps the new order.
+        let mut order: Vec<String> = sorted.iter().map(|a| a.key.clone()).collect();
+        let again = group(&windows, None, &pinned, &mut order, &name_from_path);
+        assert_eq!(again.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), ["Spotify", "Discord", "Chrome", "Obsidian"]);
+    }
+
+    #[test]
+    fn atalhos_do_windows_conhecidos() {
+        assert_eq!(shortcut_keys("desktop"), Some(&[0x5B, b'D' as u16][..]));
+        assert_eq!(shortcut_keys("start"), Some(&[0x5B][..]));
+        assert_eq!(shortcut_keys("rm -rf"), None);
     }
 
     #[test]

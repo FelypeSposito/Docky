@@ -3,14 +3,18 @@
 //! Like the island's, the window is a transparent strip along its edge, bigger than the dock so it can grow, and
 //! it lets clicks through outside the dock (pointer.rs, from the rect the page reports). It never takes focus, so the
 //! app you were in stays in front when you click the dock (taskbar.rs relies on that to know which app is focused).
+//!
+//! Window previews are Windows' own live thumbnails (DWM), drawn by Windows into this window at the places the page
+//! asks for (`dock_previews`): the page draws the frame around them, Windows draws the window inside.
 
+use serde::Deserialize;
 use tauri::{AppHandle, LogicalSize, Manager, Monitor, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 use crate::config::ConfigState;
 
 pub const LABEL: &str = "dock";
 /// How deep the strip is (logical px): room for the dock to grow and for a window list above an app.
-const SPAN: f64 = 280.0;
+const SPAN: f64 = 300.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
@@ -94,6 +98,101 @@ pub fn sync(app: &AppHandle) {
     set_visible(app, !crate::island::hidden_now(app));
 }
 
+/// Where a window's preview goes, in the dock's page (logical px).
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct Slot {
+    pub id: i64,
+    pub x: f64,
+    pub y: f64,
+    pub w: f64,
+    pub h: f64,
+}
+
+/// A window of `source` size fitted inside a slot (physical px), keeping its shape, centred: (left, top, right, bottom).
+pub fn fit(slot: (f64, f64, f64, f64), source: (f64, f64)) -> (i32, i32, i32, i32) {
+    let (x, y, w, h) = slot;
+    let (sw, sh) = source;
+    let k = if sw > 0.0 && sh > 0.0 { (w / sw).min(h / sh) } else { 1.0 };
+    let (fw, fh) = if sw > 0.0 && sh > 0.0 { (sw * k, sh * k) } else { (w, h) };
+    let left = x + (w - fw) / 2.0;
+    let top = y + (h - fh) / 2.0;
+    (left.round() as i32, top.round() as i32, (left + fw).round() as i32, (top + fh).round() as i32)
+}
+
+/// Shows live previews of these windows at these places in the dock (an empty list takes them all away).
+#[tauri::command]
+pub fn dock_previews(app: AppHandle, window: WebviewWindow, slots: Vec<Slot>) {
+    let scale = window.scale_factor().unwrap_or(1.0);
+    #[cfg(windows)]
+    {
+        let Ok(hwnd) = window.hwnd() else { return };
+        let dest = hwnd.0 as isize;
+        let _ = app.run_on_main_thread(move || thumbs::show(dest, &slots, scale));
+    }
+    #[cfg(not(windows))]
+    let _ = (app, slots, scale);
+}
+
+#[cfg(windows)]
+mod thumbs {
+    use std::{cell::RefCell, collections::HashMap, ffi::c_void};
+
+    use windows::Win32::{
+        Foundation::{HWND, RECT},
+        Graphics::Dwm::{
+            DWM_THUMBNAIL_PROPERTIES, DWM_TNP_OPACITY, DWM_TNP_RECTDESTINATION, DWM_TNP_SOURCECLIENTAREAONLY, DWM_TNP_VISIBLE, DwmQueryThumbnailSourceSize,
+            DwmRegisterThumbnail, DwmUnregisterThumbnail, DwmUpdateThumbnailProperties,
+        },
+    };
+
+    use super::Slot;
+
+    thread_local! {
+        /// The previews shown now: window → thumbnail. Only touched on the main thread.
+        static SHOWN: RefCell<HashMap<i64, isize>> = RefCell::new(HashMap::new());
+    }
+
+    pub fn show(dest: isize, slots: &[Slot], scale: f64) {
+        SHOWN.with(|shown| {
+            let mut shown = shown.borrow_mut();
+            shown.retain(|id, thumb| {
+                let keep = slots.iter().any(|s| s.id == *id);
+                if !keep {
+                    unsafe {
+                        let _ = DwmUnregisterThumbnail(*thumb);
+                    }
+                }
+                keep
+            });
+            for slot in slots {
+                let thumb = match shown.get(&slot.id) {
+                    Some(thumb) => *thumb,
+                    None => match unsafe { DwmRegisterThumbnail(HWND(dest as *mut c_void), HWND(slot.id as isize as *mut c_void)) } {
+                        Ok(thumb) => {
+                            shown.insert(slot.id, thumb);
+                            thumb
+                        }
+                        Err(_) => continue,
+                    },
+                };
+                let size = unsafe { DwmQueryThumbnailSourceSize(thumb) }.unwrap_or_default();
+                let (left, top, right, bottom) = super::fit((slot.x * scale, slot.y * scale, slot.w * scale, slot.h * scale), (size.cx as f64, size.cy as f64));
+                let props = DWM_THUMBNAIL_PROPERTIES {
+                    dwFlags: DWM_TNP_RECTDESTINATION | DWM_TNP_VISIBLE | DWM_TNP_OPACITY | DWM_TNP_SOURCECLIENTAREAONLY,
+                    rcDestination: RECT { left, top, right, bottom },
+                    rcSource: RECT::default(),
+                    opacity: 255,
+                    fVisible: true.into(),
+                    fSourceClientAreaOnly: false.into(),
+                };
+                unsafe {
+                    let _ = DwmUpdateThumbnailProperties(thumb, &props);
+                }
+            }
+        });
+    }
+}
+
 /// The dock follows the island: hidden from the tray or while a game is fullscreen.
 pub fn set_visible(app: &AppHandle, visible: bool) {
     if let Some(window) = app.get_webview_window(LABEL) {
@@ -138,12 +237,22 @@ mod tests {
 
     #[test]
     fn a_faixa_fica_na_borda_escolhida() {
-        // A 1920 × 1080 screen at 1.25: 280 logical px deep is 350 physical.
-        assert_eq!(strip(Side::Bottom, (0, 0), (1920, 1080), 1.25), ((0, 730), (1536.0, 280.0)));
-        assert_eq!(strip(Side::Left, (0, 0), (1920, 1080), 1.25), ((0, 0), (280.0, 864.0)));
-        assert_eq!(strip(Side::Right, (0, 0), (1920, 1080), 1.25), ((1570, 0), (280.0, 864.0)));
+        // A 1920 × 1080 screen at 1.25: 300 logical px deep is 375 physical.
+        assert_eq!(strip(Side::Bottom, (0, 0), (1920, 1080), 1.25), ((0, 705), (1536.0, 300.0)));
+        assert_eq!(strip(Side::Left, (0, 0), (1920, 1080), 1.25), ((0, 0), (300.0, 864.0)));
+        assert_eq!(strip(Side::Right, (0, 0), (1920, 1080), 1.25), ((1545, 0), (300.0, 864.0)));
         // A second screen to the left of the main one.
-        assert_eq!(strip(Side::Bottom, (-1080, 0), (1080, 1920), 1.0).0, (-1080, 1640));
+        assert_eq!(strip(Side::Bottom, (-1080, 0), (1080, 1920), 1.0).0, (-1080, 1620));
+    }
+
+    #[test]
+    fn previa_cabe_no_espaco_sem_distorcer() {
+        // A 1920 × 1080 window in a 200 × 120 slot: as wide as the slot, centred up and down.
+        assert_eq!(fit((10.0, 20.0, 200.0, 120.0), (1920.0, 1080.0)), (10, 24, 210, 136));
+        // A tall window: as high as the slot, centred across.
+        assert_eq!(fit((0.0, 0.0, 200.0, 120.0), (600.0, 1200.0)), (70, 0, 130, 120));
+        // Size unknown: the whole slot.
+        assert_eq!(fit((0.0, 0.0, 200.0, 120.0), (0.0, 0.0)), (0, 0, 200, 120));
     }
 
     #[test]

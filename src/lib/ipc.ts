@@ -58,6 +58,18 @@ export interface DockWindow {
   minimized: boolean;
 }
 
+/** Windows' own shortcuts the dock can press. */
+export type DockShortcut = "start" | "desktop" | "search" | "taskView" | "notifications" | "quickSettings" | "taskManager";
+
+/** Where a window's live preview goes in the dock's page (logical px). */
+export interface PreviewSlot {
+  id: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /** An app on the dock: open (with its windows) or pinned. */
 export interface DockApp {
   key: string;
@@ -354,6 +366,12 @@ export const ipc = {
     if (isTauri) void invoke("set_island_rect", { rect });
   },
 
+  /** Areas of this window that take clicks: the first is hovered (it grows), the others only clicked. */
+  setHitRects(rects: Rect[]): void {
+    if (rects[0]) lastRect = rects[0];
+    if (isTauri) void invoke("set_hit_rects", { rects });
+  },
+
   /** Minimizar ou fechar a janela atual (as configurações não têm moldura própria). */
   async windowControl(action: "minimize" | "close"): Promise<void> {
     if (!isTauri) return window.close();
@@ -510,8 +528,26 @@ export const ipc = {
     devDockChanged();
   },
 
-  dockStartMenu(): void {
-    if (isTauri) void invoke("dock_start_menu");
+  /** One of Windows' own shortcuts (Start, Win+D, search, task view, notifications, quick settings, Task Manager). */
+  dockShortcut(which: DockShortcut): void {
+    if (isTauri) void invoke("dock_shortcut", { which });
+  },
+
+  /** The dock in a new order (an app dragged to another place). */
+  async dockReorder(keys: string[]): Promise<void> {
+    if (isTauri) return invoke<void>("dock_reorder", { keys });
+    devDock = keys.map((k) => devDock.find((a) => a.key === k)).filter((a): a is DockApp => !!a);
+    devDockChanged();
+  },
+
+  /** Shows the program's file in the Explorer. */
+  async dockReveal(path: string): Promise<void> {
+    if (isTauri) return invoke<void>("dock_reveal", { path });
+  },
+
+  /** Live previews of windows at these places in the dock's page (empty: none). */
+  dockPreviews(slots: PreviewSlot[]): void {
+    if (isTauri) void invoke("dock_previews", { slots });
   },
 
   dockPeekTaskbar(): void {
