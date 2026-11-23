@@ -1,6 +1,6 @@
 [package]
 name = "docky"
-version = "0.4.3"
+version = "0.4.4"
 description = "Docky — uma ilha dinâmica para o Windows"
 authors = ["Felype Sposito"]
 license = "MIT"
@@ -79,6 +79,7 @@ windows = { version = "0.61", features = [
   "Win32_UI_Shell_PropertiesSystem",
   "Win32_Devices_FunctionDiscovery",
   "Win32_Storage_FileSystem",
+  "Win32_Storage_Packaging_Appx",
   "Win32_System_Pipes",
   "Media",
 ] }

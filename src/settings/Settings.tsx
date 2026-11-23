@@ -37,6 +37,9 @@ const areaFrom = (value: string | null): AreaId | null => (isArea(value) ? value
 
 /** "C:\\…\\Discord.exe" → "Discord": the name a pinned program shows in Settings. */
 const pinnedName = (path: string) => {
+  // A Store app: "shell:AppsFolder\5319275A.WhatsAppDesktop_cv1g…!App" → "WhatsAppDesktop".
+  const store = /^shell:AppsFolder\\(?:[^.!_]+\.)?([^_!]+)/i.exec(path);
+  if (store) return store[1];
   const file = path.split(/[\\/]/).pop() ?? path;
   const stem = file.replace(/\.exe$/i, "");
   return stem.charAt(0).toUpperCase() + stem.slice(1);

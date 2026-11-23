@@ -2,7 +2,8 @@
 //! hiding Windows' own taskbar while the dock is on.
 //!
 //! Open apps are the windows Alt+Tab would show (visible, not tool windows, not cloaked by Windows, with a title),
-//! grouped by program. The dock's window never takes focus (WS_EX_NOACTIVATE), so the app you were in stays the
+//! grouped by program. Store apps (packaged, like WhatsApp or Windows' Settings) are grouped, named, drawn and started
+//! by their app ID (`shell:AppsFolder\<id>`): their programs often carry no icon, and some run inside a host process. The dock's window never takes focus (WS_EX_NOACTIVATE), so the app you were in stays the
 //! focused one when you click the dock, and a click on the focused app minimizes it, like the Windows taskbar.
 //!
 //! Hiding Windows' taskbar changes a system setting (auto-hide, so maximized windows get the whole screen) and hides
@@ -59,6 +60,17 @@ pub struct Seen {
     pub title: String,
     pub path: String,
     pub minimized: bool,
+    /// The Store app's ID (AppUserModelID) when the window belongs to a packaged app.
+    pub app_id: Option<String>,
+}
+
+/// How a Store app is started, drawn and pinned: through the Apps folder.
+pub fn apps_folder(app_id: &str) -> String {
+    format!(r"shell:AppsFolder\{app_id}")
+}
+
+fn is_shell(path: &str) -> bool {
+    path.get(..6).is_some_and(|p| p.eq_ignore_ascii_case("shell:"))
 }
 
 /// Programs that host other apps' windows: their windows are told apart by title.
@@ -96,11 +108,21 @@ pub fn group(seen: &[Seen], focused: Option<i64>, pinned: &[String], order: &mut
     let mut appeared: Vec<String> = Vec::new();
     for window in seen {
         let host = HOSTS.contains(&file_name(&window.path).to_ascii_lowercase().as_str());
-        let key = if host { format!("title:{}", window.title.to_lowercase()) } else { window.path.to_lowercase() };
+        // A Store app is known by its app ID; a hosted window whose app is unknown, by its title.
+        let (key, path, name) = match &window.app_id {
+            Some(id) => {
+                let path = apps_folder(id);
+                (path.to_lowercase(), path.clone(), names(&path))
+            }
+            None if host => (format!("title:{}", window.title.to_lowercase()), String::new(), window.title.clone()),
+            None => (window.path.to_lowercase(), window.path.clone(), names(&window.path)),
+        };
+        // An unnamed Store app (the shell did not say) keeps its window's title.
+        let name = if name.is_empty() { window.title.clone() } else { name };
         let app = apps.entry(key.clone()).or_insert_with(|| DockApp {
             key: key.clone(),
-            path: if host { String::new() } else { window.path.clone() },
-            name: if host { window.title.clone() } else { names(&window.path) },
+            path,
+            name,
             icon: None,
             windows: Vec::new(),
             focused: false,
@@ -171,7 +193,12 @@ fn name_for(path: &str) -> String {
     if let Some(hit) = cache.lock().ok().and_then(|c| c.get(path).cloned()) {
         return hit;
     }
-    let name = win::description(path).filter(|d| !d.trim().is_empty() && d.chars().count() <= 40).unwrap_or_else(|| name_from_path(path));
+    // A Store app: the name the Start menu shows ("WhatsApp", "Configurações"); empty when unknown.
+    let name = if is_shell(path) {
+        win::shell_name(path).unwrap_or_default()
+    } else {
+        win::description(path).filter(|d| !d.trim().is_empty() && d.chars().count() <= 40).unwrap_or_else(|| name_from_path(path))
+    };
     // Store apps describe themselves as "WhatsApp.Root" or "Spotify.App": the part before the dot is the name.
     let name = tidy_name(&name);
     if let Ok(mut c) = cache.lock() {
@@ -224,7 +251,15 @@ fn launch(path: &str) -> Result<(), String> {
     if path.is_empty() {
         return Err("Esse app não abre direto por aqui".into());
     }
-    std::process::Command::new(path).spawn().map(|_| ()).map_err(|e| e.to_string())
+    // Store apps open through the Explorer, like a double click in the Apps folder.
+    let mut command = if is_shell(path) {
+        let mut c = std::process::Command::new("explorer.exe");
+        c.arg(path);
+        c
+    } else {
+        std::process::Command::new(path)
+    };
+    command.spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -351,11 +386,25 @@ fn wants_hidden(app: &AppHandle) -> bool {
 
 #[cfg(windows)]
 mod win {
+    use std::collections::HashMap;
     use std::ffi::c_void;
+    use std::sync::Mutex;
 
     use windows::{
         Win32::{
-            Foundation::{HWND, LPARAM, RECT, WPARAM},
+            Foundation::{CloseHandle, ERROR_SUCCESS, HWND, LPARAM, PROPERTYKEY, RECT, WPARAM},
+            Storage::Packaging::Appx::GetApplicationUserModelId,
+            System::{
+                Com::{
+                    COINIT_APARTMENTTHREADED, CoInitializeEx, CoTaskMemFree,
+                    StructuredStorage::{PropVariantClear, PropVariantToStringAlloc},
+                },
+                Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION},
+            },
+            UI::Shell::{
+                IShellItem, PropertiesSystem::{IPropertyStore, SHGetPropertyStoreForWindow}, SHCreateItemFromParsingName, SIGDN_NORMALDISPLAY,
+            },
+            UI::WindowsAndMessaging::EnumChildWindows,
             Graphics::Dwm::{DWMWA_CLOAKED, DwmGetWindowAttribute},
             Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW},
             UI::{
@@ -388,6 +437,97 @@ mod win {
         unsafe { DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, (&mut value as *mut u32).cast(), 4) }.is_ok() && value != 0
     }
 
+    /// The Store app ID of a packaged process ("5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App"); None for others.
+    fn package_app_id(pid: u32) -> Option<String> {
+        unsafe {
+            let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+            let mut buffer = [0u16; 512];
+            let mut len = buffer.len() as u32;
+            let result = GetApplicationUserModelId(process, &mut len, Some(windows::core::PWSTR(buffer.as_mut_ptr())));
+            let _ = CloseHandle(process);
+            (result == ERROR_SUCCESS && len > 1).then(|| String::from_utf16_lossy(&buffer[..len as usize - 1]))
+        }
+    }
+
+    /// The app inside an ApplicationFrameHost window: its child window from another process.
+    fn hosted_pid(hwnd: HWND, host_pid: u32) -> Option<u32> {
+        struct Find {
+            host: u32,
+            found: Option<u32>,
+        }
+        unsafe extern "system" fn child(hwnd: HWND, data: LPARAM) -> BOOL {
+            let find = unsafe { &mut *(data.0 as *mut Find) };
+            let mut pid = 0u32;
+            unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid)) };
+            if pid != 0 && pid != find.host {
+                find.found = Some(pid);
+                return BOOL(0);
+            }
+            BOOL(1)
+        }
+        let mut find = Find { host: host_pid, found: None };
+        unsafe {
+            let _ = EnumChildWindows(Some(hwnd), Some(child), LPARAM(&mut find as *mut Find as isize));
+        }
+        find.found
+    }
+
+    /// The app ID Windows' taskbar reads from a window (System.AppUserModel.ID). Hosted Store apps carry it even
+    /// while suspended, when their own window is gone from inside the host's.
+    fn window_app_id(hwnd: HWND) -> Option<String> {
+        const APP_USER_MODEL_ID: PROPERTYKEY =
+            PROPERTYKEY { fmtid: windows::core::GUID::from_u128(0x9f4c2855_9f79_4b39_a8d0_e1d42de1d5f3), pid: 5 };
+        unsafe {
+            let store: IPropertyStore = SHGetPropertyStoreForWindow(hwnd).ok()?;
+            let mut value = store.GetValue(&APP_USER_MODEL_ID).ok()?;
+            let text = PropVariantToStringAlloc(&value).ok();
+            let _ = PropVariantClear(&mut value);
+            let text = text?;
+            let id = text.to_string().ok();
+            CoTaskMemFree(Some(text.0 as *const c_void));
+            id.filter(|id| !id.trim().is_empty())
+        }
+    }
+
+    /// App IDs already found, by window: a minimized hosted app lets go of its child window, so its ID would be lost.
+    static APP_IDS: Mutex<Option<HashMap<i64, String>>> = Mutex::new(None);
+
+    fn app_id_of(id: i64, hwnd: HWND, pid: u32, path: &str) -> Option<String> {
+        let mut ids = APP_IDS.lock().unwrap_or_else(|p| p.into_inner());
+        let ids = ids.get_or_insert_with(HashMap::new);
+        if let Some(known) = ids.get(&id) {
+            return Some(known.clone());
+        }
+        let hosted = super::HOSTS.contains(&super::file_name(path).to_ascii_lowercase().as_str());
+        let found = if hosted {
+            hosted_pid(hwnd, pid).and_then(package_app_id).or_else(|| window_app_id(hwnd))?
+        } else {
+            package_app_id(pid)?
+        };
+        ids.insert(id, found.clone());
+        Some(found)
+    }
+
+    /// Forgets the IDs of windows that are gone (window handles get reused).
+    fn forget_closed(open: &[Seen]) {
+        if let Some(ids) = APP_IDS.lock().unwrap_or_else(|p| p.into_inner()).as_mut() {
+            ids.retain(|id, _| open.iter().any(|w| w.id == *id));
+        }
+    }
+
+    /// The name the shell shows for `shell:AppsFolder\…` ("WhatsApp").
+    pub fn shell_name(target: &str) -> Option<String> {
+        let wide: Vec<u16> = target.encode_utf16().chain(std::iter::once(0)).collect();
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+            let item: IShellItem = SHCreateItemFromParsingName(PCWSTR(wide.as_ptr()), None).ok()?;
+            let name = item.GetDisplayName(SIGDN_NORMALDISPLAY).ok()?;
+            let text = name.to_string().ok();
+            CoTaskMemFree(Some(name.0 as *const c_void));
+            text.filter(|t| !t.trim().is_empty())
+        }
+    }
+
     /// The windows Alt+Tab would list, in screen order (front first), and the one in front, if it is one of them.
     pub fn open_windows() -> (Vec<Seen>, Option<i64>) {
         struct Walk {
@@ -418,7 +558,9 @@ mod win {
                 let mut buffer = [0u16; 256];
                 let len = GetWindowTextW(hwnd, &mut buffer);
                 let title = String::from_utf16_lossy(&buffer[..len.max(0) as usize]);
-                walk.found.push(Seen { id: hwnd.0 as isize as i64, title, path, minimized: IsIconic(hwnd).as_bool() });
+                let id = hwnd.0 as isize as i64;
+                let app_id = app_id_of(id, hwnd, pid, &path);
+                walk.found.push(Seen { id, title, path, minimized: IsIconic(hwnd).as_bool(), app_id });
             }
             BOOL(1)
         }
@@ -426,6 +568,7 @@ mod win {
         unsafe {
             let _ = EnumWindows(Some(visit), LPARAM(&mut walk as *mut Walk as isize));
         }
+        forget_closed(&walk.found);
         let front = unsafe { GetForegroundWindow() };
         let front_id = front.0 as isize as i64;
         let foreground = walk.found.iter().any(|w| w.id == front_id).then_some(front_id);
@@ -550,6 +693,9 @@ mod win {
     pub fn description(_: &str) -> Option<String> {
         None
     }
+    pub fn shell_name(_: &str) -> Option<String> {
+        None
+    }
     pub fn show_taskbars(_: bool) {}
     pub fn autohide() -> bool {
         false
@@ -562,7 +708,27 @@ mod tests {
     use super::*;
 
     fn seen(id: i64, title: &str, path: &str) -> Seen {
-        Seen { id, title: title.into(), path: path.into(), minimized: false }
+        Seen { id, title: title.into(), path: path.into(), minimized: false, app_id: None }
+    }
+
+    #[test]
+    fn apps_da_loja_se_agrupam_pelo_id_e_abrem_pela_pasta_de_apps() {
+        let mut order = Vec::new();
+        let host = r"C:\Windows\System32\ApplicationFrameHost.exe";
+        let settings = |id| Seen { app_id: Some("windows.immersivecontrolpanel_cw5n1h2txyewy!microsoft.windows.immersivecontrolpanel".into()), ..seen(id, "Configurações", host) };
+        let whatsapp = Seen { app_id: Some("5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App".into()), ..seen(3, "WhatsApp", r"C:\Program Files\WindowsApps\WhatsApp.Root.exe") };
+        let names = |path: &str| if path.ends_with("!App") { "WhatsApp".to_string() } else { String::new() };
+        let apps = group(&[settings(1), settings(2), whatsapp], None, &[], &mut order, &names);
+        assert_eq!(apps.len(), 2);
+        assert_eq!(apps[0].windows.len(), 2);
+        // No name from the shell: the window's title.
+        assert_eq!(apps[0].name, "Configurações");
+        assert_eq!(apps[1].name, "WhatsApp");
+        assert_eq!(apps[1].path, r"shell:AppsFolder\5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App");
+        // Pinned by that path, it is the same app.
+        let pinned = [apps[1].path.clone()];
+        let again = group(&[], None, &pinned, &mut order, &names);
+        assert_eq!(again[0].key, apps[1].key);
     }
 
     #[test]
