@@ -122,6 +122,20 @@ fn no_activate(_: &WebviewWindow) {}
 mod tests {
     use super::*;
 
+    /// A window missing from the capability gets no IPC: the dock showed "no apps open" (0.4.0 to 0.4.2).
+    #[test]
+    fn o_dock_tem_permissao_de_ipc() {
+        let caps: serde_json::Value = serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
+        let windows: Vec<&str> = caps["windows"].as_array().unwrap().iter().filter_map(|w| w.as_str()).collect();
+        for label in [LABEL, crate::settings_window::LABEL, "island", "island-0"] {
+            let covered = windows.iter().any(|w| match w.strip_suffix('*') {
+                Some(prefix) => label.starts_with(prefix),
+                None => *w == label,
+            });
+            assert!(covered, "a janela {label} ficou fora das permissões");
+        }
+    }
+
     #[test]
     fn a_faixa_fica_na_borda_escolhida() {
         // A 1920 × 1080 screen at 1.25: 280 logical px deep is 350 physical.

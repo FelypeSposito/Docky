@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissões das janelas do Docky (ilha e configurações)",
-  "windows": ["island", "island-*", "settings"],
+  "description": "Permissões das janelas do Docky (ilha, configurações e dock)",
+  "windows": ["island", "island-*", "settings", "dock"],
   "permissions": ["core:default", "core:window:allow-minimize", "core:window:allow-close", "core:window:allow-start-dragging"]
 }
