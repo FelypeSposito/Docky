@@ -132,6 +132,11 @@ canto da pílula; sem letra, a faixa "Claude trabalhando" aparece como antes.
 Na primeira vez que o Docky abre, a ilha se abre sozinha com um cartão de boas-vindas: como ela abre, as teclas que
 funcionam de qualquer lugar e onde criar atalhos.
 
+Em Configurações, Aparência, Material, a ilha pode ser preta ou de **vidro líquido**, inspirado no Liquid Glass da
+Apple: o fundo aparece escurecido por trás, a luz da borda acompanha o mouse, a ilha se acende e flexiona ao toque,
+estica como gel quando muda de forma e os avisos aparecem a partir da luz. No Windows a janela não enxerga a área de
+trabalho, então o vidro escurece o fundo mas não o distorce. "Reduzir movimento" desliga a parte elástica.
+
 ## Idiomas
 
 A interface fala português (Brasil) e inglês. Em Configurações, Geral, Idioma, "Automático" segue o idioma do Windows.

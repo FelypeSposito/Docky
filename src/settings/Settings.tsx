@@ -166,6 +166,24 @@ function AreaContent({ id }: { id: AreaId }) {
             <Row label={t("Brilho ambiente")} hint={t("A luz colorida atrás da ilha aberta")}>
               <Slider label={t("Brilho ambiente")} value={config.glow} onChange={(v) => update({ glow: v })} />
             </Row>
+            <Row
+              label="Material"
+              hint={
+                config.material === "glass"
+                  ? "Vidro líquido: o fundo aparece escurecido, a luz da borda segue o mouse e a ilha se acende ao toque"
+                  : "A ilha preta de sempre"
+              }
+            >
+              <Segmented
+                label="Material"
+                value={config.material === "glass" ? "glass" : "solid"}
+                options={[
+                  { value: "solid", label: "Preto" },
+                  { value: "glass", label: "Vidro líquido" },
+                ]}
+                onChange={(v) => update({ material: v })}
+              />
+            </Row>
             <Row label={t("Borda de vidro")} hint={t("Um fio de luz na borda da ilha. Desligada, a ilha fica só preta")}>
               <Toggle label={t("Borda de vidro")} value={config.glassEdge} onChange={(v) => update({ glassEdge: v })} />
             </Row>

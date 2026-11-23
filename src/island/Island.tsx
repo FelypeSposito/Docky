@@ -25,6 +25,7 @@ import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { glowOpacity, glowReach, islandAccent } from "./theme";
 import { useIslandDrag } from "./useIslandDrag";
+import { useLiquidGlass } from "./useLiquidGlass";
 import { Welcome } from "./Welcome";
 import { visiblePages } from "./pageOrder";
 import { useIslandStore } from "./store";
@@ -234,7 +235,8 @@ export function Island() {
 
   const notchRef = useRef<HTMLDivElement>(null);
   const islandRef = useRef<HTMLDivElement>(null);
-  useIslandSpring(notchRef, islandRef, size, config.reduceMotion, EXPANDED_LARGE.h);
+  const glass = config.material === "glass";
+  useIslandSpring(notchRef, islandRef, size, config.reduceMotion, EXPANDED_LARGE.h, glass);
 
   // Linha atual da letra para a pílula (a posição só é atualizada enquanto ela está visível).
   const position = usePositionMs(mode === "lyric" && lyricActive);
@@ -347,6 +349,8 @@ export function Island() {
     reduceMotion: config.reduceMotion,
   });
 
+  const liquid = useLiquidGlass(islandRef, glass, config.reduceMotion, mode);
+
   const clock = useMemo(() => formatClock(now, config.clock12h), [now, config.clock12h]);
   const date = useMemo(() => formatDate(now, false), [now]);
 
@@ -382,11 +386,17 @@ export function Island() {
   } as React.CSSProperties;
 
   return (
-    <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}${config.glassEdge ? "" : " no-glass"}`} data-mode={mode}>
+    <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}${config.glassEdge ? "" : " no-glass"}${glass ? " glass" : ""}`} data-mode={mode}>
       <div className="ear l" />
       <div className="ear r" />
-      <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick} onPointerDown={drag.onPointerDown} onDoubleClick={drag.onDoubleClick}>
+      <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick} onPointerDown={(e) => {
+          liquid.press(e);
+          drag.onPointerDown(e);
+        }}
+        onDoubleClick={drag.onDoubleClick}
+      >
         <div className={`glow${mode === "expanded" ? " on" : ""}`} />
+        {glass && <i className="lq-glow" aria-hidden="true" />}
         {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
         {clawdInEyes && (
           <span className="eyes-clawd" title={asking ? t("O Claude espera você") : `Claude ${t(WORK_CLAWD[work].doing)}`}>

@@ -56,17 +56,29 @@ const MIN_RADIUS = 18;
  * Anima a largura e a altura da ilha com molas e escreve direto no DOM (sem re-render por frame).
  * O laço só roda enquanto as molas se movem, para a ilha parada custar zero de CPU.
  */
+/**
+ * How much the liquid glass stretches (fraction, + taller and narrower, - shorter and wider) for the spring's speeds
+ * in px/s. Growing fast in height stretches it down; a fast change in width squeezes it the other way. At most 3%.
+ */
+export function gelStretch(heightSpeed: number, widthSpeed: number): number {
+  const k = heightSpeed / 60000 - widthSpeed / 90000;
+  return Math.abs(k) < 0.002 ? 0 : Math.max(-0.03, Math.min(0.03, k));
+}
+
 export function useIslandSpring(
   notchRef: RefObject<HTMLDivElement | null>,
   islandRef: RefObject<HTMLDivElement | null>,
   size: Size,
   reduceMotion: boolean,
   maxHeight: number,
+  gel = false,
 ): void {
   const springs = useRef<{ w: Spring; h: Spring; grow: boolean } | null>(null);
   const raf = useRef(0);
   const reduce = useRef(reduceMotion);
   reduce.current = reduceMotion;
+  const gelOn = useRef(gel);
+  gelOn.current = gel;
 
   const paint = useCallback(() => {
     const s = springs.current;
@@ -82,7 +94,12 @@ export function useIslandSpring(
     notch.style.width = `${w + EAR}px`;
     notch.style.height = `${h}px`;
     island.style.borderRadius = `0 0 ${radius}px ${radius}px`;
-    island.style.setProperty("--shadow", String(Math.min(0.5, Math.max(0, ((h - COLLAPSED_HEIGHT) / 190) * 0.5)).toFixed(2)));
+    const shadow = String(Math.min(0.5, Math.max(0, ((h - COLLAPSED_HEIGHT) / 190) * 0.5)).toFixed(2));
+    island.style.setProperty("--shadow", shadow);
+    notch.style.setProperty("--shadow", shadow);
+    // Liquid glass: the material stretches the way it moves, like gel, and settles back with the spring.
+    const k = gelOn.current && !reduce.current ? gelStretch(s.h.v, s.w.v) : 0;
+    island.style.transform = k === 0 ? "" : `scale(${(1 - k * 0.6).toFixed(4)}, ${(1 + k).toFixed(4)})`;
   }, [notchRef, islandRef, maxHeight]);
 
   const run = useCallback(() => {

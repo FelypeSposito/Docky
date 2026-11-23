@@ -128,6 +128,8 @@ pub struct Config {
     pub island_color: String,
     /// The thin light along the island's edge.
     pub glass_edge: bool,
+    /// The island's material: "solid" (black) or "glass" (liquid glass, see `island/useLiquidGlass.ts`).
+    pub material: String,
     /// The clock on the pill and in the header on a 12-hour dial.
     pub clock_12h: bool,
     /// Keeps the last texts you copied (in memory only) for the Copiados page.
@@ -240,6 +242,7 @@ impl Default for Config {
             glow: 70,
             island_color: String::new(),
             glass_edge: true,
+            material: "solid".into(),
             clock_12h: false,
             clipboard_history: true,
             onboarded: false,

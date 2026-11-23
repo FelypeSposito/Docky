@@ -33,6 +33,8 @@ export interface Config {
   islandColor: string;
   /** The thin light along the island's edge. */
   glassEdge: boolean;
+  /** The island's material: "solid" (black) or "glass" (liquid glass). */
+  material: string;
   /** The clock on the pill and in the header on a 12-hour dial. */
   clock12h: boolean;
   /** Keeps the last texts you copied (in memory only) for the Copiados page. */
@@ -128,6 +130,7 @@ export const DEFAULT_CONFIG: Config = {
   glow: 70,
   islandColor: "",
   glassEdge: true,
+  material: "solid",
   clock12h: false,
   clipboardHistory: true,
   onboarded: false,

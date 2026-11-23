@@ -196,11 +196,19 @@ export function Preview({ area }: { area: AreaId }) {
 
   return (
     <div
-      className={`pv${config.reduceMotion ? " still" : ""}${config.glassEdge ? "" : " no-glass"}`}
+      className={`pv${config.reduceMotion ? " still" : ""}${config.glassEdge ? "" : " no-glass"}${config.material === "glass" ? " glass" : ""}`}
       style={{ "--pv-glow": glow, "--accent": accent.primary, "--pv-c1": accent.primary, "--pv-c2": accent.secondary } as React.CSSProperties}
       aria-hidden="true"
     >
       <div className="pv-glow" />
+      {/* Liquid glass: here the island has something behind it (the stage's glow), so its edges really bend it. */}
+      <svg className="pv-defs" width="0" height="0" aria-hidden="true">
+        <filter id="pv-lens" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="2" seed="7" result="noise" />
+          <feGaussianBlur in="noise" stdDeviation="2" result="soft" />
+          <feDisplacementMap in="SourceGraphic" in2="soft" scale="38" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </svg>
       {island}
     </div>
   );

@@ -54,6 +54,128 @@
   mask-composite: exclude;
 }
 
+/* Liquid glass (Settings, Aparência, Material), after Apple's "Meet Liquid Glass" (WWDC25), as far as a transparent
+   Windows window allows: the desktop behind shows through, dimmed (Apple's Clear variant needs that dimming to stay
+   legible), but it cannot be bent or blurred, since the page never sees it. So the glass is drawn with what the page
+   has: a dimming that deepens as the island grows (bigger glass reads as thicker), a light inside the lower edge
+   where glass concentrates it, the accent spilling up from below, and a specular rim that faces the light
+   (useLiquidGlass.ts moves it with the cursor). */
+.notch.glass {
+  --glass-fill: rgba(12, 12, 17, calc(0.6 + var(--shadow, 0) * 0.5));
+}
+.notch.glass .island {
+  background:
+    radial-gradient(120% 90% at 50% 125%, color-mix(in srgb, var(--accent, #ff5c7a) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.045) 100%),
+    var(--glass-fill);
+  box-shadow:
+    0 22px 50px rgba(0, 0, 0, var(--shadow, 0)),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -16px 24px -18px rgba(255, 255, 255, 0.24),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
+  /* The gel stretch (hooks.ts) hangs from the top edge, like the island itself. */
+  transform-origin: 50% 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.notch.glass .ear.l {
+  background: radial-gradient(circle at 0 100%, transparent 15.4px, var(--glass-fill) 16px);
+}
+.notch.glass .ear.r {
+  background: radial-gradient(circle at 100% 100%, transparent 15.4px, var(--glass-fill) 16px);
+}
+/* The specular rim: brightest where the light is (--light, 0deg = up), a softer bounce on the far side, and nothing
+   along the top, where the island meets the screen's edge. */
+.notch.glass .island::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  padding: 1.25px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--light, 315deg),
+    rgba(255, 255, 255, 0.95) 0deg,
+    rgba(255, 255, 255, 0.3) 30deg,
+    transparent 75deg,
+    transparent 145deg,
+    rgba(255, 255, 255, 0.35) 180deg,
+    transparent 215deg,
+    transparent 285deg,
+    rgba(255, 255, 255, 0.3) 330deg,
+    rgba(255, 255, 255, 0.95) 360deg
+  );
+  mask:
+    linear-gradient(180deg, transparent 0, #000 45%) intersect,
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  opacity: 0.6;
+}
+.notch.glass.no-glass .island::before {
+  display: none;
+}
+/* Touch: the glass lights up from the point under the pointer, and the light spreads and fades (useLiquidGlass.ts
+   sets --px/--py, plays this glow and swells the glass a little). */
+.lq-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    circle at var(--px, 50%) var(--py, 50%),
+    rgba(255, 255, 255, 0.24),
+    color-mix(in srgb, var(--accent, #ff5c7a) 20%, transparent) 30%,
+    transparent 62%
+  );
+  transform-origin: var(--px, 50%) var(--py, 50%);
+}
+/* States materialize out of light instead of fading: they arrive bright and a touch magnified, as if through a lens,
+   and settle into focus. */
+.notch.glass .layer {
+  filter: blur(10px) brightness(1.7) saturate(1.5);
+  transform: translateX(-50%) scale(1.035);
+}
+.notch.glass .layer.on {
+  filter: none;
+  transform: translateX(-50%) scale(1);
+}
+/* The welcome card frosts what is under it instead of covering it in black. */
+.notch.glass .welcome,
+.notch.glass .gs {
+  background: rgba(12, 12, 17, 0.35);
+  backdrop-filter: blur(16px) saturate(1.3);
+}
+/* The dock's chosen page is a small glass bubble that pops open when picked. */
+.notch.glass .dk.on {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)),
+    color-mix(in srgb, var(--accent, #ff5c7a) 14%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.28);
+  animation: lq-pop 0.55s linear(0, 0.3 8%, 0.75 18%, 1.06 30%, 1.09 36%, 1.02 50%, 0.99 62%, 1);
+}
+@keyframes lq-pop {
+  from {
+    scale: 0.82;
+  }
+  to {
+    scale: 1;
+  }
+}
+/* Reduce motion: the look stays, the elastic parts go (Apple: Reduced Motion "disables any elastic properties"). */
+.reduce-motion .notch.glass .layer,
+.reduce-motion .notch.glass .layer.on {
+  filter: none;
+  transform: translateX(-50%);
+}
+.reduce-motion .notch.glass .dk.on {
+  animation: none;
+}
+
 /* Settings, Aparência: the edge light can be turned off for a plain black island. */
 .notch.no-glass .island::after {
   display: none;
