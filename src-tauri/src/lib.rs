@@ -11,6 +11,7 @@ mod hotkeys;
 mod icons;
 #[cfg(windows)]
 mod file_drop;
+mod glass;
 mod focus;
 mod island;
 mod picker;
@@ -68,6 +69,8 @@ pub fn run() {
             power::get_power,
             settings_window::open_settings,
             settings_window::settings_acrylic,
+            glass::island_glass,
+            glass::island_glass_shape,
             lyrics::lrclib,
             lyrics::netease,
             google::google_status,

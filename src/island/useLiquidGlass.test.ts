@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gelStretch } from "./hooks";
+import { outlineMoved } from "./useGlassBlur";
 import { lightAngle, shortestTurn } from "./useLiquidGlass";
 
 const box = { left: 100, top: 0, width: 200, height: 40 };
@@ -36,5 +37,15 @@ describe("gelStretch", () => {
   it("never goes past 3%", () => {
     expect(gelStretch(99999, 0)).toBe(0.03);
     expect(gelStretch(-99999, 0)).toBe(-0.03);
+  });
+});
+
+
+describe("outlineMoved", () => {
+  const o = { x: 100, y: 0, w: 246, h: 36, radius: 18, ear: 16 };
+  it("sends the first outline and real changes, not sub-pixel jitter", () => {
+    expect(outlineMoved(null, o)).toBe(true);
+    expect(outlineMoved(o, { ...o, w: 246.3 })).toBe(false);
+    expect(outlineMoved(o, { ...o, h: 40 })).toBe(true);
   });
 });

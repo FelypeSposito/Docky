@@ -61,15 +61,16 @@
    where glass concentrates it, the accent spilling up from below, and a specular rim that faces the light
    (useLiquidGlass.ts moves it with the cursor). */
 .notch.glass {
-  --glass-fill: rgba(12, 12, 17, calc(0.6 + var(--shadow, 0) * 0.5));
+  /* Windows' acrylic blurs the desktop behind (glass.rs), so the gray tint can be lighter than without it. */
+  --glass-fill: rgba(14, 14, 19, calc(0.5 + var(--shadow, 0) * 0.5));
 }
 .notch.glass .island {
   background:
     radial-gradient(120% 90% at 50% 125%, color-mix(in srgb, var(--accent, #ff5c7a) 16%, transparent), transparent 70%),
     linear-gradient(180deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.045) 100%),
     var(--glass-fill);
+  /* No drop shadow: the window is cut to the island's outline (glass.rs), so it would be clipped anyway. */
   box-shadow:
-    0 22px 50px rgba(0, 0, 0, var(--shadow, 0)),
     inset 0 -1px 0 rgba(255, 255, 255, 0.16),
     inset 0 -16px 24px -18px rgba(255, 255, 255, 0.24),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);

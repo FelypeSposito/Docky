@@ -25,6 +25,7 @@ import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { glowOpacity, glowReach, islandAccent } from "./theme";
 import { useIslandDrag } from "./useIslandDrag";
+import { useGlassBlur } from "./useGlassBlur";
 import { useLiquidGlass } from "./useLiquidGlass";
 import { Welcome } from "./Welcome";
 import { visiblePages } from "./pageOrder";
@@ -350,6 +351,7 @@ export function Island() {
   });
 
   const liquid = useLiquidGlass(islandRef, glass, config.reduceMotion, mode);
+  useGlassBlur(notchRef, islandRef, glass);
 
   const clock = useMemo(() => formatClock(now, config.clock12h), [now, config.clock12h]);
   const date = useMemo(() => formatDate(now, false), [now]);
