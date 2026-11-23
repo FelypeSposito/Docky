@@ -61,8 +61,7 @@
    where glass concentrates it, the accent spilling up from below, and a specular rim that faces the light
    (useLiquidGlass.ts moves it with the cursor). */
 .notch.glass {
-  /* Windows' acrylic blurs the desktop behind (glass.rs), so the gray tint can be lighter than without it. */
-  --glass-fill: rgba(14, 14, 19, calc(0.5 + var(--shadow, 0) * 0.5));
+  --glass-fill: rgba(12, 12, 17, calc(0.6 + var(--shadow, 0) * 0.5));
 }
 .notch.glass .island {
   background:

@@ -27,6 +27,9 @@ import { glowOpacity, glowReach, islandAccent } from "./theme";
 import { useIslandDrag } from "./useIslandDrag";
 import { useGlassBlur } from "./useGlassBlur";
 import { useLiquidGlass } from "./useLiquidGlass";
+
+/** Real blur behind the glass (glass.rs). Off until it can be confined to the island, see the note where it is used. */
+const GLASS_BLUR = false;
 import { Welcome } from "./Welcome";
 import { visiblePages } from "./pageOrder";
 import { useIslandStore } from "./store";
@@ -351,7 +354,9 @@ export function Island() {
   });
 
   const liquid = useLiquidGlass(islandRef, glass, config.reduceMotion, mode);
-  useGlassBlur(notchRef, islandRef, glass);
+  // Off: on the island's WebView2 window, Windows draws any blur over the whole window and ignores the cut to the
+  // island's outline (0.3.5 and 0.3.6 frosted the whole top strip). The glass stays tinted, without the blur.
+  useGlassBlur(notchRef, islandRef, glass && GLASS_BLUR);
 
   const clock = useMemo(() => formatClock(now, config.clock12h), [now, config.clock12h]);
   const date = useMemo(() => formatDate(now, false), [now]);
