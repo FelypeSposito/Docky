@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dropIndex, moveKey, slideFor } from "./order";
+import { dropIndex, moveKey, slideFor, withLeaving } from "./order";
 
 describe("moveKey", () => {
   it("moves an app forward and back", () => {
@@ -35,5 +35,36 @@ describe("slideFor", () => {
     expect([0, 1, 2, 3].map((i) => slideFor(i, 0, 2, 44))).toEqual([0, -44, -44, 0]);
     // Dragging the last app to the front: the others slide forward.
     expect([0, 1, 2, 3].map((i) => slideFor(i, 3, 0, 44))).toEqual([44, 44, 44, 0]);
+  });
+});
+
+describe("withLeaving", () => {
+  const app = (key: string) => ({ key });
+  const shown = (keys: string[]) => keys.map((key) => ({ item: app(key) }));
+
+  it("keeps a closed app in its place while it shrinks away", () => {
+    const next = withLeaving(shown(["a", "b", "c"]), [app("a"), app("c")], 1300, 1000);
+    expect(next.map((s) => [s.item.key, s.leaving ?? null])).toEqual([
+      ["a", null],
+      ["b", 1300],
+      ["c", null],
+    ]);
+  });
+
+  it("lets it go once the shrinking is over, and grows the new ones in", () => {
+    const leaving = [{ item: app("a") }, { item: app("b"), leaving: 1300 }];
+    const next = withLeaving(leaving, [app("a"), app("d")], 1700, 1400);
+    expect(next.map((s) => [s.item.key, s.entering])).toEqual([
+      ["a", false],
+      ["d", true],
+    ]);
+  });
+
+  it("does not grow anything in on the first reading", () => {
+    expect(withLeaving([], [app("a")], 0, 0)[0].entering).toBe(false);
+  });
+
+  it("puts a closed first app back at the front", () => {
+    expect(withLeaving(shown(["a", "b"]), [app("b")], 300, 0).map((s) => s.item.key)).toEqual(["a", "b"]);
   });
 });

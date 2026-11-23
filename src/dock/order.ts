@@ -27,3 +27,36 @@ export function slideFor(index: number, from: number, to: number, step: number):
   if (to < from && index >= to && index < from) return step;
   return 0;
 }
+
+/** An app on the dock as drawn: apps that just closed stay a moment (`leaving`) so they can shrink away. */
+export interface Shown<T> {
+  item: T;
+  /** When a closed app's shrinking is over (ms, `Date.now()`); absent while the app is on the dock. */
+  leaving?: number;
+  /** It just arrived (not on the first reading), so it grows in. */
+  entering?: boolean;
+}
+
+/**
+ * The dock's new list with the apps that left kept where they were, after the nearest app before them that stayed,
+ * until `until`. An app that comes back before that is simply on the dock again.
+ */
+export function withLeaving<T extends { key: string }>(prev: readonly Shown<T>[], next: readonly T[], until: number, now: number): Shown<T>[] {
+  const nextKeys = new Set(next.map((a) => a.key));
+  const prevKeys = new Set(prev.map((s) => s.item.key));
+  const result: Shown<T>[] = next.map((item) => ({ item, entering: prev.length > 0 && !prevKeys.has(item.key) }));
+  prev.forEach((shown, i) => {
+    if (nextKeys.has(shown.item.key)) return;
+    if (shown.leaving !== undefined && shown.leaving <= now) return;
+    let at = 0;
+    for (let j = i - 1; j >= 0; j--) {
+      const found = result.findIndex((r) => r.item.key === prev[j].item.key);
+      if (found >= 0) {
+        at = found + 1;
+        break;
+      }
+    }
+    result.splice(at, 0, { item: shown.item, leaving: shown.leaving ?? until });
+  });
+  return result;
+}

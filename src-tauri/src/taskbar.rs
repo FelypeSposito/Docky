@@ -342,13 +342,15 @@ pub fn dock_reveal(path: String) -> Result<(), String> {
     win::reveal(&path)
 }
 
-/// Shows Windows' taskbar for a moment, to reach the tray icons (Wi-Fi, OneDrive…).
+/// Opens Windows' hidden tray icons (OneDrive, Discord…): the taskbar comes back for a moment and its "show hidden
+/// icons" arrow is pressed (Win+B, then Enter). The bar stays while the tray is in use, and hides again after.
 #[tauri::command]
 pub fn dock_peek_taskbar() {
     if let Ok(mut peek) = PEEK_UNTIL.lock() {
         *peek = Some(Instant::now() + PEEK);
     }
     win::show_taskbars(true);
+    thread::spawn(win::open_tray);
 }
 
 static PEEK_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
@@ -404,7 +406,7 @@ pub fn spawn(app: AppHandle) {
             thread::sleep(POLL);
             let config = app.state::<ConfigState>().get();
             let want_hidden = config.dock_enabled && config.dock_hide_taskbar;
-            let peeking = PEEK_UNTIL.lock().ok().and_then(|p| *p).is_some_and(|until| Instant::now() < until);
+            let peeking = PEEK_UNTIL.lock().ok().and_then(|p| *p).is_some_and(|until| Instant::now() < until) || win::tray_in_use();
             if want_hidden && !peeking {
                 // Re-hide every round: cheap, and covers Explorer restarting.
                 hide_taskbar();
@@ -665,6 +667,32 @@ mod win {
         }
     }
 
+    /// Windows' taskbar, its tray and the flyouts they open, while one of them is the window in front.
+    pub fn tray_in_use() -> bool {
+        let front = unsafe { GetForegroundWindow() };
+        !front.is_invalid()
+            && matches!(
+                class_of(front).as_str(),
+                "Shell_TrayWnd" | "Shell_SecondaryTrayWnd" | "TopLevelWindowForOverflowXamlIsland" | "NotifyIconOverflowWindow" | "Xaml_WindowedPopupClass"
+            )
+    }
+
+    /// Win+B puts the keyboard on the tray's "show hidden icons" arrow (and slides an auto-hidden taskbar in); Enter
+    /// opens it. Enter is only pressed once the taskbar really is in front, so it never lands in another app.
+    pub fn open_tray() {
+        std::thread::sleep(std::time::Duration::from_millis(120));
+        press(&[0x5B, b'B' as u16]);
+        for _ in 0..16 {
+            std::thread::sleep(std::time::Duration::from_millis(40));
+            let front = unsafe { GetForegroundWindow() };
+            if !front.is_invalid() && class_of(front) == "Shell_TrayWnd" {
+                std::thread::sleep(std::time::Duration::from_millis(60));
+                press(&[0x0D]);
+                return;
+            }
+        }
+    }
+
     pub fn reveal(path: &str) -> Result<(), String> {
         use std::os::windows::process::CommandExt;
         std::process::Command::new("explorer.exe").raw_arg(format!("/select,\"{path}\"")).spawn().map(|_| ()).map_err(|e| e.to_string())
@@ -759,6 +787,10 @@ mod win {
     pub fn minimize(_: i64) {}
     pub fn close(_: i64) {}
     pub fn press(_: &[u16]) {}
+    pub fn tray_in_use() -> bool {
+        false
+    }
+    pub fn open_tray() {}
     pub fn reveal(_: &str) -> Result<(), String> {
         Err("Só no Windows".into())
     }

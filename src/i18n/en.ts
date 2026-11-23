@@ -865,4 +865,5 @@ export const EN: Record<string, string> = {
   "Configurações do dock": "Dock settings",
   "Atalho desconhecido": "Unknown shortcut",
   "Não deu para achar o arquivo desse app": "Couldn't find this app's file",
+  "Mostrar ícones ocultos": "Show hidden icons",
 };

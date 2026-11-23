@@ -8,8 +8,9 @@ import { cursor, onCursorMove } from "../lib/cursor";
  * - Light: the specular highlight on the rim faces the cursor, like a light source in the room, and glides there
  *   instead of jumping. When the island changes state, the light also travels around the rim ("these lights move in
  *   space" on system interactions).
- * - Touch: a press "energizes" the glass from the point under the pointer and flexes it a little, like gel; letting
- *   go settles it back with a small bounce.
+ * - Touch: a press "energizes" the glass from the point under the pointer, a wave of light spreading from there. The
+ *   island itself stays still: it used to swell and bounce back on every click, which got in the way of clicking
+ *   several times in a row.
  *
  * Reduce motion turns all of it off (Apple: Reduced Motion "disables any elastic properties").
  */
@@ -18,10 +19,6 @@ import { cursor, onCursorMove } from "../lib/cursor";
 const LIGHT_FOLLOW = 0.12;
 /** How far the light travels around the rim when the island changes state. */
 const STATE_SWEEP = 140;
-/** The press: how much the glass swells under the pointer, and how it settles (a spring with a small overshoot). */
-const PRESS_SCALE = 1.022;
-const RELEASE_EASING =
-  "linear(0, 0.18 4%, 0.55 11%, 0.86 18%, 1.02 25%, 1.07 30%, 1.06 35%, 1.02 43%, 0.995 55%, 1.001 70%, 1)";
 
 /** The angle (degrees, 0 = up, clockwise) from the island's center to the cursor. */
 export function lightAngle(box: { left: number; top: number; width: number; height: number }, x: number, y: number): number {
@@ -91,7 +88,7 @@ export function useLiquidGlass(islandRef: RefObject<HTMLDivElement | null>, enab
     light.current.wake?.();
   }, [mode, live]);
 
-  /** Energize from the point under the pointer, and flex. Call from the island's pointerdown. */
+  /** Energize from the point under the pointer. Call from the island's pointerdown. */
   const press = useCallback(
     (e: React.PointerEvent) => {
       const island = islandRef.current;
@@ -108,17 +105,6 @@ export function useLiquidGlass(islandRef: RefObject<HTMLDivElement | null>, enab
         ],
         { duration: 900, easing: "cubic-bezier(.2,.8,.2,1)" },
       );
-      island.getAnimations().forEach((a) => (a as CSSAnimation).id === "liquid-press" && a.cancel());
-      const grow = island.animate([{ scale: "1" }, { scale: `${PRESS_SCALE}` }], { duration: 160, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards", id: "liquid-press" });
-      const release = () => {
-        window.removeEventListener("pointerup", release);
-        window.removeEventListener("pointercancel", release);
-        const from = getComputedStyle(island).scale || "1";
-        grow.cancel();
-        island.animate([{ scale: from === "none" ? "1" : from }, { scale: "1" }], { duration: 520, easing: RELEASE_EASING, id: "liquid-press" });
-      };
-      window.addEventListener("pointerup", release);
-      window.addEventListener("pointercancel", release);
     },
     [islandRef, live],
   );

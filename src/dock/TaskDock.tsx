@@ -10,8 +10,13 @@ import { type DockApp, ipc, type Volume } from "../lib/ipc";
 import { Spring } from "../lib/spring";
 import { DockPopover, type Pop, placeNear, type Side } from "./DockPopover";
 import { AppIcon, QuickIcon, SearchIcon, StartIcon, TaskViewIcon, TrayUpIcon } from "./icons";
-import { dropIndex, moveKey, slideFor } from "./order";
+import { dropIndex, moveKey, type Shown, slideFor, withLeaving } from "./order";
+import { EAR, slabPath } from "./slab";
 import "./dock.css";
+
+/** The rim's light runs from the screen's edge (dark) to the side that faces the room (bright). */
+const rimAxis = (side: Side) =>
+  side === "bottom" ? { x1: 0, y1: 1, x2: 0, y2: 0 } : side === "left" ? { x1: 0, y1: 0, x2: 1, y2: 0 } : { x1: 1, y1: 0, x2: 0, y2: 0 };
 
 const sideOf = (value: string): Side => (value === "left" || value === "right" ? value : "bottom");
 
@@ -24,19 +29,38 @@ const CLOSE_DELAY = 280;
 /** How far the mouse moves with the button down before it is a drag and not a click. */
 const DRAG_START = 6;
 
-/** The dock's size follows its content on the island's spring: a little bounce when it grows, a soft landing back. */
-function useBoxSpring(boxRef: React.RefObject<HTMLDivElement | null>, contentRef: React.RefObject<HTMLDivElement | null>, reduceMotion: boolean) {
+/** How round the slab's corners are, closed and open (they follow the size on the same spring). */
+const RADIUS = { closed: 16, open: 22 };
+/** How long a closed app takes to shrink away (dock.css, td-out). */
+const LEAVE_MS = 300;
+
+/**
+ * The dock's size follows its content on the island's spring: a little bounce when it grows, a soft landing back. The
+ * slab and its ears are one SVG path redrawn with it (slab.ts), and the corners round up on the same spring as it opens.
+ */
+function useBoxSpring(
+  boxRef: React.RefObject<HTMLDivElement | null>,
+  contentRef: React.RefObject<HTMLDivElement | null>,
+  shapeRef: React.RefObject<SVGSVGElement | null>,
+  radiusTarget: React.RefObject<number>,
+  side: Side,
+  reduceMotion: boolean,
+) {
   useLayoutEffect(() => {
     const box = boxRef.current;
     const content = contentRef.current;
     if (!box || !content) return;
     const w = new Spring(content.offsetWidth);
     const h = new Spring(content.offsetHeight);
+    const r = new Spring(radiusTarget.current);
     let raf = 0;
     let last = 0;
     const paint = () => {
       box.style.width = `${w.x}px`;
       box.style.height = `${h.x}px`;
+      box.style.setProperty("--r", `${Math.max(0, r.x)}px`);
+      const d = side === "bottom" ? slabPath(side, w.x, h.x, r.x) : slabPath(side, h.x, w.x, r.x);
+      shapeRef.current?.querySelectorAll("path").forEach((path) => path.setAttribute("d", d));
     };
     paint();
     const frame = (now: number) => {
@@ -44,12 +68,15 @@ function useBoxSpring(boxRef: React.RefObject<HTMLDivElement | null>, contentRef
       last = now;
       const response = reduceMotion ? 0.18 : 0.42;
       const damping = reduceMotion ? 1 : 0.78;
+      r.target = radiusTarget.current;
       w.step(dt, response, damping);
       h.step(dt, response, damping);
+      r.step(dt, response, 1);
       paint();
-      if (w.settled && h.settled) {
+      if (w.settled && h.settled && r.settled) {
         w.snap(w.target);
         h.snap(h.target);
+        r.snap(r.target);
         paint();
         raf = 0;
         return;
@@ -69,7 +96,7 @@ function useBoxSpring(boxRef: React.RefObject<HTMLDivElement | null>, contentRef
       observer.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [boxRef, contentRef, reduceMotion]);
+  }, [boxRef, contentRef, shapeRef, radiusTarget, side, reduceMotion]);
 }
 
 /** A drag in progress: the app's place before (`from`), where it would land (`to`), how far it moved. */
@@ -110,7 +137,20 @@ export function TaskDock() {
   const boxRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
-  useBoxSpring(boxRef, contentRef, config.reduceMotion);
+  const shapeRef = useRef<SVGSVGElement>(null);
+  const radiusTarget = useRef<number>(RADIUS.closed);
+  radiusTarget.current = open ? RADIUS.open : RADIUS.closed;
+  useBoxSpring(boxRef, contentRef, shapeRef, radiusTarget, side, config.reduceMotion);
+
+  // What is drawn: the apps, plus the ones that just closed while they shrink away (and the new ones grow in).
+  const [shown, setShown] = useState<Shown<DockApp>[]>([]);
+  useEffect(() => {
+    const now = Date.now();
+    setShown((prev) => (config.reduceMotion ? apps.map((item) => ({ item })) : withLeaving(prev, apps, now + LEAVE_MS, now)));
+    if (config.reduceMotion) return;
+    const timer = window.setTimeout(() => setShown((prev) => prev.filter((s) => s.leaving === undefined || s.leaving > Date.now())), LEAVE_MS + 20);
+    return () => window.clearTimeout(timer);
+  }, [apps, config.reduceMotion]);
 
   const openRef = useRef(open);
   openRef.current = open;
@@ -288,7 +328,7 @@ export function TaskDock() {
     const moved = axis(e) - d.start;
     if (!d.active) {
       if (Math.abs(moved) < DRAG_START) return;
-      const buttons = Array.from(contentRef.current?.querySelectorAll<HTMLElement>(".td-app") ?? []);
+      const buttons = Array.from(contentRef.current?.querySelectorAll<HTMLElement>(".td-app:not(.leaving)") ?? []);
       d.centers = buttons.map((b) => {
         const r = b.getBoundingClientRect();
         return vertical ? r.top + r.height / 2 : r.left + r.width / 2;
@@ -338,15 +378,38 @@ export function TaskDock() {
     <div
       ref={rootRef}
       className={`td-root side-${side}${glass ? " glass" : ""}${config.glassEdge ? "" : " no-edge"}${open ? " open" : ""}${drag ? " dragging" : ""}`}
-      style={{ "--accent": accent.primary } as React.CSSProperties}
+      style={{ "--accent": accent.primary, "--ear": `${EAR}px` } as React.CSSProperties}
       onPointerDown={(e) => {
         // A click on the dock outside an open menu closes it.
         if (popRef.current && popRef.current.kind !== "preview" && !(e.target as HTMLElement).closest(".td-pop")) setPop(null);
       }}
     >
       <div ref={boxRef} className="td">
-        <i className="td-ear a" aria-hidden="true" />
-        <i className="td-ear b" aria-hidden="true" />
+        <svg ref={shapeRef} className="td-shape" aria-hidden="true">
+          <defs>
+            <linearGradient id="td-rim" {...rimAxis(side)}>
+              {glass ? (
+                <>
+                  <stop offset="0" stopColor="#fff" stopOpacity="0.2" />
+                  <stop offset="1" stopColor="#fff" stopOpacity="0.24" />
+                </>
+              ) : (
+                <>
+                  <stop offset="0" stopColor="#fff" stopOpacity="0" />
+                  <stop offset="0.45" stopColor="#fff" stopOpacity="0.07" />
+                  <stop offset="1" stopColor="#fff" stopOpacity="0.2" />
+                </>
+              )}
+            </linearGradient>
+            <linearGradient id="td-light" {...rimAxis(side)}>
+              <stop offset="0.3" stopColor="#fff" stopOpacity="0" />
+              <stop offset="1" stopColor="#fff" stopOpacity="0.05" />
+            </linearGradient>
+          </defs>
+          <path className="td-fill" />
+          {glass && <path className="td-sheen" />}
+          {config.glassEdge && <path className="td-rim" />}
+        </svg>
         <div className="td-body">
           <div
             ref={contentRef}
@@ -375,17 +438,25 @@ export function TaskDock() {
               </div>
             )}
             {open && <i className="td-sep" aria-hidden="true" />}
-            {apps.length === 0 && <span className="td-empty">{t("Nenhum app aberto")}</span>}
-            {apps.map((app, index) => {
+            {shown.length === 0 && <span className="td-empty">{t("Nenhum app aberto")}</span>}
+            {shown.map(({ item: app, leaving, entering }) => {
+              if (leaving !== undefined) {
+                return (
+                  <span key={app.key} className="td-app leaving" aria-hidden="true">
+                    <AppIcon app={app} size={icon} />
+                  </span>
+                );
+              }
+              const index = apps.findIndex((a) => a.key === app.key);
               const running = app.windows.length > 0;
               const minimized = running && app.windows.every((w) => w.minimized);
               const dragged = drag?.key === app.key;
               const offset = drag ? (dragged ? drag.delta : slideFor(index, drag.from, drag.to, drag.step)) : 0;
-              const shown = pop && pop.kind !== "dock" && pop.key === app.key;
+              const previewing = pop && pop.kind !== "dock" && pop.key === app.key;
               return (
                 <button
                   key={app.key}
-                  className={`td-app${app.focused ? " on" : ""}${running ? " run" : ""}${minimized ? " min" : ""}${shown ? " pop" : ""}${dragged ? " lifted" : ""}`}
+                  className={`td-app${entering ? " enter" : ""}${app.focused ? " on" : ""}${running ? " run" : ""}${minimized ? " min" : ""}${previewing ? " pop" : ""}${dragged ? " lifted" : ""}`}
                   aria-label={app.windows.length > 1 ? `${app.name} (${app.windows.length})` : app.name}
                   data-key={app.key}
                   style={offset ? { translate: vertical ? `0 ${offset}px` : `${offset}px 0` } : undefined}
@@ -455,7 +526,7 @@ export function TaskDock() {
                   <button className="td-btn" aria-label={t("Configurações rápidas")} onClick={() => ipc.dockShortcut("quickSettings")} {...tipProps(t("Wi-Fi, Bluetooth e brilho"))}>
                     <QuickIcon />
                   </button>
-                  <button className="td-btn" aria-label={t("Bandeja do Windows")} onClick={() => ipc.dockPeekTaskbar()} {...tipProps(t("Bandeja do Windows"))}>
+                  <button className="td-btn" aria-label={t("Bandeja do Windows")} onClick={() => ipc.dockPeekTaskbar()} {...tipProps(t("Mostrar ícones ocultos"))}>
                     <TrayUpIcon side={side} />
                   </button>
                   <button
