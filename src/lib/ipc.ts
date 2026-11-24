@@ -423,6 +423,11 @@ export const ipc = {
     if (isTauri) await invoke("discord_command", { action });
   },
 
+  /** Seconds since the last key press or mouse move on this computer (0 outside Tauri). */
+  async idleSeconds(): Promise<number> {
+    return isTauri ? invoke<number>("idle_seconds") : 0;
+  },
+
   /** Hotkeys another program took first ("Ctrl+Alt+D"); Docky keeps trying them in the background. */
   async hotkeysTaken(): Promise<string[]> {
     return isTauri ? invoke<string[]>("hotkeys_taken") : [];

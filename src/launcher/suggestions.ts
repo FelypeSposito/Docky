@@ -4,7 +4,7 @@ import type { Shortcut } from "../config/types";
 import { useConfigStore } from "../config/useConfig";
 import { ipc } from "../lib/ipc";
 import { cleanTarget } from "./model";
-import { t } from "../i18n";
+import { plural, t } from "../i18n";
 
 /**
  * What a suggestion is and where it came from: an app (Start menu and Store), a game from Steam or Epic Games, a game
@@ -106,8 +106,32 @@ export function resolveTemplate(template: GroupTemplate, shortcuts: Shortcut[], 
   };
 }
 
+/** What each kind of suggestion looks like: its section, why it is suggested, and whether it is one of Windows' folders. */
+interface KindInfo {
+  /** The section's title (Portuguese; shown through `t`). */
+  title: string;
+  /** Why it is suggested, when that is the same for all of the kind (Portuguese). */
+  why?: string;
+  /** Windows' folders: named in Portuguese by Rust and translated, matched by path, given the folder icon. */
+  folder?: boolean;
+}
+const KINDS: Record<AppKind, KindInfo> = {
+  app: { title: "Apps que você mais usa" },
+  folder: { title: "Pastas", folder: true },
+  steam: { title: "Jogos da Steam", why: "jogo instalado na Steam" },
+  epic: { title: "Jogos da Epic Games", why: "jogo instalado na Epic Games" },
+  game: { title: "Outros jogos", why: "jogo instalado" },
+};
+/** The sections, in the order they are shown. */
+const SECTION_ORDER: AppKind[] = ["app", "folder", "steam", "epic", "game"];
+/** How many apps a section shows before "Mostrar todos". */
+export const APPS_SHOWN = 16;
+
+const kindOf = (entry: AppEntry): AppKind => entry.kind ?? "app";
+const infoOf = (entry: AppEntry): KindInfo => KINDS[kindOf(entry)] ?? KINDS.app;
+
 /** A suggestion's name as shown: Windows' folders come named in Portuguese and follow the interface's language. */
-export const entryName = (entry: AppEntry) => (entry.kind === "folder" ? t(entry.name) : entry.name);
+export const entryName = (entry: AppEntry) => (infoOf(entry).folder ? t(entry.name) : entry.name);
 
 /** Um atalho novo a partir de um app instalado. Os criados para um grupo nascem ocultos: só existem dentro dele. */
 const newShortcut = (entry: AppEntry, id: string, hidden = false): Shortcut => ({
@@ -115,7 +139,7 @@ const newShortcut = (entry: AppEntry, id: string, hidden = false): Shortcut => (
   name: entryName(entry),
   target: entry.target,
   // A folder gets the library's folder icon (searching the web for "Downloads" finds nothing useful).
-  icon: entry.kind === "folder" ? "lib:folder" : "",
+  icon: infoOf(entry).folder ? "lib:folder" : "",
   group: false,
   members: [],
   ...(hidden ? { hidden: true } : {}),
@@ -170,8 +194,6 @@ export function addAppToGroup(shortcuts: Shortcut[], groupId: string, entry: App
   return created ? [...updated, created] : updated;
 }
 
-const kindOf = (entry: AppEntry): AppKind => entry.kind ?? "app";
-
 /** A group made from a template, under its Portuguese name or the one it got in the interface's language. */
 const isTemplateName = (name: string, templateName: string) => {
   const given = name.trim().toLowerCase();
@@ -182,8 +204,8 @@ const isTemplateName = (name: string, templateName: string) => {
  * The apps that are not shortcuts yet: the ones you use first (opened, pinned, running), then the rest in the order
  * Rust gives them (your own apps before Windows' built-in ones). Games and folders have sections of their own.
  */
-export function suggestedApps(apps: AppEntry[], shortcuts: Shortcut[], limit = 16): AppEntry[] {
-  const fresh = apps.filter((entry) => kindOf(entry) === "app" && !shortcuts.some((s) => !s.group && sameApp(s, entry)));
+export function suggestedApps(apps: AppEntry[], shortcuts: Shortcut[], limit = Infinity): AppEntry[] {
+  const fresh = apps.filter((entry) => kindOf(entry) === "app" && !alreadyShortcut(entry, shortcuts));
   const used = fresh.filter((entry) => entry.uses > 0 || entry.pinned || entry.running);
   const rest = fresh.filter((entry) => !used.includes(entry));
   return [...used, ...rest].slice(0, limit);
@@ -193,42 +215,67 @@ export interface SuggestionSection {
   kind: AppKind;
   title: string;
   entries: AppEntry[];
+  /** How many to show before "Mostrar todos" (all of them for the sections that are never long). */
+  shown: number;
 }
 
 /**
- * As sugestões de atalho por origem: os apps que você mais usa, os jogos da Steam e os da Epic Games, sem os que já
- * são atalhos. Seções vazias ficam de fora.
+ * As sugestões de atalho por origem: os apps que você mais usa, as pastas do Windows e os jogos (Steam, Epic Games e
+ * as outras lojas), sem o que já é atalho. Seções vazias ficam de fora.
  */
-export function suggestionSections(apps: AppEntry[], shortcuts: Shortcut[], appLimit = 16): SuggestionSection[] {
-  const fresh = (kind: AppKind) =>
-    apps.filter((entry) => kindOf(entry) === kind && !shortcuts.some((s) => !s.group && (sameApp(s, entry) || (kind === "folder" && sameFolder(s, entry)))));
-  const sections: SuggestionSection[] = [
-    { kind: "app", title: "Apps que você mais usa", entries: suggestedApps(apps, shortcuts, appLimit) },
-    { kind: "folder", title: "Pastas", entries: fresh("folder") },
-    { kind: "steam", title: "Jogos da Steam", entries: fresh("steam") },
-    { kind: "epic", title: "Jogos da Epic Games", entries: fresh("epic") },
-    { kind: "game", title: "Outros jogos", entries: fresh("game") },
-  ];
-  return sections.filter((section) => section.entries.length > 0);
+export function suggestionSections(apps: AppEntry[], shortcuts: Shortcut[]): SuggestionSection[] {
+  return SECTION_ORDER.map((kind) => ({
+    kind,
+    title: KINDS[kind].title,
+    entries: kind === "app" ? suggestedApps(apps, shortcuts) : apps.filter((entry) => kindOf(entry) === kind && !alreadyShortcut(entry, shortcuts)),
+    shown: kind === "app" ? APPS_SHOWN : Infinity,
+  })).filter((section) => section.entries.length > 0);
 }
 
-/** A folder shortcut under its translated name, or pointing at the same folder (with or without a trailing slash). */
-const sameFolder = (shortcut: Shortcut, entry: AppEntry) => {
-  const path = (p: string) => cleanTarget(p).replace(/[\\/]+$/, "").toLowerCase();
-  return path(shortcut.target) === path(entry.target) || shortcut.name.trim().toLowerCase() === entryName(entry).toLowerCase();
+/** Whether something you already have stands for this suggestion: the same app, or a shortcut to the same folder. */
+function alreadyShortcut(entry: AppEntry, shortcuts: Shortcut[]): boolean {
+  const folder = infoOf(entry).folder;
+  return shortcuts.some((s) => !s.group && (folder ? sameFolder(s, entry) : sameApp(s, entry)));
+}
+
+/** The names Windows' `shell:` addresses give its folders, by the Portuguese name Rust gives them. */
+const SHELL_NAMES: Record<string, string[]> = {
+  Downloads: ["shell:downloads"],
+  Documentos: ["shell:personal", "shell:documentslibrary"],
+  "Área de Trabalho": ["shell:desktop"],
+  Imagens: ["shell:my pictures", "shell:pictureslibrary"],
+  Vídeos: ["shell:my video", "shell:videoslibrary"],
+  Músicas: ["shell:my music", "shell:musiclibrary"],
+  OneDrive: ["shell:onedrive"],
 };
 
-/** Por que um app foi sugerido, em poucas palavras. */
+/** A path made comparable: `\`, lowercase, no trailing separator. */
+const comparablePath = (path: string) => cleanTarget(path).replace(/\//g, "\\").replace(/\\+$/, "").toLowerCase();
+
+/**
+ * A shortcut to the same folder: the same path (any slashes or case, with or without the last `\`), the folder's
+ * `shell:` address, or a path written from `%USERPROFILE%` that ends the same way. A shortcut that only shares the
+ * folder's name (a "Músicas" that opens Spotify) does not count.
+ */
+export function sameFolder(shortcut: Shortcut, entry: AppEntry): boolean {
+  const mine = comparablePath(shortcut.target);
+  const theirs = comparablePath(entry.target);
+  if (!mine) return false;
+  if (mine === theirs || (SHELL_NAMES[entry.name] ?? []).includes(mine)) return true;
+  const profile = "%userprofile%";
+  return mine.startsWith(profile + "\\") && /\\users\\[^\\]+\\/.test(theirs + "\\") && theirs.endsWith(mine.slice(profile.length));
+}
+
+/** Por que um app foi sugerido, em poucas palavras, já no idioma da interface (para uma pasta, onde ela fica). */
 export function whySuggested(entry: AppEntry): string {
-  if (kindOf(entry) === "steam") return "jogo instalado na Steam";
-  if (kindOf(entry) === "epic") return "jogo instalado na Epic Games";
-  if (kindOf(entry) === "game") return "jogo instalado";
-  if (kindOf(entry) === "folder") return entry.target;
-  if (entry.pinned && entry.running) return "fixado na barra e aberto agora";
-  if (entry.pinned) return "fixado na barra de tarefas";
-  if (entry.running) return "aberto agora";
-  if (entry.uses > 0) return `aberto ${entry.uses} ${entry.uses === 1 ? "vez" : "vezes"}`;
-  return "instalado";
+  const info = infoOf(entry);
+  if (info.folder) return entry.target;
+  if (info.why) return t(info.why);
+  if (entry.pinned && entry.running) return t("fixado na barra e aberto agora");
+  if (entry.pinned) return t("fixado na barra de tarefas");
+  if (entry.running) return t("aberto agora");
+  if (entry.uses > 0) return plural(entry.uses, "aberto 1 vez", "aberto {n} vezes");
+  return t("instalado");
 }
 
 export const addApp = (shortcuts: Shortcut[], entry: AppEntry, makeId: () => string): Shortcut[] => [...shortcuts, newShortcut(entry, makeId())];

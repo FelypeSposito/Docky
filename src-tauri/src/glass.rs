@@ -183,24 +183,35 @@ mod imp {
         /// After a failure, no blur is tried before this moment, so an outline sent every frame does not retry (and
         /// log) every frame. The failures are the system's (transparency off, an old Windows), so it is one for all.
         static PAUSED_UNTIL: Cell<Option<Instant>> = const { Cell::new(None) };
-        /// Whether the last failure was already logged (a long stretch with transparency off logs once).
+        /// Blur windows that failed to be made in a row. Each failure waits twice as long; after `GIVE_UP_AFTER` this
+        /// Windows cannot make one, and Docky stops trying until transparency is turned off and on again.
+        static FAILURES: Cell<u32> = const { Cell::new(0) };
+        /// Whether the last problem was already logged (a long stretch with transparency off logs once).
         static LOGGED: Cell<bool> = const { Cell::new(false) };
-        /// When Windows' transparency setting is read again (it can change while Docky runs).
+        /// When Windows' transparency setting is read again (it can change while Docky runs), and what it was.
         static NEXT_CHECK: Cell<Option<Instant>> = const { Cell::new(None) };
+        static TRANSPARENT: Cell<Option<bool>> = const { Cell::new(None) };
         /// Whether the islands are shown (tray, fullscreen apps).
         static SHOWN: Cell<bool> = const { Cell::new(true) };
         /// One Direct2D factory for the ears' paths, made the first time one is needed.
         static FACTORY: RefCell<Option<ID2D1Factory>> = const { RefCell::new(None) };
     }
 
-    /// How long a failed blur waits before it is tried again, and how often transparency is read.
+    /// How often transparency is read, and how long the first failed blur waits before it is tried again.
     const RETRY: Duration = Duration::from_secs(3);
+    /// Failed blur windows in a row before Docky stops trying (an old Windows without the host backdrop).
+    const GIVE_UP_AFTER: u32 = 5;
 
-    fn fail(message: &str) {
-        PAUSED_UNTIL.set(Some(Instant::now() + RETRY));
+    /// Logs a problem once per stretch of it.
+    fn note(level: &str, message: &str) {
         if !LOGGED.replace(true) {
-            crate::logfile::write("info", message);
+            crate::logfile::write(level, message);
         }
+    }
+
+    /// How long to wait after the `failures`-th failed blur in a row: 3 s, 6 s, 12 s, 24 s, then for good (None).
+    pub(super) fn backoff(failures: u32) -> Option<Duration> {
+        (failures < GIVE_UP_AFTER).then(|| RETRY * 2u32.pow(failures.saturating_sub(1)))
     }
 
     extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
@@ -398,18 +409,24 @@ mod imp {
 
     pub fn shape(label: &str, island: isize, p: Px, shown: bool) {
         let now = Instant::now();
-        if PAUSED_UNTIL.get().is_some_and(|until| now < until) {
-            return;
-        }
         // Windows' transparency is read every few seconds: turned off, the blurs go (the host backdrop would be a
-        // flat fill); turned back on, they come back on the next try.
+        // flat fill); turned back on, everything starts over, even after Docky gave up.
         if NEXT_CHECK.get().is_none_or(|at| now >= at) {
             NEXT_CHECK.set(Some(now + RETRY));
-            if !transparency_on() {
+            let on = transparency_on();
+            if TRANSPARENT.replace(Some(on)) == Some(false) && on {
+                FAILURES.set(0);
+                PAUSED_UNTIL.set(None);
+                LOGGED.set(false);
+            }
+            if !on {
                 BACKDROPS.with(|all| all.borrow_mut().clear());
-                fail("vidro: os efeitos de transparência do Windows estão desligados; sem desfoque");
+                note("info", "vidro: os efeitos de transparência do Windows estão desligados; sem desfoque");
                 return;
             }
+        }
+        if FAILURES.get() >= GIVE_UP_AFTER || PAUSED_UNTIL.get().is_some_and(|until| now < until) {
+            return;
         }
         let shown = shown && SHOWN.get();
         BACKDROPS.with(|all| {
@@ -417,11 +434,18 @@ mod imp {
             if !all.contains_key(label) {
                 match Backdrop::new() {
                     Ok(b) => {
+                        FAILURES.set(0);
                         LOGGED.set(false);
                         all.insert(label.to_string(), b);
                     }
                     Err(e) => {
-                        fail(&format!("vidro: o Windows não criou o desfoque da ilha ({e})"));
+                        let failures = FAILURES.get() + 1;
+                        FAILURES.set(failures);
+                        PAUSED_UNTIL.set(backoff(failures).map(|wait| now + wait));
+                        note("warn", &format!("vidro: o Windows não criou o desfoque da ilha ({e})"));
+                        if backoff(failures).is_none() {
+                            crate::logfile::write("warn", "vidro: desisti do desfoque depois de várias tentativas; a ilha fica com o vidro cinza");
+                        }
                         return;
                     }
                 }
@@ -465,6 +489,16 @@ mod tests {
     fn passa_para_pixels_fisicos() {
         let o = Outline { x: 100.4, y: 0.0, w: 246.0, h: 36.0, radius: 18.0, ear: 16.0 };
         assert_eq!(to_physical(o, 1.5), Px { x: 151, y: 0, w: 369, h: 54, radius: 27, ear: 24 });
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn espera_cada_vez_mais_e_desiste() {
+        use std::time::Duration;
+        assert_eq!(imp::backoff(1), Some(Duration::from_secs(3)));
+        assert_eq!(imp::backoff(2), Some(Duration::from_secs(6)));
+        assert_eq!(imp::backoff(4), Some(Duration::from_secs(24)));
+        assert_eq!(imp::backoff(5), None);
     }
 
     #[test]

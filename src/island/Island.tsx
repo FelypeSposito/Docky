@@ -1,5 +1,5 @@
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { currentWork, restingClawd, WAIT_CLAWD, WORK_CLAWD } from "../claude/clawd";
+import { AWAY_MINUTES, currentWork, restingClawd, WAIT_CLAWD, WORK_CLAWD } from "../claude/clawd";
 import { micText } from "../audio/devices";
 import { startAudioSync, useAudioStore } from "../audio/store";
 import { describeTurn, runningSessions } from "../claude/sessions";
@@ -54,11 +54,8 @@ const setHeaderSlot = (el: HTMLDivElement | null) => useIslandStore.getState().s
 const choosePage = (id: string) => useIslandStore.getState().setPage(id);
 
 /** O conteúdo da ilha aberta. Fica montado o tempo todo, então só redesenha quando muda algo dele (não a cada hover). */
-const ExpandedContent = memo(function ExpandedContent({ pageId, large, active }: { pageId: string; large: boolean; active: boolean }) {
-  // The dock answers a click at once; the page itself (which may be heavy, like Atalhos with all its icons) follows a
-  // moment later, so its render does not freeze the dock's animation halfway.
-  const shownId = useDeferredValue(pageId);
-  const page = PAGES.find((p) => p.id === shownId)!;
+const ExpandedContent = memo(function ExpandedContent({ pageId, dockPage, large, active }: { pageId: string; dockPage: string; large: boolean; active: boolean }) {
+  const page = PAGES.find((p) => p.id === pageId)!;
   const Body = large && page.Large ? page.Large : page.Component;
   return (
     <>
@@ -66,13 +63,30 @@ const ExpandedContent = memo(function ExpandedContent({ pageId, large, active }:
         <Body active={active} />
       </div>
       {!FIELD_PAGES.has(page.id) && <GlobalSearch key={page.id} active={active} />}
-      <Dock page={pageId} onPage={choosePage} />
+      <Dock page={dockPage} onPage={choosePage} />
     </>
   );
 });
 
 const fmtSeconds = (total: number) =>
   `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+
+/** Whether nobody has touched the keyboard or mouse for a while; asked every 30 s, and only while `watch` is on. */
+function useAway(watch: boolean): boolean {
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    if (!watch) return setAway(false);
+    let alive = true;
+    const ask = () => void ipc.idleSeconds().then((seconds) => alive && setAway(seconds >= AWAY_MINUTES * 60)).catch(() => {});
+    ask();
+    const timer = setInterval(ask, 30_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [watch]);
+  return away;
+}
 
 /** Segundos desde `since` (performance.now), atualizado a cada segundo; 0 sem início. */
 function useSeconds(since: number | undefined): number {
@@ -229,7 +243,11 @@ export function Island() {
   }, [media?.playing, media?.title]);
   const peekMusic = !!media && (media.playing || Date.now() - lastPlayed < 5 * 60_000);
   const shownPages = visiblePages(PAGES, config.pageOrder, config.hiddenPages);
-  const ActivePage = shownPages.find((p) => p.id === page) ?? shownPages[0];
+  // The dock answers a click at once (it gets `page`); the page itself, and the island's size with it, follow a moment
+  // later. A heavy page (Atalhos with all its icons) then does not freeze the dock's animation halfway, and the old page
+  // is never drawn at the new page's size.
+  const shownPage = useDeferredValue(page);
+  const ActivePage = shownPages.find((p) => p.id === shownPage) ?? shownPages[0];
   // Páginas com tela maior (Large) ou só com ajustes (Settings) ganham o botão de expandir.
   const canExpand = !!ActivePage.Large;
   const largeOn = !!ActivePage.opensLarge || (large && canExpand);
@@ -384,15 +402,17 @@ export function Island() {
   const work = currentWork(running);
   // With the eyes turned off, Clawd takes their place while Claude Code works (or waits for you). The rest of the time
   // (Settings, Aparência, "Clawd sempre visível") he listens along while music plays, and with nothing playing goes
-  // about a calm day (restingClawd). "Reduce motion" shows him standing still instead.
-  const resting = restingClawd(now);
+  // about a calm day, asleep while you are away (restingClawd). "Reduce motion" shows him standing still instead, and
+  // then his tooltip does not claim an activity the picture does not show.
+  const away = useAway(eyesPhase === "gone" && config.clawdAlways && !asking && running.length === 0 && !playing);
+  const resting = restingClawd(now, away);
   const eyesClawd: { src: string; title: string } | null =
     eyesPhase !== "gone" ? null
     : asking ? { src: WAIT_CLAWD, title: t("O Claude espera você") }
     : running.length > 0 ? { src: WORK_CLAWD[work].src, title: `Claude ${t(WORK_CLAWD[work].doing)}` }
     : !config.clawdAlways ? null
     : playing ? { src: musicSvg, title: t("O Clawd ouvindo junto") }
-    : { src: resting.src, title: t(resting.title) };
+    : { src: resting.src, title: config.reduceMotion ? "Clawd" : t(resting.title) };
   const clawdInEyes = eyesClawd && config.reduceMotion ? { ...eyesClawd, src: stillSvg } : eyesClawd;
 
   const islandStyle = {
@@ -681,7 +701,7 @@ export function Island() {
             </div>
           </div>
 
-          <ExpandedContent pageId={ActivePage.id} large={largeOn} active={mode === "expanded"} />
+          <ExpandedContent pageId={ActivePage.id} dockPage={page} large={largeOn} active={mode === "expanded"} />
           {loaded && !config.onboarded && <Welcome />}
         </div>
       </div>

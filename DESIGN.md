@@ -300,7 +300,7 @@ Big targets, icon over name.
 
 ### Dock
 - **Style:** a floating capsule (block fill, inner edge, 12px radius, 3px padding) at the island's bottom centre; icon items 30px tall, 9px radius, Ink 2.
-- **Active:** 17% accent fill, icon in accent, and the page name slides open beside it in white (max-width eases over 0.55s).
+- **Active:** 17% accent fill, icon in accent, and the page name opens beside it in white at its own width (width 0 to auto over 0.36s; the leaving name fades at once, the arriving one fades in once there is room).
 - **Hover / Press:** 0.1 fill and white; press scales to 0.96. Items reorder by dragging (lifted 0.22 fill + shadow). A 1px × 14px divider separates groups.
 
 ### Rows (Settings and quick settings)
@@ -346,11 +346,11 @@ Big targets, icon over name.
 ### Som Page
 - Opens at the island's large size on its own (no expand button): it holds a call, the PC's sound and every app's volume.
 - Three flat tiles on the bento: the Discord call across the top while you are in one (channel, who talks, time, faces, buttons in one row); below, the PC at left (232px: "Volume geral" and its level, a full-width slider, then the output and the microphone as two 32px controls at the tile's foot) and the apps at right, the one tile that grows and scrolls ("Apps" and how many are playing, then 34px rows).
-- A muted microphone turns its control soft red.
+- A muted microphone turns its control soft red; its hotkey shows only when Docky holds it. With no output device, the output control says "Nenhuma saída de som" and the microphone stays.
 
 ### Eyes
 - Two white ovals (15 × 17 and 13 × 15, the right one tilted −6°) with 5.6px pupils that follow the cursor; lids are black bands driven by `--lt`/`--lb` for blink, sleep, wide and closed moods. They sit at the island's top left and the content starts after them (62px header inset; 22px when eyes are off).
-- With the eyes off, a 30px Clawd takes their place: at work (or waiting for you) while Claude Code runs, and the rest of the time, with "Clawd sempre visível" on (the default), with headphones while music plays and, with nothing playing, a calm day that changes every minute (looking around most of the time, a coffee, a stretch, a little dance; asleep from midnight to 6). "Reduzir movimento" shows him standing still.
+- With the eyes off, a 30px Clawd takes their place: at work (or waiting for you) while Claude Code runs, and the rest of the time, with "Clawd sempre visível" on (the default), with headphones while music plays and, with nothing playing, a calm day that changes every minute (looking around most of the time, a coffee, a stretch, a little dance; asleep while nobody has touched the computer for 5 minutes). "Reduzir movimento" shows him standing still.
 
 ### Press
 - A press is felt, barely seen: controls shrink by a few percent at most (buttons to 0.97, page dock to 0.96, tiles to 0.975), half of what they once did. The island itself never swells on a press; only the glass's light wave runs from the touch point, soft (half strength, 0.78 to 1.25 over 0.7s).

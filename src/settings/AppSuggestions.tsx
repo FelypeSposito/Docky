@@ -34,6 +34,8 @@ export function AppSuggestions() {
   const apps = useInstalledApps();
   const loading = useAppsStore((s) => s.loading);
   const [open, setOpen] = useState(readOpen);
+  /** The sections opened past their first entries ("Mostrar todos"). */
+  const [full, setFull] = useState<string[]>([]);
   const toggle = () => {
     setOpen(!open);
     saveOpen(!open);
@@ -86,11 +88,16 @@ export function AppSuggestions() {
                 {t(section.title)} · {section.entries.length}
               </h4>
               <div className="ge-chips">
-                {section.entries.map((entry) => (
-                  <button key={entry.target} className="app" title={t(whySuggested(entry))} onClick={() => add([entry])}>
+                {section.entries.slice(0, full.includes(section.kind) ? Infinity : section.shown).map((entry) => (
+                  <button key={entry.target} className="app" title={whySuggested(entry)} onClick={() => add([entry])}>
                     + {entryName(entry)}
                   </button>
                 ))}
+                {!full.includes(section.kind) && section.entries.length > section.shown && (
+                  <button className="app more" onClick={() => setFull([...full, section.kind])}>
+                    {t("Mostrar todos ({n})", { n: section.entries.length })}
+                  </button>
+                )}
               </div>
             </div>
             {section.entries.length > 1 && (

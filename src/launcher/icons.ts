@@ -31,16 +31,44 @@ export function iconText(icon: string): string {
 /** Tentativas de ler uma imagem: a configuração é gravada em seguida à mudança, e a leitura pode chegar antes. */
 const MAX_ATTEMPTS = 5;
 
+type ReadImage = (path: string) => Promise<string | null>;
+
 /**
  * Images already read, by path, for each reader, for the window's life. Pages mount again each time they are picked
  * (and the header search with them), so without this every switch read every icon again, and each one that arrived
- * redrew the page, stalling the dock's animation halfway.
+ * redrew the page, stalling the dock's animation halfway. Two hooks asking for the same file at once share one read;
+ * an image older than a minute is read again in the background (an icon file can be replaced under the same name);
+ * and only the most recent images are kept.
  */
-const caches = new WeakMap<(path: string) => Promise<string | null>, Map<string, string>>();
-function cacheFor(fetchImage: (path: string) => Promise<string | null>): Map<string, string> {
-  let cache = caches.get(fetchImage);
-  if (!cache) caches.set(fetchImage, (cache = new Map()));
+interface IconCache {
+  images: Map<string, { url: string; at: number }>;
+  reading: Map<string, Promise<string | null>>;
+}
+const MAX_IMAGES = 200;
+const FRESH_MS = 60_000;
+const caches = new WeakMap<ReadImage, IconCache>();
+function cacheFor(read: ReadImage): IconCache {
+  let cache = caches.get(read);
+  if (!cache) caches.set(read, (cache = { images: new Map(), reading: new Map() }));
   return cache;
+}
+
+/** Reads `path` once for everyone asking now, and keeps the result (the newest at the end, the oldest dropped). */
+function readShared(cache: IconCache, read: ReadImage, path: string): Promise<string | null> {
+  const pending = cache.reading.get(path);
+  if (pending) return pending;
+  const reading = read(path)
+    .then((url) => {
+      if (url) {
+        cache.images.delete(path);
+        cache.images.set(path, { url, at: Date.now() });
+        while (cache.images.size > MAX_IMAGES) cache.images.delete(cache.images.keys().next().value!);
+      }
+      return url;
+    })
+    .finally(() => cache.reading.delete(path));
+  cache.reading.set(path, reading);
+  return reading;
 }
 
 /**
@@ -48,9 +76,9 @@ function cacheFor(fetchImage: (path: string) => Promise<string | null>): Map<str
  * caminho e guardadas por ele: reordenar a lista só muda quem usa qual imagem, sem reler nada (ler pela posição
  * trocava ou apagava os ícones quando a ordem mudava antes de a configuração ser gravada).
  */
-export function useIconImages(icons: string[], fetchImage: (path: string) => Promise<string | null>): Record<number, string> {
+export function useIconImages(icons: string[], fetchImage: ReadImage): Record<number, string> {
   const cache = cacheFor(fetchImage);
-  const [loaded, setLoaded] = useState<Record<string, string>>(() => Object.fromEntries(cache));
+  const [loaded, setLoaded] = useState<Record<string, string>>(() => Object.fromEntries([...cache.images].map(([path, image]) => [path, image.url])));
   const have = useRef(loaded);
   have.current = loaded;
   const paths = icons.map((icon) => (iconKind(icon ?? "") === "image" ? icon.trim() : ""));
@@ -70,17 +98,21 @@ export function useIconImages(icons: string[], fetchImage: (path: string) => Pro
       if (alive) setLoaded((prev) => ({ ...prev, ...next }));
     };
     const load = (path: string, attempt: number) =>
-      fetchImage(path)
+      readShared(cache, fetchImage, path)
         .then((url) => {
-          if (!url) return;
-          cache.set(path, url);
+          // Only a new or changed image redraws.
+          if (!url || !alive || have.current[path] === url) return;
           batch[path] = url;
           frame ||= requestAnimationFrame(flush);
         })
         .catch(() => {
           if (alive && attempt + 1 < MAX_ATTEMPTS) timers.push(setTimeout(() => load(path, attempt + 1), 400 * (attempt + 1)));
         });
-    wanted.split("\n").forEach((path) => path && !have.current[path] && load(path, 0));
+    const now = Date.now();
+    wanted.split("\n").forEach((path) => {
+      const known = cache.images.get(path);
+      if (path && (!have.current[path] || !known || now - known.at > FRESH_MS)) load(path, 0);
+    });
     return () => {
       alive = false;
       timers.forEach(clearTimeout);
@@ -93,7 +125,7 @@ export function useIconImages(icons: string[], fetchImage: (path: string) => Pro
 }
 
 /** Reads an icon file through Rust. One function for every caller, so they all share one cache. */
-const readIcon = (path: string) => ipc.iconImage(path);
+const readIcon: ReadImage = (path) => ipc.iconImage(path);
 
 /** As imagens dos ícones dos atalhos. */
 export const useShortcutImages = (shortcuts: Shortcut[]) =>

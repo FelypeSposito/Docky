@@ -3,7 +3,7 @@ import type { DiscordState } from "../lib/ipc";
 import { ipc } from "../lib/ipc";
 import { formatElapsed } from "./activity";
 import { HeadphonesIcon, HeadphonesOffIcon, MicIcon, MicOffIcon, PhoneOffIcon } from "./icons";
-import { t } from "../i18n";
+import { plural, t } from "../i18n";
 
 const MAX_FACES = 6;
 
@@ -81,7 +81,9 @@ export function DiscordCall({ discord, since }: { discord: DiscordState; since: 
     <div className="dc">
       <div className="dc-top">
         <b>{discord.channel}</b>
-        <span className="dc-sub">{talking.length > 0 ? `${talking.join(", ")} falando` : `${discord.members.length} na chamada`}</span>
+        <span className="dc-sub">
+          {talking.length > 0 ? t("{names} falando", { names: talking.join(", ") }) : plural(discord.members.length, "1 na chamada", "{n} na chamada")}
+        </span>
         {elapsed && <em>{elapsed}</em>}
       </div>
       <div className="dc-row">

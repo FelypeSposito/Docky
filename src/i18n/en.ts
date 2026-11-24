@@ -850,4 +850,12 @@ export const EN: Record<string, string> = {
   "O Clawd tomando um café": "Clawd having a coffee",
   "O Clawd se alongando": "Clawd stretching",
   "O Clawd dormindo": "Clawd sleeping",
+  "aberto 1 vez": "opened once",
+  "aberto {n} vezes": "opened {n} times",
+  "instalado": "installed",
+  "Mostrar todos ({n})": "Show all ({n})",
+  "Nenhuma saída de som": "No sound output",
+  "{names} falando": "{names} talking",
+  "1 na chamada": "1 in the call",
+  "{n} na chamada": "{n} in the call",
 };

@@ -45,11 +45,14 @@ const RESTING_DAY: RestingClawd[] = [
   IDLE,
   { src: dancingSvg, title: "O Clawd dançando" },
 ];
-const RESTING_NIGHT: RestingClawd = { src: sleepingSvg, title: "O Clawd dormindo" };
+const RESTING_ASLEEP: RestingClawd = { src: sleepingSvg, title: "O Clawd dormindo" };
 
-/** Which resting Clawd shows at `now`: the day's loop by the minute, and asleep from midnight to 6 in the morning. */
-export function restingClawd(now: Date): RestingClawd {
-  if (now.getHours() < 6) return RESTING_NIGHT;
+/** Minutes without a key press or a mouse move after which Clawd falls asleep. */
+export const AWAY_MINUTES = 5;
+
+/** Which resting Clawd shows at `now`: asleep while you are away from the computer, else the day's loop by the minute. */
+export function restingClawd(now: Date, away: boolean): RestingClawd {
+  if (away) return RESTING_ASLEEP;
   const minute = Math.floor(now.getTime() / 60_000);
   return RESTING_DAY[minute % RESTING_DAY.length];
 }

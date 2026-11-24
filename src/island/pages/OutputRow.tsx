@@ -6,6 +6,8 @@ import { type AudioOutput, type AudioState, ipc, type OutputKind, type SwitchErr
 import { HeadphonesIcon, MicIcon, MicOffIcon, ScreenIcon, SpeakerIcon } from "../icons";
 
 const REFRESH_MS = 3000;
+/** The microphone's hotkey, as Rust names it (`hotkeys.rs`, `label`). */
+const MIC_HOTKEY = "Ctrl+Alt+M";
 
 function OutputIcon({ kind }: { kind: OutputKind }) {
   if (kind === "headphones") return <HeadphonesIcon size={16} />;
@@ -28,6 +30,14 @@ export function OutputRow({ active }: { active: boolean }) {
   const [state, setState] = useState<AudioState | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const mic = useAudioStore((s) => s.mic);
+  // The hotkey is shown only when it works: another program may have taken Ctrl+Alt+M first.
+  const [micKey, setMicKey] = useState<string | null>(null);
+  useEffect(() => {
+    void ipc
+      .hotkeysTaken()
+      .then((taken) => setMicKey(taken.includes(MIC_HOTKEY) ? null : MIC_HOTKEY))
+      .catch(() => setMicKey(null));
+  }, []);
 
   const refresh = useCallback(async () => {
     const next = await ipc.audioState();
@@ -42,7 +52,7 @@ export function OutputRow({ active }: { active: boolean }) {
     return () => clearInterval(timer);
   }, [active, refresh]);
 
-  if (!state || state.outputs.length === 0) return null;
+  if (!state) return null;
   const outputs = sortOutputs(state.outputs);
   const current = outputs.find((o) => o.default) ?? outputs[0];
 
@@ -70,30 +80,40 @@ export function OutputRow({ active }: { active: boolean }) {
 
   return (
     <>
-      <label className="mx-field">
-        <span className="mx-field-ic" aria-hidden="true">
-          <OutputIcon kind={current.kind} />
-        </span>
-        <select className="mx-out" aria-label={t("Saída de som")} title={label(current)} value={current.id} onChange={(e) => void pick(e.target.value)}>
-          {outputs.map((o) => (
-            <option key={o.id} value={o.id}>
-              {label(o)}
-            </option>
-          ))}
-        </select>
-      </label>
+      {current ? (
+        <label className="mx-field">
+          <span className="mx-field-ic" aria-hidden="true">
+            <OutputIcon kind={current.kind} />
+          </span>
+          <select className="mx-out" aria-label={t("Saída de som")} title={label(current)} value={current.id} onChange={(e) => void pick(e.target.value)}>
+            {outputs.map((o) => (
+              <option key={o.id} value={o.id}>
+                {label(o)}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        // No speakers or headphones: say so where the choice would be, and keep the microphone below.
+        <div className="mx-field none">
+          <span className="mx-field-ic" aria-hidden="true">
+            <SpeakerIcon size={16} />
+          </span>
+          <span className="mx-mic-txt">{t("Nenhuma saída de som")}</span>
+        </div>
+      )}
       {note && <div className="mx-note">{note}</div>}
       {mic && (
         <button
           className={`mx-mic${mic.muted ? " off" : ""}`}
           aria-pressed={mic.muted}
           aria-label={t(mic.muted ? "Ativar o microfone" : "Mutar o microfone")}
-          title={`${t(mic.muted ? "Ativar o microfone" : "Mutar o microfone")} (Ctrl+Alt+M)`}
+          title={micKey ? `${t(mic.muted ? "Ativar o microfone" : "Mutar o microfone")} (${micKey})` : t(mic.muted ? "Ativar o microfone" : "Mutar o microfone")}
           onClick={toggleMic}
         >
           <span className="mx-field-ic">{mic.muted ? <MicOffIcon /> : <MicIcon />}</span>
           <span className="mx-mic-txt">{t(mic.muted ? "Microfone mudo" : "Microfone ligado")}</span>
-          <kbd>Ctrl+Alt+M</kbd>
+          {micKey && <kbd>{micKey}</kbd>}
         </button>
       )}
     </>

@@ -57,6 +57,25 @@ describe("apps sugeridos", () => {
     expect(suggestedApps(apps, have).map((a) => a.name)).toEqual(["Chrome", "Discord", "Calculadora"]);
   });
 
+  it("uma pasta já cadastrada de outro jeito não volta, e um atalho só com o mesmo nome não esconde a pasta", () => {
+    const music = app("Músicas", { kind: "folder", target: "C:\\Users\\ana\\Music" });
+    const downloads = app("Downloads", { kind: "folder", target: "C:\\Users\\ana\\Downloads" });
+    const desktop = app("Área de Trabalho", { kind: "folder", target: "D:\\Ana\\Desktop" });
+    const have = [
+      shortcut("a", "Músicas", "C:\\Users\\ana\\AppData\\Roaming\\Spotify\\Spotify.exe"),
+      shortcut("b", "Baixados", "%USERPROFILE%\\Downloads\\"),
+      shortcut("c", "Mesa", "shell:Desktop"),
+    ];
+    expect(suggestionSections([music, downloads, desktop], have).flatMap((s) => s.entries.map((e) => e.name))).toEqual(["Músicas"]);
+  });
+
+  it("mostra os apps todos, com quantos aparecem antes de abrir a lista", () => {
+    const many = Array.from({ length: 20 }, (_, i) => app(`App ${i}`));
+    const [section] = suggestionSections(many, []);
+    expect(section.entries).toHaveLength(20);
+    expect(section.shown).toBe(16);
+  });
+
   it("sem nenhum sinal de uso, sugere os primeiros da lista", () => {
     expect(suggestedApps([app("A"), app("B"), app("C")], [], 2).map((a) => a.name)).toEqual(["A", "B"]);
   });

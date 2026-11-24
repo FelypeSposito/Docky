@@ -18,15 +18,18 @@ struct Saved {
     autohide: bool,
 }
 
+/// How many times (2 s apart) a restore at Docky's start tries again while Explorer's taskbars come up.
+const TRIES: u32 = 60;
+
 /// Brings Windows' taskbar back as it was before the old dock hid it. Does nothing when it never did. When Docky
-/// starts with Windows, Explorer (and its taskbar) may not be up yet: then it keeps trying for a while, and the note
-/// stays for the next start if the taskbar never shows.
+/// starts with Windows, Explorer (and its taskbars, the other screens' last) may not be up yet: then it keeps trying
+/// for a while, and the note stays for the next start if the main taskbar never shows.
 pub fn restore_taskbar() {
-    if saved_path().is_some_and(|p| p.exists()) && !try_restore() {
+    if saved_path().is_some_and(|p| p.exists()) && !try_restore(false) {
         std::thread::spawn(|| {
-            for _ in 0..60 {
+            for n in 1..=TRIES {
                 std::thread::sleep(std::time::Duration::from_secs(2));
-                if try_restore() {
+                if try_restore(n == TRIES) {
                     return;
                 }
             }
@@ -34,8 +37,14 @@ pub fn restore_taskbar() {
     }
 }
 
-/// One try: false while there is a note but no taskbar to put back yet.
-fn try_restore() -> bool {
+/// The same, once and at once: for the uninstaller, which exits right after (Explorer is up by then).
+pub fn restore_taskbar_now() {
+    try_restore(true);
+}
+
+/// One try: false while there is a note and a taskbar still to put back. The note goes once every screen has its bar
+/// back, or, on the last try, once the main one is (the other screens may have no taskbar at all).
+fn try_restore(last: bool) -> bool {
     let Some(path) = saved_path() else { return true };
     let Ok(text) = fs::read_to_string(&path) else { return true };
     if !win::taskbar_up() {
@@ -45,9 +54,12 @@ fn try_restore() -> bool {
     if let Ok(saved) = serde_json::from_str::<Saved>(&text) {
         win::set_autohide(saved.autohide);
     }
-    win::show_taskbars();
-    let _ = fs::remove_file(path);
-    true
+    let shown = win::show_taskbars();
+    if last || shown >= win::screens() {
+        let _ = fs::remove_file(path);
+        return true;
+    }
+    false
 }
 
 #[cfg(windows)]
@@ -57,7 +69,7 @@ mod win {
             Foundation::{HWND, LPARAM, RECT},
             UI::{
                 Shell::{ABM_GETSTATE, ABM_SETSTATE, APPBARDATA, SHAppBarMessage},
-                WindowsAndMessaging::{EnumWindows, FindWindowW, GetClassNameW, SW_SHOWNA, ShowWindow},
+                WindowsAndMessaging::{EnumWindows, FindWindowW, GetClassNameW, GetSystemMetrics, SM_CMONITORS, SW_SHOWNA, ShowWindow},
             },
         },
         core::{BOOL, PCWSTR, w},
@@ -89,12 +101,20 @@ mod win {
         unsafe { FindWindowW(w!("Shell_TrayWnd"), PCWSTR::null()) }.is_ok_and(|h| !h.is_invalid())
     }
 
-    pub fn show_taskbars() {
-        for bar in taskbars() {
+    /// Shows every taskbar there is now, and says how many.
+    pub fn show_taskbars() -> usize {
+        let bars = taskbars();
+        for bar in &bars {
             unsafe {
-                let _ = ShowWindow(bar, SW_SHOWNA);
+                let _ = ShowWindow(*bar, SW_SHOWNA);
             }
         }
+        bars.len()
+    }
+
+    /// How many screens Windows has: with "show the taskbar on all displays", each gets a bar.
+    pub fn screens() -> usize {
+        unsafe { GetSystemMetrics(SM_CMONITORS) }.max(1) as usize
     }
 
     const ABS_AUTOHIDE: u32 = 0x1;
@@ -127,6 +147,11 @@ mod win {
     pub fn taskbar_up() -> bool {
         true
     }
-    pub fn show_taskbars() {}
+    pub fn show_taskbars() -> usize {
+        1
+    }
+    pub fn screens() -> usize {
+        1
+    }
     pub fn set_autohide(_: bool) {}
 }

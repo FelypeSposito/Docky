@@ -33,6 +33,7 @@ mod settings_window;
 mod shell_icon;
 mod shelf;
 mod taskbar;
+mod idle;
 mod tray;
 mod updates;
 mod volume;
@@ -46,7 +47,7 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 pub fn uninstall_cleanup() {
     let _ = claude::remove_hooks_if_installed();
     // An old dock (0.4.0 to 0.5.1) may have left Windows' taskbar hidden.
-    taskbar::restore_taskbar();
+    taskbar::restore_taskbar_now();
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -141,6 +142,7 @@ pub fn run() {
             volume::get_volume,
             volume::set_volume,
             volume::set_muted,
+            idle::idle_seconds,
         ])
         // wry's own drop target (when it registers): remember what was dropped, like file_drop does.
         .on_window_event(|window, event| match event {

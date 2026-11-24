@@ -3087,6 +3087,10 @@ button.m-top:active .cover {
   margin-top: auto;
   cursor: pointer;
 }
+.mx-field.none {
+  color: var(--ink2);
+  cursor: default;
+}
 .mx-field:hover,
 .mx-mic:hover {
   background: rgba(255, 255, 255, 0.16);
