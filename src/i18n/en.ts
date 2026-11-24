@@ -863,4 +863,5 @@ export const EN: Record<string, string> = {
   "Ocultar {page}": "Hide {page}",
   "Mostrar {page}": "Show {page}",
   "Arraste para mudar a ordem · botão direito para ocultar": "Drag to reorder · right-click to hide",
+  "Arraste para mudar a ordem das seções": "Drag to reorder the sections",
 };

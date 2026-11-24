@@ -9,10 +9,12 @@ import {
   assignSection,
   autoOrganize,
   blockKey,
+  chipSection,
   filterChips,
   layoutSections,
   pruneSections,
   removeSection,
+  reorderSections,
   renameSection,
   restTitle,
   sectionOf,
@@ -141,5 +143,27 @@ describe("organizar automaticamente", () => {
     const sections = autoOrganize([...list, shortcut("st", "Steam", "C:/Steam.lnk")], mine, ids());
     expect(sections[0]).toEqual(section("m", "Favoritos", ["cs"]));
     expect(sections.find((s) => s.id === "j")?.members).toEqual(["st"]);
+  });
+});
+
+describe("filtros que se arrastam", () => {
+  const sec = (id: string, members: string[] = []) => ({ id, name: id, collapsed: false, members, hours: "" });
+
+  it("reordena as seções listadas nos lugares delas, sem mexer nas outras", () => {
+    const sections = [sec("a"), sec("b"), sec("c"), sec("d")];
+    expect(reorderSections(sections, ["c", "a"]).map((s) => s.id)).toEqual(["c", "b", "a", "d"]);
+  });
+
+  it("o filtro de uma seção sabe qual é ela", () => {
+    expect(chipSection("s:jogos")).toBe("jogos");
+    expect(chipSection("rest")).toBeNull();
+    expect(chipSection("all")).toBeNull();
+  });
+
+  it("arrastando um atalho, até as seções vazias viram filtros", () => {
+    const sections = [sec("a", ["x"]), sec("b")];
+    const blocks = layoutSections([{ item: { id: "x", name: "X", target: "", icon: "", group: false, members: [] }, index: 0 }], sections, true);
+    expect(filterChips(blocks, 0, sections).map((c) => c.key)).toEqual([]);
+    expect(filterChips(blocks, 0, sections, true).map((c) => c.key)).toEqual(["all", "s:a", "s:b"]);
   });
 });

@@ -711,6 +711,7 @@
 /* Filtros acima da lista: uma linha só, que rola de lado sem barra. O respiro (padding com margem negativa)
    deixa o anel de foco aparecer sem ser cortado pela rolagem. */
 .lcx-chips {
+  position: relative;
   display: flex;
   flex: none;
   gap: 6px;
@@ -763,6 +764,27 @@
 }
 .reduce-motion .lcx-chip {
   transition: none;
+}
+/* A section's filter dragged to reorder: lifted, following the pointer sideways. */
+.lcx-chip {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.lcx-chip.drag {
+  z-index: 3;
+  transition: none;
+  cursor: grabbing;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+}
+/* While a shortcut is dragged, the filters it can go to are outlined, and the one under it lights up. */
+.lcx-chips.dropping .lcx-chip[data-drop] {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+.lcx-chips.dropping .lcx-chip.drop {
+  color: #fff;
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 30%, rgba(255, 255, 255, 0.06));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 75%, transparent);
+  transform: scale(1.06);
 }
 /* A seção de cada atalho no modo Editar */
 .le-secsel {

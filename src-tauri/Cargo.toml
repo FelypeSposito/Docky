@@ -1,6 +1,6 @@
 [package]
 name = "docky"
-version = "0.6.0"
+version = "0.6.1"
 description = "Docky — uma ilha dinâmica para o Windows"
 authors = ["Felype Sposito"]
 license = "MIT"

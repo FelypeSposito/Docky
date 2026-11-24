@@ -232,6 +232,18 @@ export function suggestionSections(apps: AppEntry[], shortcuts: Shortcut[]): Sug
   })).filter((section) => section.entries.length > 0);
 }
 
+/**
+ * What a section shows, in alphabetical order (accents and case aside): the first `shown` it ranks (the apps you use
+ * come first, so the short list is the useful one), or all of them once "Mostrar todos" is open. Windows' folders keep
+ * their own order (Downloads, Documentos, Área de Trabalho…).
+ */
+export function visibleEntries(section: SuggestionSection, all: boolean): AppEntry[] {
+  const picked = all ? section.entries : section.entries.slice(0, section.shown);
+  if (section.kind === "folder") return picked;
+  const byName = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
+  return [...picked].sort((a, b) => byName.compare(entryName(a), entryName(b)));
+}
+
 /** Whether something you already have stands for this suggestion: the same app, or a shortcut to the same folder. */
 function alreadyShortcut(entry: AppEntry, shortcuts: Shortcut[]): boolean {
   const folder = infoOf(entry).folder;

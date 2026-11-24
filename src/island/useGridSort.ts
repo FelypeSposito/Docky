@@ -56,7 +56,7 @@ interface Drag {
  *
  * `ids` é a ordem atual; `onCommit` recebe a nova ordem quando o usuário solta.
  */
-export function useGridSort(ids: string[], onCommit: (next: string[]) => void, enabled = true, drop?: DropPlaces) {
+export function useGridSort(ids: string[], onCommit: (next: string[]) => void, enabled = true, drop?: DropPlaces, axis: "both" | "x" = "both") {
   const [draft, setDraft] = useState<string[] | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const tiles = useRef(new Map<string, HTMLElement>());
@@ -87,7 +87,9 @@ export function useGridSort(ids: string[], onCommit: (next: string[]) => void, e
       if (!d || !el || !d.active) return;
       const at = inParent(el, d.x, d.y);
       if (!at) return;
-      el.style.transform = `translate(${at.px - d.offX - el.offsetLeft}px, ${at.py - d.offY - el.offsetTop}px) scale(1.06)`;
+      // A row (the section filters) only slides sideways.
+      const dy = axisRef.current === "x" ? 0 : at.py - d.offY - el.offsetTop;
+      el.style.transform = `translate(${at.px - d.offX - el.offsetLeft}px, ${dy}px) scale(1.06)`;
     };
 
     /** Engole o clique que o navegador manda ao soltar um arrasto (senão soltar um app abriria o app). */
@@ -142,10 +144,18 @@ export function useGridSort(ids: string[], onCommit: (next: string[]) => void, e
 
       // Perto da borda de cima ou de baixo, a lista (a que rola em volta, ou o próprio container) rola para dar para
       // levar o ícone mais longe.
-      const scroller = scrollerOf(el) ?? at.parent;
-      const box = scroller.getBoundingClientRect();
-      if (d.y < box.top + EDGE_PX) scroller.scrollTop -= 10;
-      else if (d.y > box.bottom - EDGE_PX) scroller.scrollTop += 10;
+      if (axisRef.current === "x") {
+        // A row that scrolls sideways: near its left or right end, it scrolls.
+        const box = at.parent.getBoundingClientRect();
+        if (d.x < box.left + EDGE_PX) at.parent.scrollLeft -= 8;
+        else if (d.x > box.right - EDGE_PX) at.parent.scrollLeft += 8;
+      } else {
+        // Only inside the list's own band: a pointer above it (on the filters) does not keep scrolling it.
+        const scroller = scrollerOf(el) ?? at.parent;
+        const box = scroller.getBoundingClientRect();
+        if (d.y >= box.top && d.y < box.top + EDGE_PX) scroller.scrollTop -= 10;
+        else if (d.y <= box.bottom && d.y > box.bottom - EDGE_PX) scroller.scrollTop += 10;
+      }
       follow();
 
       // Over another drop place (another section): that place takes the drop, and the list keeps its order.
@@ -189,6 +199,8 @@ export function useGridSort(ids: string[], onCommit: (next: string[]) => void, e
   }
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
+  const axisRef = useRef(axis);
+  axisRef.current = axis;
   handlers.current ??= create();
   const { follow, down } = handlers.current;
 

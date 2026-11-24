@@ -14,6 +14,7 @@ import {
   suggestionSections,
   useAppsStore,
   useInstalledApps,
+  visibleEntries,
   whySuggested,
 } from "../../launcher/suggestions";
 import { QButton, QPanel, QRow, QTitle } from "./controls";
@@ -96,7 +97,7 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
           {sections.map((section) => (
             <div key={section.kind}>
               <QTitle>{t(section.title)}</QTitle>
-              {section.entries.slice(0, full.includes(section.kind) ? Infinity : section.shown).map((entry) => (
+              {visibleEntries(section, full.includes(section.kind)).map((entry) => (
                 <QRow key={entry.target} label={entryName(entry)} hint={whySuggested(entry)}>
                   <QButton onClick={() => add(entry)}>{t("+ Adicionar")}</QButton>
                 </QRow>

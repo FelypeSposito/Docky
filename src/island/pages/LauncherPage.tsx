@@ -18,8 +18,10 @@ import {
   assignSection,
   autoOrganize,
   blockKey,
+  chipSection,
   filterChips,
   layoutSections,
+  reorderSections,
   restTitle,
   sectionOf,
   toggleCollapsed,
@@ -481,10 +483,31 @@ function SectionView({
 /**
  * A fileira de filtros acima da lista: "Tudo" e um botão por parte, para chegar a uma seção sem rolar. Não quebra
  * linha: rola de lado (sem barra), e o filtro escolhido é trazido para a vista. As setas andam entre os botões
- * (só o escolhido entra no Tab) e já escolhem.
+ * (só o escolhido entra no Tab) e já escolhem. The sections' filters drag sideways to reorder the sections, and while
+ * a shortcut is dragged each filter (and "Outros") takes it: always in view, a bigger target than a section's title.
  */
-function FilterRow({ chips, active, onSelect }: { chips: FilterChip[]; active: string; onSelect: (key: string) => void }) {
+function FilterRow({
+  chips,
+  active,
+  onSelect,
+  onReorder,
+  dragging,
+  dropOn,
+}: {
+  chips: FilterChip[];
+  active: string;
+  onSelect: (key: string) => void;
+  /** The sections, in their new order (ids). */
+  onReorder: (order: string[]) => void;
+  /** A shortcut is being dragged: the filters are drop places. */
+  dragging: boolean;
+  dropOn: string | null;
+}) {
   const rowRef = useRef<HTMLDivElement>(null);
+  const sectionIds = chips.map((c) => chipSection(c.key)).filter((id): id is string => !!id);
+  const sorter = useGridSort(sectionIds, onReorder, !dragging, undefined, "x");
+  /** Where a shortcut dropped on this filter goes (a section, or "Outros"), or nothing. */
+  const dropKey = (key: string) => chipSection(key) ?? (key === FILTER_REST ? FILTER_REST : undefined);
   const activeIndex = Math.max(0, chips.findIndex((c) => c.key === active));
   useEffect(() => {
     const row = rowRef.current;
@@ -507,13 +530,30 @@ function FilterRow({ chips, active, onSelect }: { chips: FilterChip[]; active: s
     (rowRef.current?.children[next] as HTMLElement | undefined)?.focus({ preventScroll: true });
   };
   return (
-    <div className="lcx-chips" role="toolbar" aria-label={t("Ir para a seção")} ref={rowRef} onKeyDown={onKeyDown}>
-      {chips.map((chip, i) => (
-        <button key={chip.key} className="lcx-chip" aria-pressed={i === activeIndex} tabIndex={i === activeIndex ? 0 : -1} onClick={() => onSelect(chip.key)}>
-          <span>{chip.label}</span>
-          <i>{chip.count}</i>
-        </button>
-      ))}
+    <div className={`lcx-chips${dragging ? " dropping" : ""}`} role="toolbar" aria-label={t("Ir para a seção")} ref={rowRef} onKeyDown={onKeyDown}>
+      {chips.map((chip, i) => {
+        const section = chipSection(chip.key);
+        const place = dragging ? dropKey(chip.key) : undefined;
+        return (
+          <button
+            key={chip.key}
+            ref={section ? sorter.tileRef(section) : undefined}
+            className={`lcx-chip${section && sorter.dragId === section ? " drag" : ""}${place && dropOn === place ? " drop" : ""}`}
+            // "Tudo" first, the sections in their (live) order, then "Outros" and "Grupos".
+            style={{ order: section ? 1 + (sorter.position.get(section) ?? 0) : i === 0 ? 0 : 1000 + i }}
+            aria-pressed={i === activeIndex}
+            tabIndex={i === activeIndex ? 0 : -1}
+            data-drop={place}
+            title={section ? t("Arraste para mudar a ordem das seções") : undefined}
+            onClick={() => onSelect(chip.key)}
+            onPointerDown={section ? (e) => sorter.down(e, section) : undefined}
+            onDragStart={(e) => e.preventDefault()}
+          >
+            <span>{chip.label}</span>
+            <i>{chip.count}</i>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -609,7 +649,7 @@ export function LauncherLarge({ active }: { active: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // While a shortcut is dragged, empty sections show too, to drop into.
   const blocks = layoutSections(shownItems, sections, dragging);
-  const chips = filterChips(blocks, shownGroups.length, sections);
+  const chips = filterChips(blocks, shownGroups.length, sections, dragging);
   const current = activeFilter(chips, filter);
   const selectFilter = (key: string) => {
     setFilter(key);
@@ -798,7 +838,14 @@ export function LauncherLarge({ active }: { active: boolean }) {
             <span className="qs-note">{t("Os com o pino rosa aparecem na ilha. Arraste pela alça para ordenar.")}</span>
           </>
         ) : !searching && chips.length > 0 ? (
-          <FilterRow chips={chips} active={current} onSelect={selectFilter} />
+          <FilterRow
+            chips={chips}
+            active={current}
+            onSelect={selectFilter}
+            onReorder={(order) => setSections(reorderSections(useConfigStore.getState().config.shortcutSections, order))}
+            dragging={dragging}
+            dropOn={dropOn}
+          />
         ) : (
           <span className="lcx-fill">{searching ? t(matches.length === 1 ? "1 resultado" : "{n} resultados", { n: matches.length }) : ""}</span>
         )}

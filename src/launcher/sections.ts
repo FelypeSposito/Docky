@@ -52,19 +52,29 @@ export interface FilterChip {
 
 /**
  * Os filtros da tela grande, na ordem da lista: "Tudo", as partes que têm atalhos e "Grupos" (quando há grupos).
- * Com uma parte só não há o que filtrar: volta vazio, e a fileira some.
+ * Com uma parte só não há o que filtrar: volta vazio, e a fileira some. With `all` (while a shortcut is dragged, to
+ * drop it on a filter) every section shows, empty ones too, and the row never hides.
  */
-export function filterChips(blocks: SectionBlock[], groupCount: number, sections: ShortcutSection[]): FilterChip[] {
+export function filterChips(blocks: SectionBlock[], groupCount: number, sections: ShortcutSection[], all = false): FilterChip[] {
   const parts: FilterChip[] = blocks
-    .filter((b) => b.entries.length > 0)
+    .filter((b) => all || b.entries.length > 0)
     .map((b) => ({ key: blockKey(b), label: b.section ? b.section.name : restTitle(sections), count: b.entries.length }));
   if (groupCount > 0) parts.push({ key: FILTER_GROUPS, label: t("Grupos"), count: groupCount });
-  if (parts.length < 2) return [];
+  if (parts.length < 2 && !all) return [];
   return [{ key: FILTER_ALL, label: t("Tudo"), count: parts.reduce((n, p) => n + p.count, 0) }, ...parts];
 }
 
 /** O filtro em vigor: o escolhido, se ele ainda existe na fileira; senão (a seção sumiu, ficou vazia), "Tudo". */
 export const activeFilter = (chips: FilterChip[], selected: string): string => (chips.some((c) => c.key === selected) ? selected : FILTER_ALL);
+
+/** The section a filter stands for (its id), or null for "Tudo", "Outros" and "Grupos". */
+export const chipSection = (key: string): string | null => (key.startsWith("s:") ? key.slice(2) : null);
+
+/** Puts the sections listed in `order` in that order, in the places they had; the others stay where they are. */
+export function reorderSections(sections: ShortcutSection[], order: string[]): ShortcutSection[] {
+  const queue = order.map((id) => sections.find((s) => s.id === id)).filter((s): s is ShortcutSection => !!s);
+  return sections.map((s) => (order.includes(s.id) ? (queue.shift() ?? s) : s));
+}
 
 /** Põe o atalho numa seção (ou em nenhuma, com `sectionId` = null), tirando-o de onde estava. */
 export function assignSection(sections: ShortcutSection[], shortcutId: string, sectionId: string | null): ShortcutSection[] {

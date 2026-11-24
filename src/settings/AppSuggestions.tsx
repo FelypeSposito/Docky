@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { newId } from "../launcher/model";
-import { type AppEntry, addApps, adoptAppIcon, entryName, suggestionSections, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
+import { type AppEntry, addApps, adoptAppIcon, entryName, suggestionSections, useAppsStore, useInstalledApps, visibleEntries, whySuggested } from "../launcher/suggestions";
 import { Group, Row } from "./controls";
 import "../launcher/iconPicker.css";
 import "./appSuggestions.css";
@@ -88,7 +88,7 @@ export function AppSuggestions() {
                 {t(section.title)} · {section.entries.length}
               </h4>
               <div className="ge-chips">
-                {section.entries.slice(0, full.includes(section.kind) ? Infinity : section.shown).map((entry) => (
+                {visibleEntries(section, full.includes(section.kind)).map((entry) => (
                   <button key={entry.target} className="app" title={whySuggested(entry)} onClick={() => add([entry])}>
                     + {entryName(entry)}
                   </button>

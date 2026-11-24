@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Shortcut } from "../config/types";
-import { type AppEntry, MIN_GROUP, TEMPLATES, addApp, addAppToGroup, addApps, buildGroup, completeGroup, resolveTemplate, suggestedApps, suggestionSections, whySuggested } from "./suggestions";
+import { type AppEntry, MIN_GROUP, TEMPLATES, addApp, addAppToGroup, addApps, buildGroup, completeGroup, resolveTemplate, suggestedApps, suggestionSections, visibleEntries, whySuggested } from "./suggestions";
 
 const app = (name: string, extra: Partial<AppEntry> = {}): AppEntry => ({ name, target: `C:\\Menu\\${name}.lnk`, uses: 0, pinned: false, running: false, ...extra });
 const shortcut = (id: string, name: string, target = "", extra: Partial<Shortcut> = {}): Shortcut => ({ id, name, target, icon: "", group: false, members: [], ...extra });
@@ -204,5 +204,19 @@ describe("sugestões por origem (apps, Steam, Epic)", () => {
     expect(created).toEqual(["id1", "id2"]);
     expect(shortcuts[2]).toMatchObject({ target: "steam://rungameid/730", icon: "" });
     expect(shortcuts[2].hidden).toBeFalsy(); // aparece na lista: não é atalho de grupo
+  });
+});
+
+describe("sugestões em ordem alfabética", () => {
+  it("mostra os escolhidos (os usados primeiro) em ordem alfabética, e todos em ordem quando abre a lista", () => {
+    const apps = [app("Zoom", { running: true }), app("Árvore"), app("chrome", { pinned: true }), ...Array.from({ length: 20 }, (_, i) => app(`App ${i + 1}`))];
+    const [section] = suggestionSections(apps, []);
+    const short = visibleEntries(section, false).map((e) => e.name);
+    expect(short).toHaveLength(16);
+    expect(short).toContain("Zoom");
+    expect(short).toEqual([...short].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base", numeric: true })));
+    const all = visibleEntries(section, true).map((e) => e.name);
+    expect(all.slice(0, 3)).toEqual(["App 1", "App 2", "App 3"]);
+    expect(all.indexOf("Árvore")).toBeLessThan(all.indexOf("chrome"));
   });
 });
