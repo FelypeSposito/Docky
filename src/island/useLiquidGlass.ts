@@ -96,14 +96,15 @@ export function useLiquidGlass(islandRef: RefObject<HTMLDivElement | null>, enab
       const box = island.getBoundingClientRect();
       island.style.setProperty("--px", `${e.clientX - box.left}px`);
       island.style.setProperty("--py", `${e.clientY - box.top}px`);
-      // The glow is animated directly: the island's class belongs to React and changes on every render.
+      // The glow is animated directly: the island's class belongs to React and changes on every render. Kept soft (half
+      // the light, half the spread of the first version) so a run of clicks does not keep flashing the island.
       island.querySelector(".lq-glow")?.animate(
         [
-          { opacity: 0, transform: "scale(0.55)" },
-          { opacity: 1, offset: 0.16 },
-          { opacity: 0, transform: "scale(1.5)" },
+          { opacity: 0, transform: "scale(0.78)" },
+          { opacity: 0.5, offset: 0.16 },
+          { opacity: 0, transform: "scale(1.25)" },
         ],
-        { duration: 900, easing: "cubic-bezier(.2,.8,.2,1)" },
+        { duration: 700, easing: "cubic-bezier(.2,.8,.2,1)" },
       );
     },
     [islandRef, live],

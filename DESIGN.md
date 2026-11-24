@@ -348,7 +348,7 @@ Big targets, icon over name.
 - With the eyes off, a 30px Clawd takes their place: at work (or waiting for you) while Claude Code runs, and the rest of the time, with "Clawd sempre visível" on (the default), dancing, or with headphones while music plays. "Reduzir movimento" shows him standing still.
 
 ### Press
-- A press is felt, barely seen: controls shrink by a few percent at most (buttons to 0.97, page dock to 0.96, tiles to 0.975), half of what they once did. The island itself never swells on a press; only the glass's light wave runs from the touch point.
+- A press is felt, barely seen: controls shrink by a few percent at most (buttons to 0.97, page dock to 0.96, tiles to 0.975), half of what they once did. The island itself never swells on a press; only the glass's light wave runs from the touch point, soft (half strength, 0.78 to 1.25 over 0.7s).
 
 ## Do's and Don'ts
 
