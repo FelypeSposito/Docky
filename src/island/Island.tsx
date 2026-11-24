@@ -230,7 +230,7 @@ export function Island() {
   const ActivePage = shownPages.find((p) => p.id === page) ?? shownPages[0];
   // Páginas com tela maior (Large) ou só com ajustes (Settings) ganham o botão de expandir.
   const canExpand = !!ActivePage.Large;
-  const largeOn = large && canExpand;
+  const largeOn = !!ActivePage.opensLarge || (large && canExpand);
   const showCall = config.callPill && (!!call || !!discordCall);
   const idleSize = {
     w: SIZES.idle.w + (timerRunning ? CHIP_WIDTH.timer : 0) + (showCall ? (discordCall ? CHIP_WIDTH.discord : CHIP_WIDTH.call) : 0),

@@ -17,6 +17,8 @@ export interface PageDef {
   Component: ComponentType<{ active: boolean }>;
   /** A versão maior da página, mostrada pelo botão de expandir. Sem ela, o botão não aparece. */
   Large?: ComponentType<{ active: boolean }>;
+  /** The page always opens at the large size (it holds too much for the small one), with no expand button. */
+  opensLarge?: boolean;
   /** A parte das Configurações que cuida desta página: a engrenagem do dock abre direto nela. */
   area: string;
 }
@@ -24,7 +26,7 @@ export interface PageDef {
 /** Páginas do dock, na ordem. Cada fase nova acrescenta as suas aqui. */
 export const PAGES: PageDef[] = [
   { id: "music", label: "Música", Icon: MusicIcon, Component: MusicPage, area: "musica" },
-  { id: "audio", label: "Som", Icon: MixerIcon, Component: MixerPage, Large: MixerPage, area: "musica" },
+  { id: "audio", label: "Som", Icon: MixerIcon, Component: MixerPage, opensLarge: true, area: "musica" },
   { id: "timer", label: "Foco", Icon: TimerIcon, Component: TimerPage, area: "foco" },
   { id: "note", label: "Notas", Icon: NoteIcon, Component: NotesPage, Large: NotesLarge, area: "foco" },
   { id: "tray", label: "Shelf", Icon: TrayIcon, Component: ShelfPage, area: "shelf" },

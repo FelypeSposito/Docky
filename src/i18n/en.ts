@@ -834,4 +834,7 @@ export const EN: Record<string, string> = {
   "Desligados, o Clawd aparece no lugar deles": "When off, Clawd takes their place",
   "O Clawd ouvindo junto": "Clawd listening along",
   "O Clawd dançando": "Clawd dancing",
+  "Apps": "Apps",
+  "1 tocando agora": "1 playing now",
+  "{n} tocando agora": "{n} playing now",
 };

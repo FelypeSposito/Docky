@@ -20,7 +20,7 @@ const label = (output: AudioOutput) => {
 };
 
 /**
- * Where the sound goes, and the microphone: a row under "Volume geral" on the Som page. Switching uses an
+ * Where the sound goes, and the microphone: stacked under "Volume geral" on the Som page. Switching uses an
  * undocumented Windows interface (audio.rs); when Windows refuses, the sound settings open instead, and when a sound
  * enhancer (FxSound) takes the default back, it says so.
  */
@@ -70,30 +70,32 @@ export function OutputRow({ active }: { active: boolean }) {
 
   return (
     <>
-      <div className="mx-row out">
-        <span className="mx-mute out-ic" aria-hidden="true">
+      <label className="mx-field">
+        <span className="mx-field-ic" aria-hidden="true">
           <OutputIcon kind={current.kind} />
         </span>
-        <select className="mx-out" aria-label={t("Saída de som")} value={current.id} onChange={(e) => void pick(e.target.value)}>
+        <select className="mx-out" aria-label={t("Saída de som")} title={label(current)} value={current.id} onChange={(e) => void pick(e.target.value)}>
           {outputs.map((o) => (
             <option key={o.id} value={o.id}>
               {label(o)}
             </option>
           ))}
         </select>
-        {mic && (
-          <button
-            className={`mx-mute mic${mic.muted ? " off" : ""}`}
-            aria-pressed={mic.muted}
-            aria-label={t(mic.muted ? "Ativar o microfone" : "Mutar o microfone")}
-            title={`${t(mic.muted ? "Ativar o microfone" : "Mutar o microfone")} (Ctrl+Alt+M)`}
-            onClick={toggleMic}
-          >
-            {mic.muted ? <MicOffIcon /> : <MicIcon />}
-          </button>
-        )}
-      </div>
+      </label>
       {note && <div className="mx-note">{note}</div>}
+      {mic && (
+        <button
+          className={`mx-mic${mic.muted ? " off" : ""}`}
+          aria-pressed={mic.muted}
+          aria-label={t(mic.muted ? "Ativar o microfone" : "Mutar o microfone")}
+          title={`${t(mic.muted ? "Ativar o microfone" : "Mutar o microfone")} (Ctrl+Alt+M)`}
+          onClick={toggleMic}
+        >
+          <span className="mx-field-ic">{mic.muted ? <MicOffIcon /> : <MicIcon />}</span>
+          <span className="mx-mic-txt">{t(mic.muted ? "Microfone mudo" : "Microfone ligado")}</span>
+          <kbd>Ctrl+Alt+M</kbd>
+        </button>
+      )}
     </>
   );
 }

@@ -176,7 +176,7 @@
   --g-ctl-bottom: rgba(255, 255, 255, 0.08);
   --g-rim: rgba(255, 255, 255, 0.3);
 }
-.notch.glass :is(.tile, .dock, .hsearch, .seg, .pk-chip, .mx-out) {
+.notch.glass :is(.tile, .dock, .hsearch, .seg, .pk-chip) {
   background: linear-gradient(180deg, var(--g-panel-top), transparent 70%), var(--g-panel);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
@@ -188,7 +188,7 @@
 .notch.glass .nlist .ncard:hover {
   background: linear-gradient(180deg, var(--g-ctl-top), transparent 75%), var(--g-panel);
 }
-.notch.glass :is(.btn, .nbtn, .xbtn:hover, .ib:hover, .mx-mute:hover, .lt2:hover, .gs-row.on, .dk:hover:not(.on)) {
+.notch.glass :is(.btn, .nbtn, .xbtn:hover, .ib:hover, .mx-mute:hover, .lt2:hover, .gs-row.on, .dk:hover:not(.on), .mx-field, .mx-mic) {
   background: linear-gradient(180deg, var(--g-ctl-top), var(--g-ctl-bottom));
   box-shadow:
     inset 0 1px 0 var(--g-rim),
@@ -1130,24 +1130,35 @@
 }
 
 /* Dock: rótulo da página ativa e divisor */
+/* The label opens and closes at its own width (width 0 to auto), so the page leaving and the page arriving trade
+   space in step: no label sits whole while the next one shows clipped. The leaving text fades at once; the arriving
+   one fades in once there is room for it. A WebView without `interpolate-size` just switches, still unclipped. */
 .dk .lb {
-  max-width: 0;
+  interpolate-size: allow-keywords;
+  width: 0;
   overflow: hidden;
   white-space: nowrap;
   font-size: 12px;
   font-weight: 600;
   opacity: 0;
-  transition: max-width 0.55s var(--ease), opacity 0.25s, margin 0.55s var(--ease);
+  transition:
+    width 0.36s var(--ease),
+    margin 0.36s var(--ease),
+    opacity 0.12s ease;
 }
 .dk.on {
   background: color-mix(in srgb, var(--accent, #ff5c7a) 17%, transparent);
   color: var(--accent, #ff5c7a);
 }
 .dk.on .lb {
-  max-width: 70px;
+  width: auto;
   margin-left: 6px;
   color: #fff;
   opacity: 1;
+  transition:
+    width 0.36s var(--ease),
+    margin 0.36s var(--ease),
+    opacity 0.22s ease 0.1s;
 }
 .dsep {
   flex: none;
@@ -2064,6 +2075,11 @@
   color: #ff6b6b;
 }
 /* Copiados: the notes' cards, two lines of text each. The one on the clipboard now is ringed; the last cell clears. */
+/* Copiados sits straight in the body (Notes has a grid row around its list): held to the body's height, so the list
+   scrolls instead of running past the bottom, where the body cut it off. */
+.body > .clist {
+  height: 100%;
+}
 .clist .ccard p {
   -webkit-line-clamp: 2;
   padding-right: 18px;
@@ -2987,69 +3003,195 @@ button.m-top:active .cover {
   width: 30px;
   height: 30px;
 }
-/* Som: o mixer por app */
+/* Som: three flat tiles at the island's large size. While you are in a call it runs across the top; below, the whole
+   PC sits at left (volume, output, microphone) and the apps at right, the one part that grows and scrolls. */
 .mx {
   position: absolute;
   inset: 0;
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 8px;
+}
+.mx.in-call {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.mx-call {
+  grid-column: 1 / -1;
+  padding: 10px 10px 10px 16px;
+}
+.mx-call .dc {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+.mx-call .dc-top {
+  flex: 1;
+}
+.mx-call .dc-row {
+  flex: none;
+  gap: 16px;
+}
+
+/* The PC: "Volume geral" and its level on one line, the slider full width under them, then where the sound goes and
+   the microphone as two quiet controls. */
+.mx-pc {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-height: 0;
+  padding: 10px 12px 12px 8px;
+  overflow: hidden;
 }
-.mx-row {
-  flex: none;
+.mx-master {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 10px;
-  height: 32px;
+  gap: 6px;
+  height: 28px;
 }
-/* O volume geral é só a primeira linha da lista: um nome um pouco mais forte, sem faixa separada */
-.mx-row.master .mx-name {
+.mx-master .mx-name {
+  flex: 1;
+  width: auto;
+  font-size: 13px;
   font-weight: 650;
 }
-/* Where the sound goes: the output as a quiet select, and the microphone at the end of the row. */
-.mx-row.out .out-ic {
+.mx-master .mx-pct {
+  width: 30px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.mx-pc > .mx-slider {
+  flex: none;
+  width: auto;
+  margin: 2px 2px 8px 8px;
+}
+.mx-field,
+.mx-mic {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  margin-left: 4px;
+  padding: 0 6px 0 9px;
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--fill);
+  font: 550 12px "Inter Variable", Inter, sans-serif;
+  transition: background 0.2s, color 0.2s;
+}
+/* The level at the top, the devices at the bottom: the tile reads as two groups, not a column that stops halfway. */
+.mx-field {
+  margin-top: auto;
+  cursor: pointer;
+}
+.mx-field:hover,
+.mx-mic:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+.mx-field:focus-within,
+.mx-mic:focus-visible {
+  outline: 2px solid var(--accent, #ff5c7a);
+  outline-offset: 1px;
+}
+.mx-field-ic {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
   color: var(--ink2);
-  pointer-events: none;
 }
 .mx-out {
   flex: 1;
   min-width: 0;
-  height: 28px;
-  padding: 0 8px;
+  height: 100%;
+  padding: 0;
   border: 0;
-  border-radius: 8px;
-  background: var(--fill);
-  color: var(--ink);
-  font: 550 12px "Inter Variable", Inter, sans-serif;
+  color: inherit;
+  background: transparent;
+  font: inherit;
   text-overflow: ellipsis;
   outline: none;
   cursor: pointer;
-}
-.mx-out:hover {
-  background: rgba(255, 255, 255, 0.16);
-}
-.mx-out:focus-visible {
-  outline: 2px solid var(--accent, #ff5c7a);
 }
 .mx-out option {
   background: #1c1c20;
   color: #fff;
 }
-.mx-mute.mic.off {
+.mx-mic {
+  text-align: left;
+}
+.mx-mic-txt {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.mx-mic kbd {
+  flex: none;
+  color: var(--ink3);
+  font: 500 10.5px "Inter Variable", Inter, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+/* A muted microphone is the one state worth seeing from across the room: soft red, like the pill's "Microfone mudo". */
+.mx-mic.off,
+.notch.glass .mx-mic.off {
+  color: #ff7b80;
+  background: rgba(255, 92, 122, 0.13);
+}
+.mx-mic.off .mx-field-ic {
   color: #ff7b80;
 }
 .mx-note {
-  padding: 0 4px 6px 38px;
+  margin-top: -2px;
+  padding: 0 4px 0 8px;
   color: var(--ink2);
   font-size: 11px;
   line-height: 1.3;
+}
+
+/* The apps: a short heading (and how many are playing), then the list. */
+.mx-apps {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 11px 6px 6px 8px;
+}
+.mx-head {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 8px 6px 6px;
+}
+.mx-head b {
+  font-size: 13px;
+  font-weight: 650;
+}
+.mx-head span {
+  color: var(--ink2);
+  font-size: 11.5px;
 }
 .mx-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-right: 4px;
+  padding-right: 6px;
+}
+.mx-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+}
+.mx-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mx-mute {
   position: relative;
@@ -3106,7 +3248,7 @@ button.m-top:active .cover {
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 128px;
+  width: 120px;
   flex: none;
   overflow: hidden;
   font-size: 12.5px;
@@ -3131,7 +3273,8 @@ button.m-top:active .cover {
   min-width: 0;
   background: linear-gradient(90deg, var(--accent, #ff5c7a) var(--v, 0%), rgba(255, 255, 255, 0.18) var(--v, 0%));
 }
-.mx-row.off .mx-slider {
+.mx-row.off .mx-slider,
+.mx-slider.off {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.35) var(--v, 0%), rgba(255, 255, 255, 0.12) var(--v, 0%));
 }
 .mx-pct {
@@ -3461,11 +3604,6 @@ button.m-top:active .cover {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-.mx .dc {
-  flex: none;
-  padding-bottom: 8px;
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.07);
 }
 .dc-top {
   display: flex;

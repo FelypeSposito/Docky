@@ -4,7 +4,7 @@ import { useMediaStore } from "../../media/store";
 import { inDiscordCall, useActivityStore } from "../activity";
 import { DiscordCall } from "../DiscordCall";
 import { VolumeIcon } from "../icons";
-import { t } from "../../i18n";
+import { plural, t } from "../../i18n";
 import { OutputRow } from "./OutputRow";
 
 const POLL_MS = 1500;
@@ -31,7 +31,10 @@ function useThrottled(send: (id: string, value: number) => void) {
 
 const percent = (level: number) => `${Math.round(level * 100)}`;
 
-/** O volume de cada app, como o mixer do Windows: o geral no topo e cada programa que abriu o som embaixo. */
+/**
+ * Som: the call across the top while you are in one, the whole PC at left (volume, output, microphone) and each app
+ * that opened the sound at right. It opens at the island's large size: it holds too much for the small one.
+ */
 export function MixerPage({ active }: { active: boolean }) {
   const [apps, setApps] = useState<AudioApp[] | null>(null);
   const volume = useMediaStore((s) => s.volume);
@@ -78,14 +81,19 @@ export function MixerPage({ active }: { active: boolean }) {
   const level = volume?.level ?? 0;
   const muted = volume?.muted ?? false;
 
+  const call = inDiscordCall(discord);
+  const playingNow = (apps ?? []).filter((app) => app.active).length;
+
   return (
-    <div className="mx">
-      {inDiscordCall(discord) && (
-        <DiscordCall discord={discord} since={callSince} />
+    <div className={`mx${call ? " in-call" : ""}`}>
+      {call && (
+        <div className="tile mx-call">
+          <DiscordCall discord={discord} since={callSince} />
+        </div>
       )}
-      {/* The whole PC is the first row of the list and scrolls with the apps, instead of a fixed bar above them. */}
-      <div className="mx-list">
-        <div className="mx-row master">
+      {/* The whole PC: how loud, where the sound goes, and the microphone. */}
+      <div className="tile mx-pc">
+        <div className="mx-master">
           <button
             className="mx-mute"
             aria-label={t(muted ? "Ativar o som" : "Silenciar tudo")}
@@ -98,81 +106,75 @@ export function MixerPage({ active }: { active: boolean }) {
             <VolumeIcon level={level} muted={muted} size={17} />
           </button>
           <span className="mx-name">{t("Volume geral")}</span>
-          <input
-            className="vol-slider mx-slider"
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(level * 100)}
-            aria-label={t("Volume geral")}
-            style={{ "--v": `${level * 100}%` } as React.CSSProperties}
-            onChange={(e) => {
-              const next = Number(e.target.value) / 100;
-              sendMaster("master", next);
-              useMediaStore.setState({ volume: { level: next, muted: false } });
-            }}
-          />
           <span className="mx-pct">{muted ? "—" : percent(level)}</span>
         </div>
+        <input
+          className={`vol-slider mx-slider${muted ? " off" : ""}`}
+          type="range"
+          min={0}
+          max={100}
+          value={Math.round(level * 100)}
+          aria-label={t("Volume geral")}
+          style={{ "--v": `${level * 100}%` } as React.CSSProperties}
+          onChange={(e) => {
+            const next = Number(e.target.value) / 100;
+            sendMaster("master", next);
+            useMediaStore.setState({ volume: { level: next, muted: false } });
+          }}
+        />
         <OutputRow active={active} />
-        {apps !== null && apps.length === 0 && (
-          <div className="mx-empty">{t("Nenhum app abriu o som agora")}</div>
-        )}
-        {(apps ?? []).map((app) => (
-          <div
-            key={app.id}
-            className={`mx-row${app.active ? " live" : ""}${app.muted ? " off" : ""}`}
-          >
-            <button
-              className="mx-mute app"
-              aria-label={
-                app.muted
-                  ? t("Ativar o som de {app}", { app: t(app.name) })
-                  : t("Silenciar {app}", { app: t(app.name) })
-              }
-              title={t(app.muted ? "Ativar o som" : "Silenciar")}
-              onClick={() => {
-                ipc.setAppMuted(app.id, !app.muted);
-                change(app.id, { muted: !app.muted });
-              }}
-            >
-              {app.icon ? (
-                <img src={app.icon} alt="" />
-              ) : (
-                <span className="mx-letter">{app.name.slice(0, 1)}</span>
-              )}
-              {app.muted && (
-                <span className="mx-x" aria-hidden="true">
-                  <VolumeIcon muted size={11} />
-                </span>
-              )}
-            </button>
-            <span className="mx-name" title={t(app.name)}>
-              {t(app.name)}
-              {app.active && <i className="mx-dot" title={t("Tocando agora")} />}
-            </span>
-            <input
-              className="vol-slider mx-slider"
-              type="range"
-              min={0}
-              max={100}
-              value={Math.round(app.volume * 100)}
-              aria-label={t("Volume de {app}", { app: t(app.name) })}
-              style={{ "--v": `${app.volume * 100}%` } as React.CSSProperties}
-              onPointerDown={() => (dragging.current = app.id)}
-              onPointerUp={() => (dragging.current = null)}
-              onChange={(e) => {
-                const next = Number(e.target.value) / 100;
-                sendApp(app.id, next);
-                if (app.muted) ipc.setAppMuted(app.id, false);
-                change(app.id, { volume: next, muted: false });
-              }}
-            />
-            <span className="mx-pct">
-              {app.muted ? "—" : percent(app.volume)}
-            </span>
-          </div>
-        ))}
+      </div>
+      {/* Each app that opened the sound, as Windows' volume mixer lists them. */}
+      <div className="tile mx-apps">
+        <div className="mx-head">
+          <b>{t("Apps")}</b>
+          {playingNow > 0 && <span>{plural(playingNow, "1 tocando agora", "{n} tocando agora")}</span>}
+        </div>
+        <div className="mx-list">
+          {apps !== null && apps.length === 0 && <div className="mx-empty">{t("Nenhum app abriu o som agora")}</div>}
+          {(apps ?? []).map((app) => (
+            <div key={app.id} className={`mx-row${app.active ? " live" : ""}${app.muted ? " off" : ""}`}>
+              <button
+                className="mx-mute app"
+                aria-label={app.muted ? t("Ativar o som de {app}", { app: t(app.name) }) : t("Silenciar {app}", { app: t(app.name) })}
+                title={t(app.muted ? "Ativar o som" : "Silenciar")}
+                onClick={() => {
+                  ipc.setAppMuted(app.id, !app.muted);
+                  change(app.id, { muted: !app.muted });
+                }}
+              >
+                {app.icon ? <img src={app.icon} alt="" /> : <span className="mx-letter">{app.name.slice(0, 1)}</span>}
+                {app.muted && (
+                  <span className="mx-x" aria-hidden="true">
+                    <VolumeIcon muted size={11} />
+                  </span>
+                )}
+              </button>
+              <span className="mx-name" title={t(app.name)}>
+                <span className="mx-label">{t(app.name)}</span>
+                {app.active && <i className="mx-dot" title={t("Tocando agora")} />}
+              </span>
+              <input
+                className="vol-slider mx-slider"
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(app.volume * 100)}
+                aria-label={t("Volume de {app}", { app: t(app.name) })}
+                style={{ "--v": `${app.volume * 100}%` } as React.CSSProperties}
+                onPointerDown={() => (dragging.current = app.id)}
+                onPointerUp={() => (dragging.current = null)}
+                onChange={(e) => {
+                  const next = Number(e.target.value) / 100;
+                  sendApp(app.id, next);
+                  if (app.muted) ipc.setAppMuted(app.id, false);
+                  change(app.id, { volume: next, muted: false });
+                }}
+              />
+              <span className="mx-pct">{app.muted ? "—" : percent(app.volume)}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

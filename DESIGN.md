@@ -343,6 +343,11 @@ Big targets, icon over name.
 - Shown as an `<img>` (its own CSS stays inside the SVG) at 116px on a flat 124px stage block with a hairline desk, mounted only while the page is open. The stage's inner edge takes the mood's hue (clay working, yellow waiting).
 - Next to it, a 15px 650 sentence says what is going on, and sessions sit on hairline rows with a live icon (Claude spinner, yellow ping, green check) and tabular times.
 
+### Som Page
+- Opens at the island's large size on its own (no expand button): it holds a call, the PC's sound and every app's volume.
+- Three flat tiles on the bento: the Discord call across the top while you are in one (channel, who talks, time, faces, buttons in one row); below, the PC at left (232px: "Volume geral" and its level, a full-width slider, then the output and the microphone as two 32px controls at the tile's foot) and the apps at right, the one tile that grows and scrolls ("Apps" and how many are playing, then 34px rows).
+- A muted microphone turns its control soft red.
+
 ### Eyes
 - Two white ovals (15 × 17 and 13 × 15, the right one tilted −6°) with 5.6px pupils that follow the cursor; lids are black bands driven by `--lt`/`--lb` for blink, sleep, wide and closed moods. They sit at the island's top left and the content starts after them (62px header inset; 22px when eyes are off).
 - With the eyes off, a 30px Clawd takes their place: at work (or waiting for you) while Claude Code runs, and the rest of the time, with "Clawd sempre visível" on (the default), dancing, or with headphones while music plays. "Reduzir movimento" shows him standing still.
