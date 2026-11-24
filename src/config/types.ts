@@ -89,6 +89,8 @@ export interface Config {
   shelfTrash: boolean;
   shortcuts: Shortcut[];
   pageOrder: string[];
+  /** Pages (ids) that open at the island's large size: the size each page was last left at. */
+  largePages: string[];
   /** Notas fixadas no topo da lista (nomes de arquivo). */
   pinnedNotes: string[];
   /** Color of each note (file name to color id, see notes/colors.ts); notes without one stay plain. */
@@ -173,6 +175,7 @@ export const DEFAULT_CONFIG: Config = {
   shelfTrash: true,
   shortcuts: [],
   pageOrder: [],
+  largePages: ["launch"],
   pinnedNotes: [],
   noteColors: {},
   noteOrder: [],

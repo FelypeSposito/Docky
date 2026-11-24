@@ -6,6 +6,32 @@ const START_PX = 6;
 /** A faixa, junto da borda de cima e de baixo da lista, em que arrastar rola a lista. */
 const EDGE_PX = 26;
 
+/**
+ * Dropping a tile somewhere else than its own list: on another section, say. `at` says which drop place (a
+ * `data-drop` key) is under the cursor; a place other than `own` takes the drop instead of a reorder.
+ */
+export interface DropPlaces {
+  own: string;
+  at: (x: number, y: number) => string | null;
+  /** The place under the dragged tile changed (null: none, or its own list). */
+  onHover: (place: string | null) => void;
+  /** A drag started or ended (to show places that only exist while dragging). */
+  onActive?: (active: boolean) => void;
+  onDrop: (id: string, place: string) => void;
+}
+
+/** The drop place (a `data-drop` key) under a point: the dragged tile itself lets the pointer through. */
+export const dropPlaceAt = (x: number, y: number): string | null => document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop]")?.dataset.drop ?? null;
+
+/** The element that scrolls around `el` (where dragging near an edge should scroll), or null. */
+function scrollerOf(el: HTMLElement): HTMLElement | null {
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    const overflow = getComputedStyle(node).overflowY;
+    if ((overflow === "auto" || overflow === "scroll") && node.scrollHeight > node.clientHeight) return node;
+  }
+  return null;
+}
+
 interface Drag {
   id: string;
   /** Onde, dentro do ícone, o mouse o segurou (ele não "pula" para o cursor). */
@@ -16,6 +42,8 @@ interface Drag {
   x: number;
   y: number;
   active: boolean;
+  /** The other drop place under the cursor, if any. */
+  place: string | null;
 }
 
 /**
@@ -28,14 +56,14 @@ interface Drag {
  *
  * `ids` é a ordem atual; `onCommit` recebe a nova ordem quando o usuário solta.
  */
-export function useGridSort(ids: string[], onCommit: (next: string[]) => void, enabled = true) {
+export function useGridSort(ids: string[], onCommit: (next: string[]) => void, enabled = true, drop?: DropPlaces) {
   const [draft, setDraft] = useState<string[] | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const tiles = useRef(new Map<string, HTMLElement>());
   const drag = useRef<Drag | null>(null);
   const before = useRef<Map<string, DOMRect> | null>(null);
-  const live = useRef({ ids, draft, onCommit });
-  live.current = { ids, draft, onCommit };
+  const live = useRef({ ids, draft, onCommit, drop });
+  live.current = { ids, draft, onCommit, drop };
 
   const current = draft ?? ids;
   const position = new Map(current.map((id, index) => [id, index]));
@@ -80,10 +108,13 @@ export function useGridSort(ids: string[], onCommit: (next: string[]) => void, e
       window.removeEventListener("pointercancel", cancel);
       const el = tiles.current.get(d.id);
       if (el) el.style.transform = "";
-      const { draft: finalOrder, ids: startOrder, onCommit: commitOrder } = live.current;
+      const { draft: finalOrder, ids: startOrder, onCommit: commitOrder, drop: places } = live.current;
       if (d.active) {
         swallowClick();
-        if (commit && finalOrder && finalOrder.some((id, i) => id !== startOrder[i])) commitOrder(finalOrder);
+        if (commit && d.place && places) places.onDrop(d.id, d.place);
+        else if (commit && finalOrder && finalOrder.some((id, i) => id !== startOrder[i])) commitOrder(finalOrder);
+        places?.onHover(null);
+        places?.onActive?.(false);
       }
       drag.current = null;
       setDragId(null);
@@ -102,17 +133,33 @@ export function useGridSort(ids: string[], onCommit: (next: string[]) => void, e
         d.active = true;
         setDragId(d.id);
         setDraft(live.current.ids);
+        live.current.drop?.onActive?.(true);
       }
       const el = tiles.current.get(d.id);
       if (!el) return;
       const at = inParent(el, d.x, d.y);
       if (!at) return;
 
-      // Perto da borda de cima ou de baixo, a lista rola para dar para levar o ícone mais longe.
-      const box = at.parent.getBoundingClientRect();
-      if (d.y < box.top + EDGE_PX) at.parent.scrollTop -= 10;
-      else if (d.y > box.bottom - EDGE_PX) at.parent.scrollTop += 10;
+      // Perto da borda de cima ou de baixo, a lista (a que rola em volta, ou o próprio container) rola para dar para
+      // levar o ícone mais longe.
+      const scroller = scrollerOf(el) ?? at.parent;
+      const box = scroller.getBoundingClientRect();
+      if (d.y < box.top + EDGE_PX) scroller.scrollTop -= 10;
+      else if (d.y > box.bottom - EDGE_PX) scroller.scrollTop += 10;
       follow();
+
+      // Over another drop place (another section): that place takes the drop, and the list keeps its order.
+      const places = live.current.drop;
+      if (places) {
+        const place = places.at(d.x, d.y);
+        const other = place && place !== places.own ? place : null;
+        if (other !== d.place) {
+          d.place = other;
+          places.onHover(other);
+          if (other) setDraft(live.current.ids);
+        }
+        if (other) return;
+      }
 
       // O ícone vai para o lugar do ícone (da mesma lista) que está debaixo do cursor.
       const order = live.current.draft ?? live.current.ids;
@@ -132,7 +179,7 @@ export function useGridSort(ids: string[], onCommit: (next: string[]) => void, e
       const el = tiles.current.get(id);
       const at = el && inParent(el, e.clientX, e.clientY);
       if (!el || !at) return;
-      drag.current = { id, offX: at.px - el.offsetLeft, offY: at.py - el.offsetTop, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, active: false };
+      drag.current = { id, offX: at.px - el.offsetLeft, offY: at.py - el.offsetTop, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, active: false, place: null };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
       window.addEventListener("pointercancel", cancel);

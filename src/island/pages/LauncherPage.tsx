@@ -13,6 +13,7 @@ import {
   type SectionBlock,
   FILTER_ALL,
   FILTER_GROUPS,
+  FILTER_REST,
   activeFilter,
   assignSection,
   autoOrganize,
@@ -29,16 +30,20 @@ import { linkFrom, siteHost } from "../../launcher/link";
 import { scheduledSection, scheduleFirst } from "../../launcher/schedule";
 import { ipc } from "../../lib/ipc";
 import { useSortable } from "../../settings/useSortable";
-import { useGridSort } from "../useGridSort";
+import { type DropPlaces, dropPlaceAt, useGridSort } from "../useGridSort";
+import { toggleLargePage } from "../largePages";
 import { EmptyState } from "../EmptyState";
 import { HeaderField } from "../HeaderField";
 import { ArrowDownIcon, EyeIcon, EyeOffIcon, GripIcon, ListIcon, PencilIcon, PinIcon, SearchIcon, TrashIcon } from "../icons";
 import { QButton, QIconButton, QPath, QText } from "../quick/controls";
 import { Suggestions } from "../quick/Suggestions";
-import { useIslandStore } from "../store";
 import { t } from "../../i18n";
 
 const MAX_TILES = ISLAND_SLOTS;
+/** The drop place, shown while dragging a shortcut on the large page, that makes a new section. */
+const DROP_NEW = "new-section";
+/** The drop place of a group tile (followed by its id): a shortcut dropped on it joins the group. */
+const DROP_GROUP = "group:";
 
 /** O que a página faz com um clique: confirma (apps, jogos e grupos), abre e conta o que deu errado. */
 function useLauncher() {
@@ -94,6 +99,7 @@ function Confirm({ text, onCancel, onOk }: { text: string; onCancel: () => void;
 
 export function LauncherPage({ active }: { active: boolean }) {
   const { shortcuts, images, pending, setPending, error, open, ask } = useLauncher();
+  const update = useConfigStore((s) => s.update);
   const sections = useConfigStore((s) => s.config.shortcutSections);
   const [query, setQuery] = useState("");
   const all = useMemo(() => filterShortcuts(shortcuts, ""), [shortcuts]);
@@ -104,6 +110,18 @@ export function LauncherPage({ active }: { active: boolean }) {
     const found = groupsFirst(filterShortcuts(shortcuts, query));
     return query.trim() ? found : scheduleFirst(found, scheduled);
   }, [shortcuts, query, scheduled]);
+  // The tiles reorder by dragging, as on the large page (groups among groups, shortcuts among shortcuts), while they
+  // show in the list's own order: not while searching, nor while a scheduled section is put first.
+  const tiles = matches.slice(0, MAX_TILES);
+  const canSort = !query.trim() && !scheduled;
+  const commit = (group: boolean) => (order: string[]) => update({ shortcuts: reorderVisible(useConfigStore.getState().config.shortcuts, group, order) });
+  const groupTiles = tiles.filter((e) => e.item.group).map((e) => e.item.id);
+  const sortGroups = useGridSort(groupTiles, commit(true), canSort);
+  const sortItems = useGridSort(
+    tiles.filter((e) => !e.item.group).map((e) => e.item.id),
+    commit(false),
+    canSort,
+  );
   const link = linkFrom(query);
   const addLink = () => {
     if (!link) return;
@@ -175,7 +193,7 @@ export function LauncherPage({ active }: { active: boolean }) {
         {search}
         <b>{t("Nenhum atalho com “{text}”", { text: query.trim() })}</b>
         <span>{t("Confira o nome ou crie um novo.")}</span>
-        <button className="lc-more2" onClick={() => useIslandStore.getState().toggleLarge()}>
+        <button className="lc-more2" onClick={() => toggleLargePage("launch")}>
           {t("Criar na tela expandida")}
         </button>
       </div>
@@ -186,20 +204,28 @@ export function LauncherPage({ active }: { active: boolean }) {
     <div className="lc2">
       {search}
       <div className="lgrid4">
-        {matches.slice(0, MAX_TILES).map(({ item, index }, i) => (
+        {tiles.map(({ item, index }, i) => {
+          const sorter = item.group ? sortGroups : sortItems;
+          const order = (item.group ? 0 : groupTiles.length) + (sorter.position.get(item.id) ?? i);
+          return (
           <button
             key={item.id || index}
-            className={`lt2${i === 0 ? (searching ? " first match" : " first") : ""}`}
+            ref={sorter.tileRef(item.id)}
+            className={`lt2${i === 0 ? (searching ? " first match" : " first") : ""}${sorter.dragId === item.id ? " drag" : ""}`}
+            style={{ order }}
             title={item.group ? t("Grupo: {apps}", { apps: confirmationText(item, shortcuts) }) : item.target}
             onClick={() => ask(index)}
+            onPointerDown={(e) => sorter.down(e, item.id)}
+            onDragStart={(e) => e.preventDefault()}
           >
             <Tile shortcut={item} index={index} image={images[index]} shortcuts={shortcuts} />
             <b>{item.name || t("Sem nome")}</b>
           </button>
-        ))}
+          );
+        })}
       </div>
       {more > 0 && (
-        <button className="lc-more2" onClick={() => useIslandStore.getState().toggleLarge()} title={t("Ver todos os atalhos na tela expandida")}>
+        <button className="lc-more2" onClick={() => toggleLargePage("launch")} title={t("Ver todos os atalhos na tela expandida")}>
           {searching ? t(more === 1 ? "+1 resultado" : "+{n} resultados", { n: more }) : t("+{n} atalhos", { n: more })}
           {!searching && scheduled ? <span> · {t("agora: {name}", { name: scheduled.name })}</span> : !searching && sectionNames.length > 0 && <span> · {sectionNames.join(", ")}</span>}
         </button>
@@ -359,9 +385,23 @@ function SectionView({
   renderTile,
   fixed = false,
   onAdd,
+  drop,
+  dropOn,
+  onRename,
+  renaming = false,
+  onRenameDone,
 }: {
   /** Cria um atalho novo já dentro desta seção. */
   onAdd?: () => void;
+  /** Where its tiles can be dropped besides their own list (other sections, a new one); this section is one too. */
+  drop?: DropPlaces;
+  /** The drop place a tile is over right now. */
+  dropOn?: string | null;
+  /** Renames the section right here (only the person's own sections). */
+  onRename?: (name: string) => void;
+  /** The name is being edited (a section just made by a drop starts so). */
+  renaming?: boolean;
+  onRenameDone?: () => void;
   id: string;
   title: string;
   collapsed: boolean;
@@ -377,11 +417,36 @@ function SectionView({
     entries.map((e) => e.item.id),
     onReorder,
     canDrag && !collapsed,
+    drop,
   );
+  const [editingName, setEditingName] = useState(false);
+  const naming = renaming || editingName;
+  const finishName = (value: string | null) => {
+    if (value !== null && value.trim() && value.trim() !== title) onRename?.(value.trim());
+    setEditingName(false);
+    onRenameDone?.();
+  };
   return (
-    <section className={`lsec${collapsed ? " closed" : ""}`} aria-labelledby={`lsec-${id}`}>
+    <section className={`lsec${collapsed ? " closed" : ""}${drop && dropOn === drop.own ? " drop" : ""}`} aria-labelledby={`lsec-${id}`} data-drop={drop?.own}>
       <div className="lsec-top">
-        {fixed ? (
+        {naming ? (
+          <input
+            id={`lsec-${id}`}
+            className="lsec-name"
+            aria-label={t("Nome da seção")}
+            defaultValue={title}
+            autoFocus
+            onFocus={(e) => e.currentTarget.select()}
+            onBlur={(e) => finishName(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                e.currentTarget.value = title;
+                e.currentTarget.blur();
+              }
+            }}
+          />
+        ) : fixed ? (
           <h3 id={`lsec-${id}`} className="lsec-head fixed">
             <span>{title}</span>
             <i>{entries.length}</i>
@@ -391,6 +456,11 @@ function SectionView({
             <ArrowDownIcon size={12} />
             <span>{title}</span>
             <i>{entries.length}</i>
+          </button>
+        )}
+        {onRename && !naming && (
+          <button className="lsec-add lsec-ren" onClick={() => setEditingName(true)} aria-label={t("Renomear {name}", { name: title })} title={t("Renomear {name}", { name: title })}>
+            <PencilIcon size={12} />
           </button>
         )}
         {onAdd && (
@@ -472,6 +542,11 @@ export function LauncherLarge({ active }: { active: boolean }) {
   const [suggesting, setSuggesting] = useState(false);
   /** O grupo cujo nome e itens estão sendo editados. */
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
+  /** A shortcut is being dragged (empty sections and "new section" show up to drop on), and over which place. */
+  const [dragging, setDragging] = useState(false);
+  const [dropOn, setDropOn] = useState<string | null>(null);
+  /** The section whose name is being typed (one just made by dropping a shortcut on "Nova seção"). */
+  const [renaming, setRenaming] = useState<string | null>(null);
   const matches = useMemo(() => filterShortcuts(shortcuts, query), [shortcuts, query]);
   const shownGroups = matches.filter((e) => e.item.group);
   const shownItems = matches.filter((e) => !e.item.group);
@@ -532,7 +607,8 @@ export function LauncherLarge({ active }: { active: boolean }) {
   // escolhido fica só aqui (volta a "Tudo" quando a página remonta) e cai para "Tudo" se a parte sumir.
   const [filter, setFilter] = useState<string>(FILTER_ALL);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const blocks = layoutSections(shownItems, sections);
+  // While a shortcut is dragged, empty sections show too, to drop into.
+  const blocks = layoutSections(shownItems, sections, dragging);
   const chips = filterChips(blocks, shownGroups.length, sections);
   const current = activeFilter(chips, filter);
   const selectFilter = (key: string) => {
@@ -601,7 +677,8 @@ export function LauncherLarge({ active }: { active: boolean }) {
     <button
       key={item.id || index}
       ref={sorter.tileRef(item.id)}
-      className={`tile lt${sorter.dragId === item.id ? " drag" : ""}`}
+      className={`tile lt${sorter.dragId === item.id ? " drag" : ""}${item.group && dropOn === DROP_GROUP + item.id ? " drop" : ""}`}
+      data-drop={item.group && dragging ? DROP_GROUP + item.id : undefined}
       style={{ order: sorter.position.get(item.id) }}
       title={item.group ? t("Grupo: {apps}", { apps: confirmationText(item, shortcuts) }) : item.target}
       onClick={() => ask(index)}
@@ -613,10 +690,34 @@ export function LauncherLarge({ active }: { active: boolean }) {
     </button>
   );
   const reorderItems = (order: string[]) => set(reorderVisible(shortcuts, false, order));
+  /**
+   * A shortcut dropped on a section goes into it (on "Outros" it leaves its section; on "Nova seção" a section is made
+   * for it, with its name ready to type). Settings → Atalhos shows the same, nothing to set there.
+   */
+  const dropInto = (id: string, place: string) => {
+    const current = useConfigStore.getState().config.shortcutSections;
+    if (place.startsWith(DROP_GROUP)) {
+      const groupId = place.slice(DROP_GROUP.length);
+      const list = useConfigStore.getState().config.shortcuts;
+      set(list.map((s) => (s.id === groupId && s.group && !s.members.includes(id) ? { ...s, members: [...s.members, id] } : s)));
+      return;
+    }
+    if (place === DROP_NEW) {
+      const sectionId = newId();
+      update({ shortcutSections: assignSection([...current, { id: sectionId, name: t("Nova seção"), collapsed: false, members: [] }], id, sectionId) });
+      setRenaming(sectionId);
+      return;
+    }
+    update({ shortcutSections: assignSection(current, id, place === FILTER_REST ? null : place) });
+  };
+  const dropFor = (own: string): DropPlaces => ({ own, at: dropPlaceAt, onHover: setDropOn, onActive: setDragging, onDrop: dropInto });
+  const renameSection = (sectionId: string, name: string) =>
+    update({ shortcutSections: useConfigStore.getState().config.shortcutSections.map((s) => (s.id === sectionId ? { ...s, name } : s)) });
   /** Com um filtro, só a parte dele aparece, aberta (`fixed`); em "Tudo", todas, cada uma como foi deixada. */
   const filtered = !searching && current !== FILTER_ALL;
   const shownBlocks = filtered ? blocks.filter((b) => blockKey(b) === current) : blocks;
-  const showGroups = shownGroups.length > 0 && (!filtered || current === FILTER_GROUPS);
+  // While a shortcut is dragged the groups show (open), to drop it on one.
+  const showGroups = shownGroups.length > 0 && (!filtered || current === FILTER_GROUPS || dragging);
   const blockView = ({ section, entries }: SectionBlock) =>
     section ? (
       <SectionView
@@ -631,6 +732,11 @@ export function LauncherLarge({ active }: { active: boolean }) {
         canDrag
         renderTile={tile}
         onAdd={() => addInto(section.id)}
+        drop={dropFor(section.id)}
+        dropOn={dropOn}
+        onRename={(name) => renameSection(section.id, name)}
+        renaming={renaming === section.id}
+        onRenameDone={() => setRenaming(null)}
       />
     ) : (
       <SectionView
@@ -644,6 +750,8 @@ export function LauncherLarge({ active }: { active: boolean }) {
         onReorder={reorderItems}
         canDrag
         renderTile={tile}
+        drop={dropFor(FILTER_REST)}
+        dropOn={dropOn}
       />
     );
   /** Sair da edição ("Pronto") apaga as linhas que ficaram sem nome e sem destino. */
@@ -764,12 +872,18 @@ export function LauncherLarge({ active }: { active: boolean }) {
             ) : (
               <>
                 {shownBlocks.map(blockView)}
+                {/* While a shortcut is dragged: drop it here to make a section for it. */}
+                {dragging && (
+                  <div className={`lsec-new${dropOn === DROP_NEW ? " on" : ""}`} data-drop={DROP_NEW}>
+                    {t("Solte aqui para criar uma seção")}
+                  </div>
+                )}
                 {showGroups && (
                   <SectionView
                     key="groups"
                     id="groups"
                     title={t("Grupos")}
-                    collapsed={!filtered && groupsClosed}
+                    collapsed={!filtered && groupsClosed && !dragging}
                     fixed={filtered}
                     onToggle={toggleGroups}
                     entries={shownGroups}

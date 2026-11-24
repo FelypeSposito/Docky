@@ -683,6 +683,55 @@
   background: rgba(255, 255, 255, 0.06);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
+/* The dock's right-click menu: hide a page, show a hidden one back, its settings. Solid, above the dock. */
+.dock-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  min-width: 168px;
+  padding: 4px;
+  border-radius: 12px;
+  translate: -50% 0;
+  background: #18181d;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+  animation: dock-menu-in 0.16s var(--ease) both;
+}
+@keyframes dock-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.dock-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 550;
+  text-align: left;
+  white-space: nowrap;
+}
+.dock-menu button svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  color: var(--ink2);
+}
+.dock-menu button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+.dock-menu button:disabled {
+  opacity: 0.4;
+}
+.reduce-motion .dock-menu {
+  animation: none;
+}
 .dk {
   display: flex;
   align-items: center;
@@ -2546,10 +2595,24 @@
   height: 100%;
 }
 .lgrid4 {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-template-rows: repeat(2, 62px);
   gap: 6px;
+}
+/* Dragging a tile to reorder: it follows the pointer, lifted, and lets the pointer through to what is under it. */
+.lgrid4 .lt2 {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.lgrid4 .lt2.drag {
+  z-index: 5;
+  transition: none;
+  cursor: grabbing;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
 }
 .lt2 {
   position: relative;

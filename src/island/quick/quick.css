@@ -633,6 +633,68 @@
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }
+/* A shortcut dragged over a section: the section lights up, ready to take it. */
+.lsec {
+  border-radius: 12px;
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+.lsec.drop {
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 45%, transparent);
+}
+/* A shortcut dragged over a group: the group takes it in. */
+.lsec-grid .lt.drop {
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 18%, rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 60%, transparent);
+}
+/* While dragging: drop here to make a section. It stays at the bottom of the list, in view. */
+.lsec-new {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(20, 20, 26, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  transition: color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+.lsec-new.on {
+  color: #fff;
+  background: color-mix(in srgb, var(--accent, #ff5c7a) 22%, rgba(20, 20, 26, 0.92));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c7a) 60%, transparent);
+}
+/* The section's name, edited in place. */
+.lsec-name {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  font: 600 12px "Inter Variable", Inter, sans-serif;
+  outline: 2px solid var(--accent, #ff5c7a);
+  outline-offset: -1px;
+}
+.lsec-ren {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  padding: 0;
+  opacity: 0;
+}
+.lsec-top:hover .lsec-ren,
+.lsec-ren:focus-visible {
+  opacity: 1;
+}
+
 /* Aberta pelo filtro: o título é só um rótulo (sem setinha, sem clique) */
 .lsec-head.fixed {
   margin: 0;

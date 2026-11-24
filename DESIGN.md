@@ -301,7 +301,8 @@ Big targets, icon over name.
 ### Dock
 - **Style:** a floating capsule (block fill, inner edge, 12px radius, 3px padding) at the island's bottom centre; icon items 30px tall, 9px radius, Ink 2.
 - **Active:** 17% accent fill, icon in accent, and the page name opens beside it in white at its own width (width 0 to auto over 0.36s; the leaving name fades at once, the arriving one fades in once there is room).
-- **Hover / Press:** 0.1 fill and white; press scales to 0.96. Items reorder by dragging (lifted 0.22 fill + shadow). A 1px × 14px divider separates groups.
+- **Hover / Press:** 0.1 fill and white; press scales to 0.96. Items reorder by pressing and dragging along the dock (no hold needed; lifted 0.22 fill + shadow). A 1px × 14px divider separates groups.
+- **Right-click:** a solid menu above the dock hides that page, shows a hidden one back, or opens its settings: the dock is set up where it is used.
 
 ### Rows (Settings and quick settings)
 - No box. Label (title) and hint stacked at left, control at right, 16px gap, separated by a bottom hairline. Settings rows are at least 56px; the island's quick rows at least 44px and drop the last hairline.
@@ -342,6 +343,11 @@ Big targets, icon over name.
 - Clawd, Claude Code's mascot, from the open-source clawd-pet animated SVGs (MIT; the character is Anthropic's, Docky is unofficial). Four ready-made animations, unchanged, one per mood: typing (working), notification (waiting for you), idle-living (sessions open, nothing running), sleeping (no session). Files and credits in `src/assets/clawd/`.
 - Shown as an `<img>` (its own CSS stays inside the SVG) at 116px on a flat 124px stage block with a hairline desk, mounted only while the page is open. The stage's inner edge takes the mood's hue (clay working, yellow waiting).
 - Next to it, a 15px 650 sentence says what is going on, and sessions sit on hairline rows with a live icon (Claude spinner, yellow ping, green check) and tabular times.
+
+### Atalhos, set up in place
+- Tiles reorder by dragging on the small page too (groups among groups, shortcuts among shortcuts), the order the list keeps everywhere.
+- On the large page a dragged shortcut can land on a section (it lights with a 10% accent wash and a 45% accent hairline) to move there, on "Outros" to leave its section, on a group tile to join the group, or on "Solte aqui para criar uma seção", a sticky 40px bar at the list's foot that makes a section with its name ready to type. Empty sections and the groups show while dragging. A section's name is renamed in place (the pencil beside "+ Atalho").
+- Each page opens at the size it was last left at (`largePages`); Atalhos starts large, Som is always large.
 
 ### Som Page
 - Opens at the island's large size on its own (no expand button): it holds a call, the PC's sound and every app's volume.

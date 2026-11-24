@@ -7,8 +7,6 @@ interface IslandStore {
   expanded: boolean;
   /** Fixada por clique: não recolhe quando o mouse sai. */
   pinned: boolean;
-  /** Mostra a versão maior da página atual (só vale para páginas que têm uma). */
-  large: boolean;
   overlay: Overlay | null;
   /** O mouse está sobre a pílula recolhida (com "abrir ao passar o mouse" desligado): mostra o player ou o resumo. */
   peek: boolean;
@@ -21,7 +19,6 @@ interface IslandStore {
   setHeaderSlot: (el: HTMLElement | null) => void;
   expand: () => void;
   collapse: () => void;
-  toggleLarge: () => void;
   togglePin: () => void;
   setPage: (id: string) => void;
   showOverlay: (overlay: Overlay, durationMs: number) => void;
@@ -32,7 +29,6 @@ let overlayTimer: ReturnType<typeof setTimeout> | undefined;
 export const useIslandStore = create<IslandStore>((set) => ({
   expanded: false,
   pinned: false,
-  large: false,
   overlay: null,
   peek: false,
   moving: false,
@@ -42,8 +38,7 @@ export const useIslandStore = create<IslandStore>((set) => ({
   setHeaderSlot: (headerSlot) => set((s) => (s.headerSlot === headerSlot ? s : { headerSlot })),
 
   expand: () => set({ expanded: true, peek: false }),
-  collapse: () => set({ expanded: false, pinned: false, large: false, peek: false }),
-  toggleLarge: () => set((s) => ({ large: !s.large, pinned: s.large ? s.pinned : true })), // ao ampliar, fica aberta
+  collapse: () => set({ expanded: false, pinned: false, peek: false }),
   togglePin: () => set((s) => ({ pinned: !s.pinned, expanded: !s.pinned ? true : s.expanded, peek: false })),
   setPage: (page) => set({ page }),
 

@@ -201,6 +201,8 @@ pub struct Config {
     pub shortcuts: Vec<Shortcut>,
     /// Ordem das páginas do dock (ids). Vazio = ordem original.
     pub page_order: Vec<String>,
+    /// Pages (ids) that open at the island's large size: the size each page was last left at.
+    pub large_pages: Vec<String>,
     /// Notas fixadas no topo da lista (nomes de arquivo).
     pub pinned_notes: Vec<String>,
     /// Color of each note (file name to color id, see `notes/colors.ts`); notes without one stay plain.
@@ -288,6 +290,7 @@ impl Default for Config {
             shelf_trash: true,
             shortcuts: Vec::new(),
             page_order: Vec::new(),
+            large_pages: vec!["launch".into()],
             pinned_notes: Vec::new(),
             note_colors: Default::default(),
             note_order: Vec::new(),

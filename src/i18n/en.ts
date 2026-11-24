@@ -858,4 +858,9 @@ export const EN: Record<string, string> = {
   "{names} falando": "{names} talking",
   "1 na chamada": "1 in the call",
   "{n} na chamada": "{n} in the call",
+  "Renomear {name}": "Rename {name}",
+  "Solte aqui para criar uma seção": "Drop here to make a section",
+  "Ocultar {page}": "Hide {page}",
+  "Mostrar {page}": "Show {page}",
+  "Arraste para mudar a ordem · botão direito para ocultar": "Drag to reorder · right-click to hide",
 };

@@ -1,7 +1,7 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { ipc } from "../lib/ipc";
-import { GearIcon } from "./icons";
+import { EyeIcon, EyeOffIcon, GearIcon } from "./icons";
 import { mergeOrder, moveItem, orderPages, visiblePages } from "./pageOrder";
 import { PAGES } from "./pages/registry";
 import { t } from "../i18n";
@@ -11,10 +11,10 @@ interface DockProps {
   onPage: (id: string) => void;
 }
 
-/** Quanto tempo segurar o botão do mouse antes de poder arrastar (um clique rápido só troca de página). */
+/** Holding the button this long lifts the page, ready to move (without moving yet). */
 const HOLD_MS = 280;
-/** Se o mouse andar mais que isso antes de segurar o tempo todo, não é um arrasto de reordenar. */
-const SLOP_PX = 8;
+/** Moving this far along the dock with the button down starts a drag at once: press and drag, no hold needed. */
+const START_PX = 6;
 
 interface Drag {
   id: string;
@@ -27,7 +27,8 @@ interface Drag {
 }
 
 /**
- * O dock: segure uma página por um instante e arraste para trocar a ordem. A ordem fica salva nas configurações.
+ * O dock: aperte uma página e arraste (ou segure um instante) para trocar a ordem. Um clique só troca de página. A
+ * ordem fica salva nas configurações.
  *
  * Os botões ficam sempre na mesma ordem no DOM e a posição visual vem do `order` do CSS. Se o React movesse o
  * botão arrastado no DOM, o navegador soltaria o "pointer capture" no meio do arrasto e ele travaria.
@@ -38,6 +39,33 @@ export function Dock({ page, onPage }: DockProps) {
   const update = useConfigStore((s) => s.update);
 
   const [draft, setDraft] = useState<string[] | null>(null);
+  /** The right-click menu: hide this page, show a hidden one back, or its settings, all without leaving the island. */
+  const [menu, setMenu] = useState<{ page: string | null; left: number } | null>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent && e.key !== "Escape") return;
+      if (e instanceof PointerEvent && (e.target as HTMLElement).closest(".dock-menu")) return;
+      setMenu(null);
+    };
+    window.addEventListener("pointerdown", close, true);
+    window.addEventListener("keydown", close, true);
+    return () => {
+      window.removeEventListener("pointerdown", close, true);
+      window.removeEventListener("keydown", close, true);
+    };
+  }, [menu]);
+  const openMenu = (e: React.MouseEvent, pageId: string | null) => {
+    e.preventDefault();
+    const dock = dockRef.current?.getBoundingClientRect();
+    const at = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setMenu({ page: pageId, left: dock ? at.left - dock.left + at.width / 2 : 0 });
+  };
+  const setHidden = (pageId: string, hide: boolean) => {
+    const current = useConfigStore.getState().config.hiddenPages;
+    update({ hiddenPages: hide ? [...current.filter((p) => p !== pageId), pageId] : current.filter((p) => p !== pageId) });
+    setMenu(null);
+  };
   const [dragId, setDragId] = useState<string | null>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const buttons = useRef(new Map<string, HTMLButtonElement>());
@@ -96,8 +124,11 @@ export function Dock({ page, onPage }: DockProps) {
       if (!d) return;
       d.pointer = e.clientX;
       if (!d.active) {
-        if (Math.abs(e.clientX - d.startX) > SLOP_PX) stop(false); // foi um movimento comum, não um arrasto
-        return;
+        if (Math.abs(e.clientX - d.startX) < START_PX) return; // still a click
+        clearTimeout(d.timer);
+        d.active = true;
+        setDragId(d.id);
+        setDraft(live.current.ids);
       }
       const want = follow();
       const el = buttons.current.get(d.id);
@@ -173,20 +204,54 @@ export function Dock({ page, onPage }: DockProps) {
           className={`dk${id === page ? " on" : ""}${id === dragId ? " drag" : ""}`}
           style={{ order: position.get(id) }}
           aria-label={t(label)}
-          title={t("Segure e arraste para mudar a ordem")}
+          title={t("Arraste para mudar a ordem · botão direito para ocultar")}
           onPointerDown={(e) => down(e, id)}
           onClick={() => {
             if (!suppressClick.current) onPage(id);
           }}
+          onContextMenu={(e) => openMenu(e, id)}
         >
           <Icon size={16} />
           <span className="lb">{t(label)}</span>
         </button>
       ))}
       <i className="dsep" style={{ order: PAGES.length }} />
-      <button className="dk" style={{ order: PAGES.length + 1 }} aria-label={t("Configurações")} onClick={() => ipc.openSettings(PAGES.find((p) => p.id === page)?.area)} title={t("Configurações desta página")}>
+      <button
+        className="dk"
+        style={{ order: PAGES.length + 1 }}
+        aria-label={t("Configurações")}
+        onClick={() => ipc.openSettings(PAGES.find((p) => p.id === page)?.area)}
+        onContextMenu={(e) => openMenu(e, null)}
+        title={t("Configurações desta página")}
+      >
         <GearIcon />
       </button>
+      {menu && (
+        <div className="dock-menu" role="menu" style={{ left: menu.left }}>
+          {menu.page && (
+            <button role="menuitem" disabled={shown.length <= 1} onClick={() => setHidden(menu.page!, true)}>
+              <EyeOffIcon size={13} />
+              {t("Ocultar {page}", { page: t(PAGES.find((p) => p.id === menu.page)?.label ?? "") })}
+            </button>
+          )}
+          {PAGES.filter((p) => hidden.includes(p.id)).map((p) => (
+            <button key={p.id} role="menuitem" onClick={() => setHidden(p.id, false)}>
+              <EyeIcon size={13} />
+              {t("Mostrar {page}", { page: t(p.label) })}
+            </button>
+          ))}
+          <button
+            role="menuitem"
+            onClick={() => {
+              setMenu(null);
+              ipc.openSettings(PAGES.find((p) => p.id === (menu.page ?? page))?.area);
+            }}
+          >
+            <GearIcon />
+            {t("Configurações")}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

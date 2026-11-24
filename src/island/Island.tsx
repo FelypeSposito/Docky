@@ -25,6 +25,7 @@ import { PAGES } from "./pages/registry";
 import { useHotkeys } from "./useHotkeys";
 import { glowOpacity, glowReach, islandAccent } from "./theme";
 import { useIslandDrag } from "./useIslandDrag";
+import { toggleLargePage } from "./largePages";
 import { useGlassBlur } from "./useGlassBlur";
 import { useLiquidGlass } from "./useLiquidGlass";
 
@@ -191,7 +192,6 @@ export function Island() {
   const expanded = useIslandStore((s) => s.expanded);
   const overlay = useIslandStore((s) => s.overlay);
   const page = useIslandStore((s) => s.page);
-  const large = useIslandStore((s) => s.large);
   const peek = useIslandStore((s) => s.peek);
   const media = useMediaStore((s) => s.media);
   const lyrics = useMediaStore((s) => s.lyrics);
@@ -250,7 +250,8 @@ export function Island() {
   const ActivePage = shownPages.find((p) => p.id === shownPage) ?? shownPages[0];
   // Páginas com tela maior (Large) ou só com ajustes (Settings) ganham o botão de expandir.
   const canExpand = !!ActivePage.Large;
-  const largeOn = !!ActivePage.opensLarge || (large && canExpand);
+  // Som always opens large; the others open at the size they were last left at (config `largePages`).
+  const largeOn = !!ActivePage.opensLarge || (canExpand && config.largePages.includes(ActivePage.id));
   const showCall = config.callPill && (!!call || !!discordCall);
   const idleSize = {
     w: SIZES.idle.w + (timerRunning ? CHIP_WIDTH.timer : 0) + (showCall ? (discordCall ? CHIP_WIDTH.discord : CHIP_WIDTH.call) : 0),
@@ -692,7 +693,7 @@ export function Island() {
                   className="xbtn"
                   aria-label={t(largeOn ? "Voltar ao tamanho normal" : "Expandir esta página")}
                   title={t(largeOn ? "Voltar ao tamanho normal" : "Expandir")}
-                  onClick={() => useIslandStore.getState().toggleLarge()}
+                  onClick={() => toggleLargePage(ActivePage.id)}
                 >
                   {largeOn ? <ShrinkIcon /> : <ExpandIcon />}
                 </button>
