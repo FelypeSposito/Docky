@@ -227,7 +227,15 @@ pub fn resolve_icon(dir: &Path, name: &str, target: &str, fetch: &dyn Fn(&str) -
     if let Some(slug) = slugs.iter().find(|s| dir.join(format!("{s}.png")).is_file()) {
         return Some(format!("{ASSET_PREFIX}{slug}.png"));
     }
-    // 2. A biblioteca de ícones.
+    // 2. An installed app (Start menu shortcut, program, Store app): the icon Windows shows for it is the real one, in
+    //    its own colours, with no network. The library can have a different take (a white Spotify, say).
+    let site = host_of(target).is_some();
+    if !site && is_installed_program(target) {
+        if let Some(found) = local(target.trim()).filter(|b| is_png(b)).and_then(|bytes| save(dir, primary, &bytes)) {
+            return Some(found);
+        }
+    }
+    // 3. A biblioteca de ícones.
     for slug in &slugs {
         if let Some(bytes) = fetch(&format!("{DASHBOARD_ICONS}/{slug}.png")).filter(|b| png_width(b).is_some()) {
             if let Some(found) = save(dir, slug, &bytes) {
@@ -235,7 +243,7 @@ pub fn resolve_icon(dir: &Path, name: &str, target: &str, fetch: &dyn Fn(&str) -
             }
         }
     }
-    // 3. O favicon do site.
+    // 4. O favicon do site.
     if let Some(host) = host_of(target) {
         let url = format!("https://www.google.com/s2/favicons?domain={host}&sz=256");
         if let Some(bytes) = fetch(&url).filter(|b| png_width(b).is_some_and(|w| w >= MIN_FAVICON_WIDTH)) {
@@ -243,8 +251,14 @@ pub fn resolve_icon(dir: &Path, name: &str, target: &str, fetch: &dyn Fn(&str) -
         }
         return None;
     }
-    // 4. O ícone que o Windows mostra para o app instalado.
+    // 5. O ícone que o Windows mostra para o resto (uma pasta, um documento).
     local(target.trim()).filter(|b| is_png(b)).and_then(|bytes| save(dir, primary, &bytes))
+}
+
+/// A target that opens an installed program: a Start menu (or any) shortcut, a program, or a Store app.
+fn is_installed_program(target: &str) -> bool {
+    let lower = target.trim().to_lowercase();
+    lower.starts_with(r"shell:appsfolder\") || [".lnk", ".exe"].iter().any(|ext| lower.ends_with(ext))
 }
 
 /// O caminho sem diferença de maiúsculas, barras ou barra final, para comparar pastas.
@@ -305,8 +319,9 @@ fn attempted() -> &'static Mutex<HashSet<String>> {
     ATTEMPTED.get_or_init(|| Mutex::new(HashSet::new()))
 }
 
+/// One try per shortcut as it is: a shortcut removed and added again (a new id) is tried again in the same run.
 fn attempt_key(shortcut: &Shortcut) -> String {
-    format!("{}\u{1}{}", shortcut.name.trim(), shortcut.target.trim())
+    format!("{}\u{1}{}\u{1}{}", shortcut.id, shortcut.name.trim(), shortcut.target.trim())
 }
 
 /// Atalho que ainda pede um ícone: um destino de verdade (não grupo) e nenhum ícone escolhido.
@@ -581,6 +596,17 @@ mod tests {
         let dir = temp_dir("globo");
         let globe = |url: &str| url.contains("s2/favicons").then(|| fake_png(16));
         assert_eq!(resolve_icon(&dir, "Meu site", "https://meusite.com.br", &globe, &none), None);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn app_instalado_usa_o_icone_do_windows_antes_da_biblioteca() {
+        let dir = temp_dir("windows-primeiro");
+        let library = |url: &str| url.contains("/png/").then(|| fake_png(512));
+        let local = |target: &str| target.starts_with("shell:AppsFolder").then(|| fake_png(256));
+        let spotify = r"shell:AppsFolder\SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify";
+        assert_eq!(resolve_icon(&dir, "Spotify", spotify, &library, &local).as_deref(), Some("asset:spotify.png"));
+        assert_eq!(fs::read(dir.join("spotify.png")).unwrap(), fake_png(256));
         let _ = fs::remove_dir_all(&dir);
     }
 

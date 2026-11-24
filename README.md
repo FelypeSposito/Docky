@@ -72,9 +72,9 @@ própria, fechada de início.
 
 ## Ícones automáticos
 
-Um atalho novo sem ícone ganha o do app (`src-tauri/src/icons.rs`): o Docky procura a imagem uma vez (biblioteca
-dashboard-icons via jsDelivr; favicon para sites) e, se não achar, extrai o ícone que o Windows já mostra para o app
-(`shell_icon.rs`). Fica na pasta de ícones (padrão `Documentos\Docky\icons`, trocável em Configurações → Atalhos) e o
+Um atalho novo sem ícone ganha o do app (`src-tauri/src/icons.rs`): uma imagem com o nome dele que já esteja na pasta
+de ícones; senão, para um app instalado, o ícone que o Windows mostra para ele (`shell_icon.rs`, com as cores do
+próprio app e sem internet); e só então a biblioteca dashboard-icons via jsDelivr (ou o favicon, para sites). Fica na pasta de ícones (padrão `Documentos\Docky\icons`, trocável em Configurações → Atalhos) e o
 atalho guarda `asset:nome.png`, então mudar a pasta de lugar não quebra nada. Dá para desligar nas configurações.
 
 ## Google Agenda
