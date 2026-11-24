@@ -8,6 +8,7 @@ import {
   adoptAppIcon,
   buildGroup,
   completeGroup,
+  entryName,
   resolveTemplate,
   suggestionSections,
   useAppsStore,
@@ -24,7 +25,7 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
   const scanApps = useConfigStore((s) => s.config.scanApps);
   const apps = useInstalledApps();
   const loading = useAppsStore((s) => s.loading || !s.loaded);
-  const sections = suggestionSections(apps, shortcuts, 10);
+  const sections = suggestionSections(apps, shortcuts);
   /** No fim da lista (a ordem dos seus atalhos não muda) e com o ícone do próprio app, quando ele tem. */
   const add = (entry: AppEntry) => {
     const { shortcuts: next, ids } = addApps(useConfigStore.getState().config.shortcuts, [entry], newId);
@@ -93,7 +94,7 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
             <div key={section.kind}>
               <QTitle>{t(section.kind === "app" ? "Apps que você mais usa" : section.title)}</QTitle>
               {section.entries.map((entry) => (
-                <QRow key={entry.target} label={entry.name} hint={whySuggested(entry)}>
+                <QRow key={entry.target} label={entryName(entry)} hint={t(whySuggested(entry))}>
                   <QButton onClick={() => add(entry)}>{t("+ Adicionar")}</QButton>
                 </QRow>
               ))}

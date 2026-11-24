@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { newId } from "../launcher/model";
-import { type AppEntry, addApps, adoptAppIcon, suggestionSections, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
+import { type AppEntry, addApps, adoptAppIcon, entryName, suggestionSections, useAppsStore, useInstalledApps, whySuggested } from "../launcher/suggestions";
 import { Group, Row } from "./controls";
 import "../launcher/iconPicker.css";
 import "./appSuggestions.css";
@@ -42,7 +42,7 @@ export function AppSuggestions() {
   if (!config.scanApps) {
     return (
       <Group>
-        <Row label={t("Sugerir atalhos dos apps instalados")} hint={t("Procura no Menu Iniciar, na Steam e na Epic. Tudo fica neste computador")}>
+        <Row label={t("Sugerir atalhos dos apps instalados")} hint={t("Procura apps, jogos e as pastas principais no Menu Iniciar, na Steam e na Epic. Tudo fica neste computador")}>
           <button className="btn" onClick={() => update({ scanApps: true })}>
             {t("Permitir")}
           </button>
@@ -83,12 +83,12 @@ export function AppSuggestions() {
           <div key={section.kind} className="row sug-sec">
             <div className="ge-sec">
               <h4>
-                {section.title} · {section.entries.length}
+                {t(section.title)} · {section.entries.length}
               </h4>
               <div className="ge-chips">
                 {section.entries.map((entry) => (
-                  <button key={entry.target} className="app" title={whySuggested(entry)} onClick={() => add([entry])}>
-                    + {entry.name}
+                  <button key={entry.target} className="app" title={t(whySuggested(entry))} onClick={() => add([entry])}>
+                    + {entryName(entry)}
                   </button>
                 ))}
               </div>

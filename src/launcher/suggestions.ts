@@ -6,8 +6,11 @@ import { ipc } from "../lib/ipc";
 import { cleanTarget } from "./model";
 import { t } from "../i18n";
 
-/** De onde veio um app instalado: o Menu Iniciar (e a Loja), a biblioteca da Steam ou a da Epic Games. */
-export type AppKind = "app" | "steam" | "epic";
+/**
+ * What a suggestion is and where it came from: an app (Start menu and Store), a game from Steam or Epic Games, a game
+ * from another store found in the Start menu (Riot, EA, Ubisoft, Battle.net…), or one of Windows' main folders.
+ */
+export type AppKind = "app" | "steam" | "epic" | "game" | "folder";
 
 /** Um app instalado (do Menu Iniciar, da Área de Trabalho, da Steam ou da Epic), com os sinais de que você o usa. */
 export interface AppEntry {
@@ -103,12 +106,16 @@ export function resolveTemplate(template: GroupTemplate, shortcuts: Shortcut[], 
   };
 }
 
+/** A suggestion's name as shown: Windows' folders come named in Portuguese and follow the interface's language. */
+export const entryName = (entry: AppEntry) => (entry.kind === "folder" ? t(entry.name) : entry.name);
+
 /** Um atalho novo a partir de um app instalado. Os criados para um grupo nascem ocultos: só existem dentro dele. */
 const newShortcut = (entry: AppEntry, id: string, hidden = false): Shortcut => ({
   id,
-  name: entry.name,
+  name: entryName(entry),
   target: entry.target,
-  icon: "",
+  // A folder gets the library's folder icon (searching the web for "Downloads" finds nothing useful).
+  icon: entry.kind === "folder" ? "lib:folder" : "",
   group: false,
   members: [],
   ...(hidden ? { hidden: true } : {}),
@@ -171,11 +178,15 @@ const isTemplateName = (name: string, templateName: string) => {
   return given === templateName.toLowerCase() || given === t(templateName).toLowerCase();
 };
 
-/** Os apps mais usados que ainda não são atalhos (só os que têm algum sinal de uso, ou os primeiros por nome). Jogos ficam de fora. */
-export function suggestedApps(apps: AppEntry[], shortcuts: Shortcut[], limit = 10): AppEntry[] {
+/**
+ * The apps that are not shortcuts yet: the ones you use first (opened, pinned, running), then the rest in the order
+ * Rust gives them (your own apps before Windows' built-in ones). Games and folders have sections of their own.
+ */
+export function suggestedApps(apps: AppEntry[], shortcuts: Shortcut[], limit = 16): AppEntry[] {
   const fresh = apps.filter((entry) => kindOf(entry) === "app" && !shortcuts.some((s) => !s.group && sameApp(s, entry)));
   const used = fresh.filter((entry) => entry.uses > 0 || entry.pinned || entry.running);
-  return (used.length > 0 ? used : fresh).slice(0, limit);
+  const rest = fresh.filter((entry) => !used.includes(entry));
+  return [...used, ...rest].slice(0, limit);
 }
 
 export interface SuggestionSection {
@@ -188,20 +199,31 @@ export interface SuggestionSection {
  * As sugestões de atalho por origem: os apps que você mais usa, os jogos da Steam e os da Epic Games, sem os que já
  * são atalhos. Seções vazias ficam de fora.
  */
-export function suggestionSections(apps: AppEntry[], shortcuts: Shortcut[], appLimit = 12): SuggestionSection[] {
-  const fresh = (kind: AppKind) => apps.filter((entry) => kindOf(entry) === kind && !shortcuts.some((s) => !s.group && sameApp(s, entry)));
+export function suggestionSections(apps: AppEntry[], shortcuts: Shortcut[], appLimit = 16): SuggestionSection[] {
+  const fresh = (kind: AppKind) =>
+    apps.filter((entry) => kindOf(entry) === kind && !shortcuts.some((s) => !s.group && (sameApp(s, entry) || (kind === "folder" && sameFolder(s, entry)))));
   const sections: SuggestionSection[] = [
     { kind: "app", title: "Apps que você mais usa", entries: suggestedApps(apps, shortcuts, appLimit) },
+    { kind: "folder", title: "Pastas", entries: fresh("folder") },
     { kind: "steam", title: "Jogos da Steam", entries: fresh("steam") },
     { kind: "epic", title: "Jogos da Epic Games", entries: fresh("epic") },
+    { kind: "game", title: "Outros jogos", entries: fresh("game") },
   ];
   return sections.filter((section) => section.entries.length > 0);
 }
+
+/** A folder shortcut under its translated name, or pointing at the same folder (with or without a trailing slash). */
+const sameFolder = (shortcut: Shortcut, entry: AppEntry) => {
+  const path = (p: string) => cleanTarget(p).replace(/[\\/]+$/, "").toLowerCase();
+  return path(shortcut.target) === path(entry.target) || shortcut.name.trim().toLowerCase() === entryName(entry).toLowerCase();
+};
 
 /** Por que um app foi sugerido, em poucas palavras. */
 export function whySuggested(entry: AppEntry): string {
   if (kindOf(entry) === "steam") return "jogo instalado na Steam";
   if (kindOf(entry) === "epic") return "jogo instalado na Epic Games";
+  if (kindOf(entry) === "game") return "jogo instalado";
+  if (kindOf(entry) === "folder") return entry.target;
   if (entry.pinned && entry.running) return "fixado na barra e aberto agora";
   if (entry.pinned) return "fixado na barra de tarefas";
   if (entry.running) return "aberto agora";

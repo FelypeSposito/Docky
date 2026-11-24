@@ -51,10 +51,10 @@ describe("grupos sugeridos", () => {
 });
 
 describe("apps sugeridos", () => {
-  it("tira os que já são atalhos e fica com os que têm sinal de uso", () => {
+  it("tira os que já são atalhos e põe os que têm sinal de uso na frente, sem esconder os outros", () => {
     const apps = [app("Chrome", { pinned: true }), app("Spotify", { uses: 40 }), app("Calculadora"), app("Discord", { running: true })];
     const have = [shortcut("a", "Spotify", "C:\\Menu\\Spotify.lnk")];
-    expect(suggestedApps(apps, have).map((a) => a.name)).toEqual(["Chrome", "Discord"]);
+    expect(suggestedApps(apps, have).map((a) => a.name)).toEqual(["Chrome", "Discord", "Calculadora"]);
   });
 
   it("sem nenhum sinal de uso, sugere os primeiros da lista", () => {
@@ -147,6 +147,24 @@ describe("sugestões por origem (apps, Steam, Epic)", () => {
       ["steam", ["Counter-Strike 2"]],
       ["epic", ["Fortnite"]],
     ]);
+  });
+
+  it("sugere as pastas do Windows e os jogos de outras lojas, cada um na sua seção", () => {
+    const downloads = app("Downloads", { kind: "folder", target: "C:\\Users\\ana\\Downloads" });
+    const documents = app("Documentos", { kind: "folder", target: "C:\\Users\\ana\\Documents" });
+    const valorant = app("VALORANT", { kind: "game", target: "C:\\Menu\\Riot Games\\VALORANT.lnk" });
+    // A folder that is already a shortcut (here with a trailing slash) is not suggested again.
+    const sections = suggestionSections([downloads, documents, valorant], [shortcut("a", "Docs", "C:\\Users\\ana\\Documents\\")]);
+    expect(sections.map((s) => [s.kind, s.entries.map((e) => e.name)])).toEqual([
+      ["folder", ["Downloads"]],
+      ["game", ["VALORANT"]],
+    ]);
+    expect(whySuggested(valorant)).toBe("jogo instalado");
+  });
+
+  it("uma pasta vira atalho com o ícone de pasta", () => {
+    const downloads = app("Downloads", { kind: "folder", target: "C:\\Users\\ana\\Downloads" });
+    expect(addApp([], downloads, () => "x")[0]).toMatchObject({ name: "Downloads", target: "C:\\Users\\ana\\Downloads", icon: "lib:folder" });
   });
 
   it("jogos não aparecem entre os apps mais usados e seção vazia some", () => {

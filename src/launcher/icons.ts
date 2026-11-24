@@ -32,12 +32,25 @@ export function iconText(icon: string): string {
 const MAX_ATTEMPTS = 5;
 
 /**
+ * Images already read, by path, for each reader, for the window's life. Pages mount again each time they are picked
+ * (and the header search with them), so without this every switch read every icon again, and each one that arrived
+ * redrew the page, stalling the dock's animation halfway.
+ */
+const caches = new WeakMap<(path: string) => Promise<string | null>, Map<string, string>>();
+function cacheFor(fetchImage: (path: string) => Promise<string | null>): Map<string, string> {
+  let cache = caches.get(fetchImage);
+  if (!cache) caches.set(fetchImage, (cache = new Map()));
+  return cache;
+}
+
+/**
  * A imagem (data URL) de cada item que tem um arquivo como ícone, pela posição na lista. As imagens são lidas pelo
  * caminho e guardadas por ele: reordenar a lista só muda quem usa qual imagem, sem reler nada (ler pela posição
  * trocava ou apagava os ícones quando a ordem mudava antes de a configuração ser gravada).
  */
 export function useIconImages(icons: string[], fetchImage: (path: string) => Promise<string | null>): Record<number, string> {
-  const [loaded, setLoaded] = useState<Record<string, string>>({});
+  const cache = cacheFor(fetchImage);
+  const [loaded, setLoaded] = useState<Record<string, string>>(() => Object.fromEntries(cache));
   const have = useRef(loaded);
   have.current = loaded;
   const paths = icons.map((icon) => (iconKind(icon ?? "") === "image" ? icon.trim() : ""));
@@ -47,9 +60,23 @@ export function useIconImages(icons: string[], fetchImage: (path: string) => Pro
   useEffect(() => {
     let alive = true;
     const timers: ReturnType<typeof setTimeout>[] = [];
+    // Images that arrive together are shown together: one redraw per frame, not one per image.
+    let batch: Record<string, string> = {};
+    let frame = 0;
+    const flush = () => {
+      frame = 0;
+      const next = batch;
+      batch = {};
+      if (alive) setLoaded((prev) => ({ ...prev, ...next }));
+    };
     const load = (path: string, attempt: number) =>
       fetchImage(path)
-        .then((url) => alive && url && setLoaded((prev) => ({ ...prev, [path]: url })))
+        .then((url) => {
+          if (!url) return;
+          cache.set(path, url);
+          batch[path] = url;
+          frame ||= requestAnimationFrame(flush);
+        })
         .catch(() => {
           if (alive && attempt + 1 < MAX_ATTEMPTS) timers.push(setTimeout(() => load(path, attempt + 1), 400 * (attempt + 1)));
         });
@@ -57,6 +84,7 @@ export function useIconImages(icons: string[], fetchImage: (path: string) => Pro
     return () => {
       alive = false;
       timers.forEach(clearTimeout);
+      cancelAnimationFrame(frame);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wanted]);
@@ -64,16 +92,19 @@ export function useIconImages(icons: string[], fetchImage: (path: string) => Pro
   return useMemo(() => Object.fromEntries(paths.flatMap((path, index) => (path && loaded[path] ? [[index, loaded[path]] as const] : []))), [paths.join("\n"), loaded]);
 }
 
+/** Reads an icon file through Rust. One function for every caller, so they all share one cache. */
+const readIcon = (path: string) => ipc.iconImage(path);
+
 /** As imagens dos ícones dos atalhos. */
 export const useShortcutImages = (shortcuts: Shortcut[]) =>
   useIconImages(
     shortcuts.map((s) => s.icon ?? ""),
-    (path) => ipc.iconImage(path),
+    readIcon,
   );
 
 /** As imagens dos ícones das pastas da Shelf. */
 export const useShelfImages = (folders: { icon?: string }[]) =>
   useIconImages(
     folders.map((f) => f.icon ?? ""),
-    (path) => ipc.iconImage(path),
+    readIcon,
   );

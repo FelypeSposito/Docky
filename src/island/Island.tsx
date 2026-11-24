@@ -1,5 +1,5 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { currentWork, WAIT_CLAWD, WORK_CLAWD } from "../claude/clawd";
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { currentWork, restingClawd, WAIT_CLAWD, WORK_CLAWD } from "../claude/clawd";
 import { micText } from "../audio/devices";
 import { startAudioSync, useAudioStore } from "../audio/store";
 import { describeTurn, runningSessions } from "../claude/sessions";
@@ -36,7 +36,6 @@ import codingSvg from "../assets/clawd/clawd-coding.svg";
 import coffeeSvg from "../assets/clawd/clawd-coffee.svg";
 import gamingSvg from "../assets/clawd/clawd-gaming.svg";
 import yogaSvg from "../assets/clawd/clawd-yoga.svg";
-import dancingSvg from "../assets/clawd/clawd-dancing.svg";
 import musicSvg from "../assets/clawd/clawd-music.svg";
 import stillSvg from "../assets/clawd/clawd-still.svg";
 import { formatElapsed, formatMinutes, startActivitySync, useActivityStore } from "./activity";
@@ -56,7 +55,10 @@ const choosePage = (id: string) => useIslandStore.getState().setPage(id);
 
 /** O conteúdo da ilha aberta. Fica montado o tempo todo, então só redesenha quando muda algo dele (não a cada hover). */
 const ExpandedContent = memo(function ExpandedContent({ pageId, large, active }: { pageId: string; large: boolean; active: boolean }) {
-  const page = PAGES.find((p) => p.id === pageId)!;
+  // The dock answers a click at once; the page itself (which may be heavy, like Atalhos with all its icons) follows a
+  // moment later, so its render does not freeze the dock's animation halfway.
+  const shownId = useDeferredValue(pageId);
+  const page = PAGES.find((p) => p.id === shownId)!;
   const Body = large && page.Large ? page.Large : page.Component;
   return (
     <>
@@ -64,7 +66,7 @@ const ExpandedContent = memo(function ExpandedContent({ pageId, large, active }:
         <Body active={active} />
       </div>
       {!FIELD_PAGES.has(page.id) && <GlobalSearch key={page.id} active={active} />}
-      <Dock page={page.id} onPage={choosePage} />
+      <Dock page={pageId} onPage={choosePage} />
     </>
   );
 });
@@ -381,15 +383,16 @@ export function Island() {
   const workSeconds = useSeconds(mode === "work" ? running[0]?.since : undefined);
   const work = currentWork(running);
   // With the eyes turned off, Clawd takes their place while Claude Code works (or waits for you). The rest of the time
-  // (Settings, Aparência, "Clawd sempre visível") he dances, or listens along while music plays. "Reduce motion"
-  // shows him standing still instead.
+  // (Settings, Aparência, "Clawd sempre visível") he listens along while music plays, and with nothing playing goes
+  // about a calm day (restingClawd). "Reduce motion" shows him standing still instead.
+  const resting = restingClawd(now);
   const eyesClawd: { src: string; title: string } | null =
     eyesPhase !== "gone" ? null
     : asking ? { src: WAIT_CLAWD, title: t("O Claude espera você") }
     : running.length > 0 ? { src: WORK_CLAWD[work].src, title: `Claude ${t(WORK_CLAWD[work].doing)}` }
     : !config.clawdAlways ? null
     : playing ? { src: musicSvg, title: t("O Clawd ouvindo junto") }
-    : { src: dancingSvg, title: t("O Clawd dançando") };
+    : { src: resting.src, title: t(resting.title) };
   const clawdInEyes = eyesClawd && config.reduceMotion ? { ...eyesClawd, src: stillSvg } : eyesClawd;
 
   const islandStyle = {

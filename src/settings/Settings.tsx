@@ -209,7 +209,7 @@ function AreaContent({ id }: { id: AreaId }) {
               <Toggle label={t("Olhinhos")} value={config.eyes} onChange={(v) => update({ eyes: v })} />
             </Row>
             {!config.eyes && (
-              <Row label={t("Clawd sempre visível")} hint={t("No lugar dos olhos o tempo todo: dança sem música e ouve junto quando toca alguma. Desligado, só aparece enquanto o Claude Code trabalha")}>
+              <Row label={t("Clawd sempre visível")} hint={t("No lugar dos olhos o tempo todo: ouve junto quando toca música e, sem música, fica de bobeira, toma um café, se alonga ou dança. Desligado, só aparece enquanto o Claude Code trabalha")}>
                 <Toggle label={t("Clawd sempre visível")} value={config.clawdAlways} onChange={(v) => update({ clawdAlways: v })} />
               </Row>
             )}

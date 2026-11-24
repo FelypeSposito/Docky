@@ -4,6 +4,11 @@ import readingSvg from "../assets/clawd/clawd-working-reviewing.svg";
 import thinkingSvg from "../assets/clawd/clawd-working-thinking.svg";
 import toolSvg from "../assets/clawd/clawd-working-tool-calling.svg";
 import waitSvg from "../assets/clawd/clawd-notification.svg";
+import idleSvg from "../assets/clawd/clawd-idle-living.svg";
+import coffeeSvg from "../assets/clawd/clawd-coffee.svg";
+import yogaSvg from "../assets/clawd/clawd-yoga.svg";
+import dancingSvg from "../assets/clawd/clawd-dancing.svg";
+import sleepingSvg from "../assets/clawd/clawd-sleeping.svg";
 import { type Session, type WorkKind, workKind } from "./sessions";
 
 /**
@@ -20,6 +25,34 @@ export const WORK_CLAWD: Record<WorkKind, { src: string; label: string; doing: s
 
 /** Clawd waving for you: a session waits for your permission. */
 export const WAIT_CLAWD = waitSvg;
+
+export interface RestingClawd {
+  src: string;
+  /** What he is doing, for the tooltip (Portuguese; the island translates it). */
+  title: string;
+}
+
+const IDLE: RestingClawd = { src: idleSvg, title: "O Clawd de bobeira" };
+/**
+ * Clawd with nothing to do (no music, Claude Code idle), in place of the eyes: a calm day that changes every minute,
+ * looking around most of the time, with a coffee, a stretch and a little dance in between.
+ */
+const RESTING_DAY: RestingClawd[] = [
+  IDLE,
+  { src: coffeeSvg, title: "O Clawd tomando um café" },
+  IDLE,
+  { src: yogaSvg, title: "O Clawd se alongando" },
+  IDLE,
+  { src: dancingSvg, title: "O Clawd dançando" },
+];
+const RESTING_NIGHT: RestingClawd = { src: sleepingSvg, title: "O Clawd dormindo" };
+
+/** Which resting Clawd shows at `now`: the day's loop by the minute, and asleep from midnight to 6 in the morning. */
+export function restingClawd(now: Date): RestingClawd {
+  if (now.getHours() < 6) return RESTING_NIGHT;
+  const minute = Math.floor(now.getTime() / 60_000);
+  return RESTING_DAY[minute % RESTING_DAY.length];
+}
 
 /** What the most recent running session is doing (sessions come oldest first, as `runningSessions` gives them). */
 export const currentWork = (running: Session[]): WorkKind => workKind(running.length > 0 ? running[running.length - 1].tool : null);

@@ -23,7 +23,7 @@ pub struct AppEntry {
     pub pinned: bool,
     /// Está aberto agora.
     pub running: bool,
-    /// De onde veio: `app` (Menu Iniciar e Loja), `steam` ou `epic` (jogos instalados).
+    /// What it is: `app` (Start menu and Store), `steam`, `epic` or `game` (installed games), `folder` (Windows folders).
     pub kind: String,
     /// Um arquivo local de onde o ícone do atalho pode sair (imagem `.jpg/.png/.ico` ou um programa `.exe`).
     pub icon: Option<String>,
@@ -31,6 +31,79 @@ pub struct AppEntry {
 
 /// O tipo dos apps do Menu Iniciar e da Loja.
 const KIND_APP: &str = "app";
+/// A game from another store (Riot, EA, Ubisoft, Battle.net, GOG, Rockstar…), found by its Start menu shortcut.
+const KIND_GAME: &str = "game";
+/// One of Windows' main folders (Downloads, Documentos…).
+const KIND_FOLDER: &str = "folder";
+
+/// Where the other stores install their games (lowercase pieces of a path, ending in a backslash). A Start menu
+/// shortcut in one of these folders, or pointing into one, is a game.
+const GAME_PLACES: [&str; 13] = [
+    r"\riot games\",
+    r"\ubisoft\",
+    r"\ubisoft game launcher\games\",
+    r"\ea games\",
+    r"\electronic arts\",
+    r"\origin games\",
+    r"\battle.net\",
+    r"\blizzard entertainment\",
+    r"\gog galaxy\games\",
+    r"\gog games\",
+    r"\rockstar games\",
+    r"\xboxgames\",
+    r"\programs\games\",
+];
+
+/// The stores' own launchers (names as `normalize` leaves them): they live next to the games but are apps.
+const LAUNCHERS: [&str; 15] = [
+    "riotclient",
+    "clienteriot",
+    "ubisoftconnect",
+    "ubisoftgamelauncher",
+    "eaapp",
+    "ea",
+    "origin",
+    "battlenet",
+    "blizzardbattlenet",
+    "goggalaxy",
+    "rockstargameslauncher",
+    "steam",
+    "epicgameslauncher",
+    "xbox",
+    "uplay",
+];
+
+/// Whether a Start menu shortcut (its own path and, when known, the program it opens) is a game from another store.
+pub fn is_game_link(link: &str, program: Option<&str>, name: &str) -> bool {
+    if LAUNCHERS.contains(&normalize(name).as_str()) {
+        return false;
+    }
+    let in_place = |path: &str| {
+        let path = format!("{}\\", path.to_lowercase().replace('/', "\\"));
+        GAME_PLACES.iter().any(|place| path.contains(place))
+    };
+    in_place(link) || program.is_some_and(in_place)
+}
+
+/// A program in Windows' own folder (`C:\Windows\System32\control.exe`).
+pub fn is_windows_program(exe: &str) -> bool {
+    let lower = exe.to_lowercase().replace('/', "\\");
+    std::env::var("SystemRoot")
+        .map(|root| format!("{}\\", root.to_lowercase().trim_end_matches('\\')))
+        .map_or_else(|_| lower.starts_with(r"c:\windows\"), |root| lower.starts_with(&root))
+}
+
+/// Windows' own apps (Settings, Clock, Feedback Hub…): still suggested, but after the ones you installed.
+pub fn is_builtin(target: &str) -> bool {
+    let lower = target.to_lowercase();
+    [r"shell:appsfolder\microsoft.", r"shell:appsfolder\microsoftwindows.", r"shell:appsfolder\windows.", r"shell:appsfolder\microsoftcorporationii."]
+        .iter()
+        .any(|prefix| lower.starts_with(prefix))
+        // Programs Windows lists by its own folders' ids: System32, Windows, SysWOW64 (Voice Access, Character Map…).
+        || ["{1ac14e77-02e7-4e5d-b744-2eb1ae5198b7}", "{f38bf404-1d43-42f2-9305-67de0b28fc23}", "{d65231b0-b2f1-4857-a4ce-a8e7c6ea7d27}"]
+            .iter()
+            .any(|folder| lower.contains(folder))
+}
 
 impl AppEntry {
     /// O peso na ordenação: o histórico conta por abertura; fixado e aberto agora pesam bastante.
@@ -149,9 +222,30 @@ fn windows_start_apps() -> Vec<(String, String)> {
 /// Atalhos do Menu Iniciar que não são o app em si.
 fn is_noise(name: &str) -> bool {
     let lower = name.to_lowercase();
-    ["uninstall", "desinstal", "readme", "léame", "license", "licen", "help", "ajuda", "manual", "documentation", "release notes", "website", "support"]
+    ["administrative tools", "ferramentas administrativas", "windows tools", "ferramentas do windows", "uninstall", "desinstal", "readme", "léame", "license", "licen", "help", "ajuda", "manual", "documentation", "release notes", "website", "support"]
         .iter()
         .any(|bad| lower.contains(bad))
+}
+
+/// Start menu folders of Windows' own tools: nobody makes a shortcut to "Character Map" on purpose.
+fn is_tools_folder(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    [
+        "accessibility",
+        "acessibilidade",
+        "administrative tools",
+        "ferramentas administrativas",
+        "system tools",
+        "ferramentas do sistema",
+        "windows tools",
+        "ferramentas do windows",
+        "windows powershell",
+        "startup",
+        "inicializar",
+        "maintenance",
+        "manutenção",
+    ]
+    .contains(&lower.as_str())
 }
 
 fn collect_links(dir: &Path, depth: u32, out: &mut Vec<(String, PathBuf)>) {
@@ -159,7 +253,7 @@ fn collect_links(dir: &Path, depth: u32, out: &mut Vec<(String, PathBuf)>) {
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
-            if depth < 3 {
+            if depth < 3 && !path.file_name().is_some_and(|n| is_tools_folder(&n.to_string_lossy())) {
                 collect_links(&path, depth + 1, out);
             }
         } else if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("lnk")) {
@@ -544,12 +638,19 @@ fn collect_apps() -> Vec<AppEntry> {
         let (pinned, running) = (pinned_names(), running_programs());
         let links = start_menu_apps();
         let known: std::collections::HashSet<String> = links.iter().map(|(name, _)| normalize(name)).collect();
+        // Start menu shortcuts to Windows' own programs (Administrative Tools, Voice Access…) go after your apps.
+        let mut windows_links = std::collections::HashSet::new();
         let mut apps: Vec<AppEntry> = links
             .into_iter()
             .map(|(name, path)| {
                 let key = normalize(&name);
                 // O programa para onde o atalho aponta diz melhor quem é o app do que o nome do atalho.
-                let program = fs::read(&path).ok().and_then(|bytes| lnk_target(&bytes)).and_then(|exe| program_of(&exe));
+                let exe = fs::read(&path).ok().and_then(|bytes| lnk_target(&bytes));
+                let game = is_game_link(&path.to_string_lossy(), exe.as_deref(), &name);
+                if exe.as_deref().is_some_and(is_windows_program) {
+                    windows_links.insert(path.to_string_lossy().into_owned());
+                }
+                let program = exe.as_deref().and_then(program_of);
                 let by_program = program.as_ref().map_or(0, |p| usage.get(p).copied().unwrap_or(0));
                 AppEntry {
                     uses: by_program.max(usage_for(&name, &usage)),
@@ -559,7 +660,7 @@ fn collect_apps() -> Vec<AppEntry> {
                     running: program.as_ref().is_some_and(|p| running.contains(p)) || (key.len() >= 5 && running.iter().any(|p| p == &key || p.starts_with(&key))),
                     target: path.to_string_lossy().into_owned(),
                     name,
-                    kind: KIND_APP.to_string(),
+                    kind: if game { KIND_GAME } else { KIND_APP }.to_string(),
                     icon: None,
                 }
             })
@@ -581,15 +682,79 @@ fn collect_apps() -> Vec<AppEntry> {
                 icon: None,
             });
         }
-        apps.sort_by(|a, b| b.score().cmp(&a.score()).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+        apps.sort_by(|a, b| {
+            b.score()
+                .cmp(&a.score())
+                .then_with(|| {
+                    let own = |app: &AppEntry| is_builtin(&app.target) || windows_links.contains(&app.target);
+                    own(a).cmp(&own(b))
+                })
+                .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        });
         // Os jogos vêm depois. Um atalho do Menu Iniciar com o mesmo nome de um jogo sai: o do jogo abre pela loja
         // certa e traz a imagem do jogo.
         let games: Vec<AppEntry> = steam_games().into_iter().chain(epic_games()).collect();
         let game_names: std::collections::HashSet<String> = games.iter().map(|g| normalize(&g.name)).collect();
         apps.retain(|app| !game_names.contains(&normalize(&app.name)));
         apps.extend(games);
+        apps.extend(main_folders());
         apps
     }
+}
+
+/// Windows' main folders that exist here, named in Portuguese (the interface translates them). Where Windows really
+/// keeps them (a Documents moved to OneDrive or another drive) comes from the system, not from guessing.
+fn main_folders() -> Vec<AppEntry> {
+    known_folders()
+        .into_iter()
+        .filter(|(_, path)| path.is_dir())
+        .map(|(name, path)| AppEntry {
+            name: name.to_string(),
+            target: path.to_string_lossy().into_owned(),
+            uses: 0,
+            pinned: false,
+            running: false,
+            kind: KIND_FOLDER.to_string(),
+            icon: None,
+        })
+        .collect()
+}
+
+#[cfg(windows)]
+fn known_folders() -> Vec<(&'static str, PathBuf)> {
+    use windows::{
+        Win32::{
+            System::Com::CoTaskMemFree,
+            UI::Shell::{FOLDERID_Desktop, FOLDERID_Documents, FOLDERID_Downloads, FOLDERID_Music, FOLDERID_Pictures, FOLDERID_Videos, KF_FLAG_DEFAULT, SHGetKnownFolderPath},
+        },
+        core::GUID,
+    };
+    let path_of = |id: &GUID| unsafe {
+        let raw = SHGetKnownFolderPath(id, KF_FLAG_DEFAULT, None).ok()?;
+        let text = raw.to_string().ok();
+        CoTaskMemFree(Some(raw.0 as *const _));
+        text.map(PathBuf::from)
+    };
+    let mut folders: Vec<(&'static str, PathBuf)> = [
+        ("Downloads", &FOLDERID_Downloads),
+        ("Documentos", &FOLDERID_Documents),
+        ("Área de Trabalho", &FOLDERID_Desktop),
+        ("Imagens", &FOLDERID_Pictures),
+        ("Vídeos", &FOLDERID_Videos),
+        ("Músicas", &FOLDERID_Music),
+    ]
+    .into_iter()
+    .filter_map(|(name, id)| path_of(id).map(|path| (name, path)))
+    .collect();
+    if let Some(onedrive) = std::env::var_os("OneDrive") {
+        folders.push(("OneDrive", PathBuf::from(onedrive)));
+    }
+    folders
+}
+
+#[cfg(not(windows))]
+fn known_folders() -> Vec<(&'static str, PathBuf)> {
+    Vec::new()
 }
 
 #[cfg(test)]
@@ -599,7 +764,7 @@ mod tests {
     use std::{fs, path::PathBuf};
 
     use super::{
-        EpicGame, SteamGame, epic_games_in, is_steam_tool, lnk_target, normalize, parse_app_manifest, parse_epic_manifest, parse_start_apps, program_of, rot13, steam_games_in, steam_icon,
+        EpicGame, SteamGame, epic_games_in, is_builtin, is_game_link, is_steam_tool, lnk_target, normalize, parse_app_manifest, parse_epic_manifest, parse_start_apps, program_of, rot13, steam_games_in, steam_icon,
         steam_library_paths, usage_for, vdf_pairs,
     };
 
@@ -807,6 +972,27 @@ mod tests {
     }
 
     #[test]
+    fn reconhece_jogos_de_outras_lojas_pelo_atalho() {
+        let menu = r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs";
+        assert!(is_game_link(&format!(r"{menu}\Riot Games\VALORANT.lnk"), Some(r"C:\Riot Games\Riot Client\RiotClientServices.exe"), "VALORANT"));
+        assert!(is_game_link(&format!(r"{menu}\Battlefield 6.lnk"), Some(r"D:\Jogos\EA Games\Battlefield 6\bf6.exe"), "Battlefield 6"));
+        assert!(is_game_link(&format!(r"{menu}\Games\Minecraft Launcher.lnk"), None, "Minecraft Launcher"));
+        // The stores' launchers are apps; an ordinary app is an app.
+        assert!(!is_game_link(&format!(r"{menu}\Riot Games\Riot Client.lnk"), None, "Riot Client"));
+        assert!(!is_game_link(&format!(r"{menu}\Battle.net\Battle.net.lnk"), Some(r"C:\Program Files (x86)\Battle.net\Battle.net Launcher.exe"), "Battle.net"));
+        assert!(!is_game_link(&format!(r"{menu}\Spotify.lnk"), Some(r"C:\Users\ana\AppData\Roaming\Spotify\Spotify.exe"), "Spotify"));
+    }
+
+    #[test]
+    fn apps_do_windows_vem_depois() {
+        assert!(is_builtin(r"shell:AppsFolder\Microsoft.WindowsAlarms_8wekyb3d8bbwe!App"));
+        assert!(is_builtin(r"shell:AppsFolder\MicrosoftWindows.Client.CBS_cw5n1h2txyewy!QuickAssist"));
+        assert!(is_builtin(r"shell:AppsFolder\{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\charmap.exe"));
+        assert!(!is_builtin(r"shell:AppsFolder\SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify"));
+        assert!(!is_builtin(r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Discord.lnk"));
+    }
+
+    #[test]
     fn rot13_vai_e_volta() {
         assert_eq!(rot13("HRZR_PGYFRFFVBA"), "UEME_CTLSESSION");
         assert_eq!(rot13(&rot13(r"C:\Spotify\Spotify.exe")), r"C:\Spotify\Spotify.exe");
@@ -846,6 +1032,9 @@ mod smoke {
         println!("{} apps", apps.len());
         for app in apps.iter().take(20) {
             println!("{:>6}  uso={} fixado={} aberto={}  {}", app.score(), app.uses, app.pinned, app.running, app.name);
+        }
+        for app in apps.iter().filter(|a| a.kind == "game" || a.kind == "folder") {
+            println!("{:<7} {:<28} {}", app.kind, app.name, app.target);
         }
         assert!(!apps.is_empty());
     }

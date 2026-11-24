@@ -350,7 +350,7 @@ Big targets, icon over name.
 
 ### Eyes
 - Two white ovals (15 × 17 and 13 × 15, the right one tilted −6°) with 5.6px pupils that follow the cursor; lids are black bands driven by `--lt`/`--lb` for blink, sleep, wide and closed moods. They sit at the island's top left and the content starts after them (62px header inset; 22px when eyes are off).
-- With the eyes off, a 30px Clawd takes their place: at work (or waiting for you) while Claude Code runs, and the rest of the time, with "Clawd sempre visível" on (the default), dancing, or with headphones while music plays. "Reduzir movimento" shows him standing still.
+- With the eyes off, a 30px Clawd takes their place: at work (or waiting for you) while Claude Code runs, and the rest of the time, with "Clawd sempre visível" on (the default), with headphones while music plays and, with nothing playing, a calm day that changes every minute (looking around most of the time, a coffee, a stretch, a little dance; asleep from midnight to 6). "Reduzir movimento" shows him standing still.
 
 ### Press
 - A press is felt, barely seen: controls shrink by a few percent at most (buttons to 0.97, page dock to 0.96, tiles to 0.975), half of what they once did. The island itself never swells on a press; only the glass's light wave runs from the touch point, soft (half strength, 0.78 to 1.25 over 0.7s).
