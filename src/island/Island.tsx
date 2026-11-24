@@ -26,6 +26,7 @@ import { useHotkeys } from "./useHotkeys";
 import { glowOpacity, glowReach, islandAccent } from "./theme";
 import { useIslandDrag } from "./useIslandDrag";
 import { toggleLargePage } from "./largePages";
+import { AskQuestions, answeringSize } from "./AskQuestions";
 import { useGlassBlur } from "./useGlassBlur";
 import { useLiquidGlass } from "./useLiquidGlass";
 
@@ -257,7 +258,17 @@ export function Island() {
     w: SIZES.idle.w + (timerRunning ? CHIP_WIDTH.timer : 0) + (showCall ? (discordCall ? CHIP_WIDTH.discord : CHIP_WIDTH.call) : 0),
     h: SIZES.idle.h,
   };
-  const size = mode === "expanded" && largeOn ? EXPANDED_LARGE : mode === "idle" ? idleSize : SIZES[mode];
+  // Answering Claude's questions in the pill: it grows to list them (back to the request's size when it is folded).
+  const [answering, setAnswering] = useState(false);
+  useEffect(() => setAnswering(false), [asking?.id]);
+  const size =
+    mode === "expanded" && largeOn
+      ? EXPANDED_LARGE
+      : mode === "idle"
+        ? idleSize
+        : mode === "ask" && answering && asking?.questions
+          ? answeringSize(asking.questions)
+          : SIZES[mode];
 
   const notchRef = useRef<HTMLDivElement>(null);
   const islandRef = useRef<HTMLDivElement>(null);
@@ -635,8 +646,10 @@ export function Island() {
           )}
         </div>
 
-        <div className={`layer ask${mode === "ask" ? " on" : ""}`} style={{ width: SIZES.ask.w }}>
-          {asking && (
+        <div className={`layer ask${mode === "ask" ? " on" : ""}`} style={{ width: answering && asking?.questions ? answeringSize(asking.questions).w : SIZES.ask.w }}>
+          {asking?.questions ? (
+            <AskQuestions key={asking.id} request={asking} open={answering} onOpen={setAnswering} />
+          ) : asking && (
             <>
               <div className="ask-top">
                 <span className="dot wait" />

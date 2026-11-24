@@ -65,6 +65,15 @@ export interface AudioOutput {
   default: boolean;
 }
 
+/** FxSound (an audio enhancer), when it is running: its preset, its power and the device it plays to. */
+export interface FxState {
+  power: boolean;
+  presets: string[];
+  preset: string;
+  outputs: string[];
+  output: string;
+}
+
 export interface AudioState {
   outputs: AudioOutput[];
   /** null without a microphone. */
@@ -74,7 +83,7 @@ export interface AudioState {
 /** Why `setOutput` failed: Windows refused, or another app (a sound enhancer) made itself the default again. */
 export type SwitchError = { kind: "refused" } | { kind: "takenBack"; by: string };
 
-let devOutput = "b";
+let devOutput = "fx";
 
 /** A quick reminder ("15 min tirar a pizza"), kept on the Rust side until it fires. */
 export interface Reminder {
@@ -294,6 +303,14 @@ const DEV_NOTES: Note[] = [
 ];
 
 const CONFIG_KEY = "docky-config";
+/** FxSound as the browser preview pretends it runs. */
+let devFx: FxState | null = {
+  power: true,
+  presets: ["General", "Music", "Movies", "Gaming", "Volume Boost", "fire"],
+  preset: "General",
+  outputs: ["Alto-falantes (Realtek(R) Audio)", "Fones de ouvido (UGREEN Studio Pro)"],
+  output: "Fones de ouvido (UGREEN Studio Pro)",
+};
 let lastRect: Rect = { x: 0, y: 0, w: 0, h: 0 };
 
 export const ipc = {
@@ -450,6 +467,19 @@ export const ipc = {
   },
 
   /** Sound outputs (which one is the default) and the default microphone's mute. */
+  /** FxSound's state, or null when it is not running. */
+  async fxsoundState(): Promise<FxState | null> {
+    if (isTauri) return invoke<FxState | null>("fxsound_state");
+    return devFx;
+  },
+
+  /** Changes FxSound's preset, power or output (what is given); returns its state after, or null. */
+  async fxsoundSet(change: { power?: boolean; preset?: string; output?: string }): Promise<FxState | null> {
+    if (isTauri) return invoke<FxState | null>("fxsound_set", { power: change.power ?? null, preset: change.preset ?? null, output: change.output ?? null });
+    if (devFx) devFx = { ...devFx, ...Object.fromEntries(Object.entries(change).filter(([, v]) => v !== undefined)) };
+    return devFx;
+  },
+
   async audioState(): Promise<AudioState> {
     if (isTauri) return invoke<AudioState>("audio_state");
     return {
@@ -457,6 +487,7 @@ export const ipc = {
         { id: "a", name: "Alto-falantes (Realtek(R) Audio)", kind: "speakers", default: devOutput === "a" },
         { id: "b", name: "Fones de ouvido (UGREEN Studio Pro)", kind: "headphones", default: devOutput === "b" },
         { id: "c", name: "5 - H238F165 (AMD High Definition Audio Device)", kind: "display", default: devOutput === "c" },
+        { id: "fx", name: "Alto-falantes (FxSound Audio Enhancer)", kind: "speakers", default: devOutput === "fx" },
       ],
       mic: { muted: false },
     };
@@ -584,8 +615,8 @@ export const ipc = {
     return isTauri ? subscribe("claude-permission-cancel", handler) : devListen("docky:claude-cancel", handler);
   },
 
-  claudeDecide(id: number, allow: boolean): void {
-    if (isTauri) void invoke("claude_decide", { id, allow });
+  claudeDecide(id: number, allow: boolean, extra?: { answers?: Record<string, string>; terminal?: boolean }): void {
+    if (isTauri) void invoke("claude_decide", { id, allow, answers: extra?.answers ?? null, terminal: extra?.terminal ?? null });
   },
 
   async claudeStatus(): Promise<ClaudeStatus> {
@@ -922,6 +953,37 @@ if (!isTauri && import.meta.env.DEV) {
     /** Simula arquivos soltos na ilha: __docky.drop(["C:\a.pdf"]) */
     drop(paths: string[] = ["C:\Users\você\relatorio.pdf", "C:\Users\você\aula-03.pptx"]) {
       send("docky:file-drop", { type: "drop", paths } satisfies FileDropEvent);
+    },
+    /** Simula uma pergunta de múltipla escolha do Claude: __docky.question() */
+    question(id = Date.now()) {
+      send("docky:claude-permission", {
+        id,
+        sessionId: "s1",
+        cwd: "C:\\dev\\docky",
+        toolName: "AskUserQuestion",
+        summary: "Qual banco de dados usamos?",
+        questions: [
+          {
+            question: "Qual banco de dados usamos?",
+            header: "Banco",
+            multiSelect: false,
+            options: [
+              { label: "Postgres", description: "Relacional, para quando o app crescer" },
+              { label: "SQLite", description: "Um arquivo só, simples" },
+            ],
+          },
+          {
+            question: "Quais telas entram primeiro?",
+            header: "Telas",
+            multiSelect: true,
+            options: [
+              { label: "Login", description: "" },
+              { label: "Painel", description: "" },
+              { label: "Configurações", description: "" },
+            ],
+          },
+        ],
+      } satisfies PermissionRequest);
     },
     /** Simula um pedido de permissão: __docky.ask("pnpm tauri build") */
     ask(summary = "pnpm tauri build --release", id = Date.now()) {

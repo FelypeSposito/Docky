@@ -22,7 +22,8 @@ interface ClaudeStore {
   onEvent: (event: ClaudeEvent) => void;
   addPermission: (request: PermissionRequest) => void;
   dropPermission: (id: number) => void;
-  decide: (id: number, allow: boolean) => void;
+  /** Allow or deny; or answer Claude's questions (`answers`); or leave it to the terminal (`terminal`). */
+  decide: (id: number, allow: boolean, extra?: { answers?: Record<string, string>; terminal?: boolean }) => void;
 }
 
 const lastSegment = (cwd: string) => cwd.split(/[\\/]+/).filter(Boolean).pop() ?? "projeto";
@@ -56,12 +57,14 @@ export const useClaudeStore = create<ClaudeStore>((set, get) => ({
 
   dropPermission: (id) => set((s) => ({ permissions: s.permissions.filter((p) => p.id !== id) })),
 
-  decide: (id, allow) => {
-    ipc.claudeDecide(id, allow);
+  decide: (id, allow, extra) => {
+    ipc.claudeDecide(id, allow, extra);
+    // Only a real "no" makes Clawd sad: sending the question to the terminal is not one.
+    const denied = !allow && !extra?.terminal;
     set((s) => ({
       permissions: s.permissions.filter((p) => p.id !== id),
-      denials: allow ? s.denials : s.denials + 1,
-      reaction: allow ? s.reaction : { kind: "sad", until: performance.now() + REACTION_MS },
+      denials: denied ? s.denials + 1 : s.denials,
+      reaction: denied ? { kind: "sad", until: performance.now() + REACTION_MS } : s.reaction,
     }));
   },
 }));

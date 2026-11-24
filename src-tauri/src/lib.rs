@@ -34,6 +34,7 @@ mod shell_icon;
 mod shelf;
 mod taskbar;
 mod idle;
+mod fxsound;
 mod tray;
 mod updates;
 mod volume;
@@ -143,6 +144,8 @@ pub fn run() {
             volume::set_volume,
             volume::set_muted,
             idle::idle_seconds,
+            fxsound::fxsound_state,
+            fxsound::fxsound_set,
         ])
         // wry's own drop target (when it registers): remember what was dropped, like file_drop does.
         .on_window_event(|window, event| match event {

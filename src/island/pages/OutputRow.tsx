@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { sortOutputs, splitOutputName } from "../../audio/devices";
 import { useAudioStore } from "../../audio/store";
 import { t } from "../../i18n";
-import { type AudioOutput, type AudioState, ipc, type OutputKind, type SwitchError } from "../../lib/ipc";
+import { type AudioOutput, type AudioState, type FxState, ipc, type OutputKind, type SwitchError } from "../../lib/ipc";
 import { HeadphonesIcon, MicIcon, MicOffIcon, ScreenIcon, SpeakerIcon } from "../icons";
 
 const REFRESH_MS = 3000;
+/** FxSound is asked less often: each question starts its program for a moment. */
+const FX_REFRESH_MS = 10_000;
 /** The microphone's hotkey, as Rust names it (`hotkeys.rs`, `label`). */
 const MIC_HOTKEY = "Ctrl+Alt+M";
 
@@ -29,6 +31,23 @@ const label = (output: AudioOutput) => {
 export function OutputRow({ active }: { active: boolean }) {
   const [state, setState] = useState<AudioState | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  /** FxSound, when it runs: asked when the page opens and every few seconds (it can change in its own window). */
+  const [fx, setFx] = useState<FxState | null>(null);
+  useEffect(() => {
+    if (!active) return;
+    let alive = true;
+    const read = () => void ipc.fxsoundState().then((next) => alive && setFx(next)).catch(() => {});
+    read();
+    const timer = setInterval(read, FX_REFRESH_MS);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [active]);
+  const setFxSound = (change: { power?: boolean; preset?: string; output?: string }) => {
+    if (fx) setFx({ ...fx, ...Object.fromEntries(Object.entries(change).filter(([, v]) => v !== undefined)) });
+    void ipc.fxsoundSet(change).then((next) => next && setFx(next)).catch(() => {});
+  };
   const mic = useAudioStore((s) => s.mic);
   // The hotkey is shown only when it works: another program may have taken Ctrl+Alt+M first.
   const [micKey, setMicKey] = useState<string | null>(null);
@@ -78,9 +97,27 @@ export function OutputRow({ active }: { active: boolean }) {
     void ipc.setDefaultMicMuted(muted).then((ok) => !ok && useAudioStore.setState({ mic: { muted: !muted } }));
   };
 
+  // With FxSound as Windows' output (its virtual device), where the sound really goes is FxSound's own output: the
+  // field lists those devices, and picking one tells FxSound.
+  const throughFx = !!fx && !!current && /fxsound/i.test(current.name) && fx.outputs.length > 0;
+
   return (
     <>
-      {current ? (
+      {throughFx && fx ? (
+        <label className="mx-field">
+          <span className="mx-field-ic" aria-hidden="true">
+            <SpeakerIcon size={16} />
+          </span>
+          <select className="mx-out" aria-label={t("Saída de som do FxSound")} title={t("Saída do FxSound: {device}", { device: fx.output })} value={fx.output} onChange={(e) => setFxSound({ output: e.target.value })}>
+            {!fx.outputs.includes(fx.output) && <option value={fx.output}>{fx.output}</option>}
+            {fx.outputs.map((device) => (
+              <option key={device} value={device}>
+                {device}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : current ? (
         <label className="mx-field">
           <span className="mx-field-ic" aria-hidden="true">
             <OutputIcon kind={current.kind} />
@@ -103,6 +140,32 @@ export function OutputRow({ active }: { active: boolean }) {
         </div>
       )}
       {note && <div className="mx-note">{note}</div>}
+      {fx && (
+        // FxSound's preset, and its power: off, the sound plays as it is.
+        <div className={`mx-field mx-fx${fx.power ? "" : " off"}`}>
+          <span className="mx-fx-tag" aria-hidden="true">
+            Fx
+          </span>
+          <select className="mx-out" aria-label={t("Predefinição do FxSound")} title={t("Predefinição do FxSound")} value={fx.preset} disabled={!fx.power} onChange={(e) => setFxSound({ preset: e.target.value })}>
+            {!fx.presets.includes(fx.preset) && <option value={fx.preset}>{fx.preset}</option>}
+            {fx.presets.map((preset) => (
+              <option key={preset} value={preset}>
+                {preset}
+              </option>
+            ))}
+          </select>
+          <button
+            className={`mx-fx-power${fx.power ? " on" : ""}`}
+            role="switch"
+            aria-checked={fx.power}
+            aria-label={t(fx.power ? "Desligar o FxSound" : "Ligar o FxSound")}
+            title={t(fx.power ? "Desligar o FxSound" : "Ligar o FxSound")}
+            onClick={() => setFxSound({ power: !fx.power })}
+          >
+            <i />
+          </button>
+        </div>
+      )}
       {mic && (
         <button
           className={`mx-mic${mic.muted ? " off" : ""}`}

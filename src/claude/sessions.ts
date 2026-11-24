@@ -43,6 +43,16 @@ export interface PermissionRequest {
   cwd: string;
   toolName: string;
   summary: string;
+  /** Claude's multiple-choice questions (AskUserQuestion), answered from the island. */
+  questions?: Question[];
+}
+
+/** One of Claude's questions: the text, a short header, the choices, and whether several can be picked. */
+export interface Question {
+  question: string;
+  header: string;
+  options: { label: string; description: string }[];
+  multiSelect: boolean;
 }
 
 export type Sessions = Record<string, Session>;

@@ -352,7 +352,11 @@ Big targets, icon over name.
 ### Som Page
 - Opens at the island's large size on its own (no expand button): it holds a call, the PC's sound and every app's volume.
 - Three flat tiles on the bento: the Discord call across the top while you are in one (channel, who talks, time, faces, buttons in one row); below, the PC at left (232px: "Volume geral" and its level, a full-width slider, then the output and the microphone as two 32px controls at the tile's foot) and the apps at right, the one tile that grows and scrolls ("Apps" and how many are playing, then 34px rows).
+- With FxSound running, a row shows its preset (an accent "Fx" tag, a quiet select) and a 30 × 18 switch for its power; when Windows plays through FxSound's virtual device, the output field lists FxSound's own devices instead (picking one tells FxSound).
 - A muted microphone turns its control soft red; its hotkey shows only when Docky holds it. With no output device, the output control says "Nenhuma saída de som" and the microphone stays.
+
+### Claude's questions in the pill
+- A multiple-choice question from Claude Code (AskUserQuestion) shows folded like a permission request, with its text instead of the tool's JSON, and "No terminal" / "Responder". Open, the pill grows (560 wide, up to 400 tall) to list each question with its options as 38px rows (a ring, or a box when several can be picked; the chosen one in the clay accent), a field for another answer, and "Enviar", which sends the answers to Claude Code.
 
 ### Eyes
 - Two white ovals (15 × 17 and 13 × 15, the right one tilted −6°) with 5.6px pupils that follow the cursor; lids are black bands driven by `--lt`/`--lb` for blink, sleep, wide and closed moods. They sit at the island's top left and the content starts after them (62px header inset; 22px when eyes are off).

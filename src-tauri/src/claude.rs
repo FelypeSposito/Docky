@@ -33,7 +33,7 @@ pub struct ClaudeState {
     token: String,
     port: AtomicU16,
     next_id: AtomicU64,
-    pending: Mutex<HashMap<u64, Sender<bool>>>,
+    pending: Mutex<HashMap<u64, Sender<Decision>>>,
 }
 
 impl ClaudeState {
@@ -83,6 +83,62 @@ struct PermissionRequest {
     cwd: String,
     tool_name: String,
     summary: String,
+    /// Claude's multiple-choice questions (the AskUserQuestion tool), to answer from the island.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    questions: Option<Vec<Question>>,
+}
+
+/// One of Claude's questions: the text, a short header, the choices, and whether several can be picked.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Question {
+    pub question: String,
+    pub header: String,
+    pub options: Vec<QuestionOption>,
+    pub multi_select: bool,
+}
+
+#[derive(Serialize, Clone, Debug, PartialEq)]
+pub struct QuestionOption {
+    pub label: String,
+    pub description: String,
+}
+
+/// What the island answered.
+pub enum Decision {
+    Allow,
+    Deny,
+    /// The answers to Claude's questions (question text → chosen label, or labels joined by ", ").
+    Answer(serde_json::Map<String, Value>),
+    /// Answer in the terminal instead: the hook steps aside.
+    Pass,
+}
+
+/// The questions in an AskUserQuestion call, or `None` if it has none Docky can show.
+pub fn parse_questions(input: &Value) -> Option<Vec<Question>> {
+    let s = |v: &Value, key: &str| v.get(key).and_then(Value::as_str).unwrap_or_default().to_string();
+    let questions: Vec<Question> = input
+        .get("questions")?
+        .as_array()?
+        .iter()
+        .filter_map(|q| {
+            let options: Vec<QuestionOption> = q
+                .get("options")?
+                .as_array()?
+                .iter()
+                .map(|o| QuestionOption { label: s(o, "label"), description: s(o, "description") })
+                .filter(|o| !o.label.is_empty())
+                .collect();
+            let question = s(q, "question");
+            (!question.is_empty() && !options.is_empty()).then(|| Question {
+                question,
+                header: s(q, "header"),
+                options,
+                multi_select: q.get("multiSelect").and_then(Value::as_bool).unwrap_or(false),
+            })
+        })
+        .collect();
+    (!questions.is_empty()).then_some(questions)
 }
 
 fn text<'a>(body: &'a Value, key: &str) -> &'a str {
@@ -93,6 +149,8 @@ fn text<'a>(body: &'a Value, key: &str) -> &'a str {
 fn summarize(tool: &str, input: &Value) -> String {
     let pick = |keys: &[&str]| keys.iter().find_map(|k| input.get(*k).and_then(Value::as_str)).map(str::to_string);
     let summary = match tool {
+        // A question shows as its text, not as the tool's JSON.
+        "AskUserQuestion" => parse_questions(input).and_then(|qs| qs.first().map(|q| q.question.clone())),
         "Bash" => pick(&["command"]),
         "Edit" | "Write" | "MultiEdit" | "NotebookEdit" | "Read" => pick(&["file_path", "notebook_path"]),
         "WebFetch" => pick(&["url"]),
@@ -115,6 +173,13 @@ fn decision_json(allow: bool) -> String {
     json!({ "hookSpecificOutput": { "hookEventName": "PermissionRequest", "decision": decision } }).to_string()
 }
 
+/// Allows the question with the answers filled in (`answers` in the tool's input), as Claude Code's own picker does.
+pub fn answer_json(input: &Value, answers: serde_json::Map<String, Value>) -> String {
+    let mut updated = input.as_object().cloned().unwrap_or_default();
+    updated.insert("answers".to_string(), Value::Object(answers));
+    json!({ "hookSpecificOutput": { "hookEventName": "PermissionRequest", "decision": { "behavior": "allow", "updatedInput": updated } } }).to_string()
+}
+
 /// O cliente (curl do hook) fechou a conexão? Acontece quando você responde no terminal.
 fn client_gone(stream: &TcpStream) -> bool {
     let _ = stream.set_nonblocking(true);
@@ -124,7 +189,7 @@ fn client_gone(stream: &TcpStream) -> bool {
     gone
 }
 
-fn wait_for_decision(app: &AppHandle, stream: &TcpStream, request: PermissionRequest) -> Option<bool> {
+fn wait_for_decision(app: &AppHandle, stream: &TcpStream, request: PermissionRequest) -> Option<Decision> {
     let state = app.state::<ClaudeState>();
     let (tx, rx) = mpsc::channel();
     let id = request.id;
@@ -134,7 +199,7 @@ fn wait_for_decision(app: &AppHandle, stream: &TcpStream, request: PermissionReq
     let started = Instant::now();
     let decision = loop {
         match rx.recv_timeout(Duration::from_millis(400)) {
-            Ok(allow) => break Some(allow),
+            Ok(decision) => break Some(decision),
             Err(RecvTimeoutError::Timeout) => {
                 if started.elapsed() >= PERMISSION_WAIT || client_gone(stream) {
                     break None;
@@ -177,11 +242,15 @@ fn handle_hook(app: &AppHandle, stream: &TcpStream, event: &str, body: &Value) -
     if tool.is_empty() {
         return String::new(); // corpo inválido: deixa o Claude Code perguntar no terminal
     }
-    let summary = summarize(&tool, body.get("tool_input").unwrap_or(&Value::Null));
+    let input = body.get("tool_input").cloned().unwrap_or(Value::Null);
+    let summary = summarize(&tool, &input);
+    let questions = (tool == "AskUserQuestion").then(|| parse_questions(&input)).flatten();
     let id = app.state::<ClaudeState>().next_id.fetch_add(1, Ordering::SeqCst);
-    match wait_for_decision(app, stream, PermissionRequest { id, session_id, cwd, tool_name: tool, summary }) {
-        Some(allow) => decision_json(allow),
-        None => String::new(),
+    match wait_for_decision(app, stream, PermissionRequest { id, session_id, cwd, tool_name: tool, summary, questions }) {
+        Some(Decision::Allow) => decision_json(true),
+        Some(Decision::Deny) => decision_json(false),
+        Some(Decision::Answer(answers)) => answer_json(&input, answers),
+        Some(Decision::Pass) | None => String::new(),
     }
 }
 
@@ -313,10 +382,18 @@ pub fn spawn(app: AppHandle) {
     });
 }
 
+/// The island's answer to a request: allow or deny it, answer Claude's questions (`answers`), or leave it to the
+/// terminal (`terminal`).
 #[tauri::command]
-pub fn claude_decide(state: State<ClaudeState>, id: u64, allow: bool) {
+pub fn claude_decide(state: State<ClaudeState>, id: u64, allow: bool, answers: Option<serde_json::Map<String, Value>>, terminal: Option<bool>) {
+    let decision = match (answers, terminal.unwrap_or(false)) {
+        (_, true) => Decision::Pass,
+        (Some(answers), _) if !answers.is_empty() => Decision::Answer(answers),
+        _ if allow => Decision::Allow,
+        _ => Decision::Deny,
+    };
     if let Some(sender) = state.pending.lock().unwrap().get(&id) {
-        let _ = sender.send(allow);
+        let _ = sender.send(decision);
     }
 }
 
@@ -452,6 +529,33 @@ mod tests {
         let deny: Value = serde_json::from_str(&decision_json(false)).unwrap();
         assert_eq!(deny["hookSpecificOutput"]["decision"]["behavior"], "deny");
         assert_eq!(deny["hookSpecificOutput"]["decision"]["interrupt"], false);
+    }
+
+    #[test]
+    fn le_as_perguntas_de_multipla_escolha() {
+        let input = json!({ "questions": [
+            { "question": "Qual banco?", "header": "Banco", "multiSelect": false, "options": [
+                { "label": "Postgres", "description": "relacional" }, { "label": "SQLite", "description": "arquivo" } ] },
+            { "question": "Sem opções", "header": "x", "options": [] }
+        ] });
+        let questions = parse_questions(&input).unwrap();
+        assert_eq!(questions.len(), 1);
+        assert_eq!(questions[0].options[1].label, "SQLite");
+        assert!(!questions[0].multi_select);
+        assert_eq!(summarize("AskUserQuestion", &input), "Qual banco?");
+        assert_eq!(parse_questions(&json!({ "command": "ls" })), None);
+    }
+
+    #[test]
+    fn responde_a_pergunta_com_as_respostas_no_input() {
+        let input = json!({ "questions": [{ "question": "Qual banco?", "options": [] }] });
+        let mut answers = serde_json::Map::new();
+        answers.insert("Qual banco?".into(), json!("SQLite"));
+        let out: Value = serde_json::from_str(&answer_json(&input, answers)).unwrap();
+        let decision = &out["hookSpecificOutput"]["decision"];
+        assert_eq!(decision["behavior"], "allow");
+        assert_eq!(decision["updatedInput"]["answers"]["Qual banco?"], "SQLite");
+        assert_eq!(decision["updatedInput"]["questions"][0]["question"], "Qual banco?");
     }
 
     #[test]
