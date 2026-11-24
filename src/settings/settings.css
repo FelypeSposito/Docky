@@ -85,7 +85,7 @@ body[data-window="settings"]:has(.sa.glass) {
   transition: transform 0.35s var(--lq-spring), scale 0.3s var(--lq-spring);
 }
 .sa.glass .tg:active i {
-  scale: 1.25 1.1;
+  scale: 1.125 1.05;
 }
 .sa.glass :is(.btn, .seg2 button, .icb, .sa-nav button, .sw) {
   transition-property: background, color, box-shadow, filter, scale;

@@ -16,6 +16,7 @@ GHAZALI, under the MIT license (copy in `LICENSE` next to this file):
 - `clawd-coding.svg`: the end of a break, back to focus
 - `clawd-dancing.svg`, `clawd-music.svg`: with the eyes off, Clawd in their place when Claude Code is idle (dancing with
   no music, listening along while music plays)
+- `clawd-still.svg`: `clawd-idle-living.svg` with its animations turned off, for "Reduzir movimento"
 
 Clawd, the Claude Code mascot, is a character of Anthropic. Docky is an unofficial, non-commercial project and is not
 affiliated with or endorsed by Anthropic.

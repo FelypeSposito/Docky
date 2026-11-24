@@ -75,7 +75,7 @@ export function useGlassBlur(notchRef: RefObject<HTMLDivElement | null>, islandR
     const watcher = new MutationObserver(kick);
     watcher.observe(notch, { attributes: true, attributeFilter: ["style", "class"] });
     watcher.observe(island, { attributes: true, attributeFilter: ["style", "class"] });
-    // Animations that move it without touching attributes (the glide after a drag, the press swell).
+    // Animations that move it without touching attributes (the glide after a drag).
     window.addEventListener("pointerdown", kick);
     window.addEventListener("pointerup", kick);
     window.addEventListener("resize", kick);

@@ -143,10 +143,11 @@ pub fn run() {
             volume::set_muted,
         ])
         // wry's own drop target (when it registers): remember what was dropped, like file_drop does.
-        .on_window_event(|_, event| {
-            if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
-                shelf::remember(paths);
-            }
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) => shelf::remember(paths),
+            // An island window closed (a screen went away): its glass blur window goes too.
+            tauri::WindowEvent::Destroyed => glass::window_gone(window.app_handle(), window.label()),
+            _ => {}
         })
         .setup(|app| {
             let handle = app.handle().clone();

@@ -38,6 +38,7 @@ import gamingSvg from "../assets/clawd/clawd-gaming.svg";
 import yogaSvg from "../assets/clawd/clawd-yoga.svg";
 import dancingSvg from "../assets/clawd/clawd-dancing.svg";
 import musicSvg from "../assets/clawd/clawd-music.svg";
+import stillSvg from "../assets/clawd/clawd-still.svg";
 import { formatElapsed, formatMinutes, startActivitySync, useActivityStore } from "./activity";
 import { ClawdMini } from "./ClawdMini";
 import { DiscordButtons, DiscordCall } from "./DiscordCall";
@@ -380,11 +381,16 @@ export function Island() {
   const workSeconds = useSeconds(mode === "work" ? running[0]?.since : undefined);
   const work = currentWork(running);
   // With the eyes turned off, Clawd takes their place while Claude Code works (or waits for you). The rest of the time
-  // (Settings, Aparência, "Clawd sempre visível") he dances, or listens along while music plays. It is an animation,
-  // so "reduce motion" keeps the spot empty.
-  const restingClawd = config.clawdAlways ? (playing ? musicSvg : dancingSvg) : null;
-  const clawdInEyes = eyesPhase === "gone" && !config.reduceMotion ? (asking ? WAIT_CLAWD : running.length > 0 ? WORK_CLAWD[work].src : restingClawd) : null;
-  const clawdTitle = asking ? t("O Claude espera você") : running.length > 0 ? `Claude ${t(WORK_CLAWD[work].doing)}` : t(playing ? "O Clawd ouvindo junto" : "O Clawd dançando");
+  // (Settings, Aparência, "Clawd sempre visível") he dances, or listens along while music plays. "Reduce motion"
+  // shows him standing still instead.
+  const eyesClawd: { src: string; title: string } | null =
+    eyesPhase !== "gone" ? null
+    : asking ? { src: WAIT_CLAWD, title: t("O Claude espera você") }
+    : running.length > 0 ? { src: WORK_CLAWD[work].src, title: `Claude ${t(WORK_CLAWD[work].doing)}` }
+    : !config.clawdAlways ? null
+    : playing ? { src: musicSvg, title: t("O Clawd ouvindo junto") }
+    : { src: dancingSvg, title: t("O Clawd dançando") };
+  const clawdInEyes = eyesClawd && config.reduceMotion ? { ...eyesClawd, src: stillSvg } : eyesClawd;
 
   const islandStyle = {
     "--glow-opacity": glowOpacity(config.glow),
@@ -408,8 +414,8 @@ export function Island() {
         {glass && <i className="lq-glow" aria-hidden="true" />}
         {eyesPhase !== "gone" && <Eyes mood={eyesMood} follow={config.followCursor} shake={denials} phase={eyesPhase} />}
         {clawdInEyes && (
-          <span className="eyes-clawd" title={clawdTitle}>
-            <ClawdMini key={clawdInEyes} src={clawdInEyes} show />
+          <span className="eyes-clawd" title={clawdInEyes.title}>
+            <ClawdMini key={clawdInEyes.src} src={clawdInEyes.src} show />
           </span>
         )}
 

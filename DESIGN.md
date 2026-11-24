@@ -296,12 +296,12 @@ Quiet until used.
 Big targets, icon over name.
 - 34px icon above a 12px 600 name, centred in a 62px cell, 14px radius, no fill at rest.
 - The first tile is lifted (0.075 fill) so Enter has an obvious target; while searching, the first match takes a 14% accent fill and a 45% accent inner edge.
-- Hover 0.07 fill; press scales to 0.95; focus is a 2px accent outline inset.
+- Hover 0.07 fill; press scales to 0.975; focus is a 2px accent outline inset.
 
 ### Dock
 - **Style:** a floating capsule (block fill, inner edge, 12px radius, 3px padding) at the island's bottom centre; icon items 30px tall, 9px radius, Ink 2.
 - **Active:** 17% accent fill, icon in accent, and the page name slides open beside it in white (max-width eases over 0.55s).
-- **Hover / Press:** 0.1 fill and white; press scales to 0.92. Items reorder by dragging (lifted 0.22 fill + shadow). A 1px × 14px divider separates groups.
+- **Hover / Press:** 0.1 fill and white; press scales to 0.96. Items reorder by dragging (lifted 0.22 fill + shadow). A 1px × 14px divider separates groups.
 
 ### Rows (Settings and quick settings)
 - No box. Label (title) and hint stacked at left, control at right, 16px gap, separated by a bottom hairline. Settings rows are at least 56px; the island's quick rows at least 44px and drop the last hairline.
@@ -312,7 +312,7 @@ Big targets, icon over name.
 
 ### Buttons
 - **Shape:** 9px radius, 32px tall, 14px sides, 12px 600.
-- **Default:** 0.12 fill, hover 0.2, press scales to 0.94, disabled 40% opacity.
+- **Default:** 0.12 fill, hover 0.2, press scales to 0.97, disabled 40% opacity.
 - **Primary:** accent fill with dark on-accent text; hover brightens 10%.
 - **Danger:** text in soft red; icon buttons get a red-tinted hover.
 - **Icon buttons:** 34px square, 10px radius, Ink 2, hover 0.12 fill; "on" state is accent icon only.
@@ -345,6 +345,10 @@ Big targets, icon over name.
 
 ### Eyes
 - Two white ovals (15 × 17 and 13 × 15, the right one tilted −6°) with 5.6px pupils that follow the cursor; lids are black bands driven by `--lt`/`--lb` for blink, sleep, wide and closed moods. They sit at the island's top left and the content starts after them (62px header inset; 22px when eyes are off).
+- With the eyes off, a 30px Clawd takes their place: at work (or waiting for you) while Claude Code runs, and the rest of the time, with "Clawd sempre visível" on (the default), dancing, or with headphones while music plays. "Reduzir movimento" shows him standing still.
+
+### Press
+- A press is felt, barely seen: controls shrink by a few percent at most (buttons to 0.97, page dock to 0.96, tiles to 0.975), half of what they once did. The island itself never swells on a press; only the glass's light wave runs from the touch point.
 
 ## Do's and Don'ts
 

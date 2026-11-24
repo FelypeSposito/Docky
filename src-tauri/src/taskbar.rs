@@ -1,6 +1,7 @@
 //! Docky had its own taskbar, a dock (0.4.0 to 0.5.1), that could hide Windows' taskbar: auto-hide on, and the bar out
 //! of sight. The dock is gone, but someone may update (or uninstall) with the bar still hidden. The state from before
-//! was written to `taskbar.json`; while that file exists, Windows' taskbar is put back as it was and the file removed.
+//! was written to `taskbar.json`; while that file exists, Windows' taskbar is put back as it was and the file removed
+//! (only once a taskbar was there to put back).
 
 use std::{fs, path::PathBuf};
 
@@ -17,13 +18,36 @@ struct Saved {
     autohide: bool,
 }
 
-/// Brings Windows' taskbar back as it was before the old dock hid it. Does nothing when it never did.
+/// Brings Windows' taskbar back as it was before the old dock hid it. Does nothing when it never did. When Docky
+/// starts with Windows, Explorer (and its taskbar) may not be up yet: then it keeps trying for a while, and the note
+/// stays for the next start if the taskbar never shows.
 pub fn restore_taskbar() {
-    let Some(path) = saved_path() else { return };
-    let Some(saved) = fs::read_to_string(&path).ok().and_then(|t| serde_json::from_str::<Saved>(&t).ok()) else { return };
-    win::set_autohide(saved.autohide);
+    if saved_path().is_some_and(|p| p.exists()) && !try_restore() {
+        std::thread::spawn(|| {
+            for _ in 0..60 {
+                std::thread::sleep(std::time::Duration::from_secs(2));
+                if try_restore() {
+                    return;
+                }
+            }
+        });
+    }
+}
+
+/// One try: false while there is a note but no taskbar to put back yet.
+fn try_restore() -> bool {
+    let Some(path) = saved_path() else { return true };
+    let Ok(text) = fs::read_to_string(&path) else { return true };
+    if !win::taskbar_up() {
+        return false;
+    }
+    // A note that cannot be read still means the bar may be hidden: it is shown, and auto-hide left as it is.
+    if let Ok(saved) = serde_json::from_str::<Saved>(&text) {
+        win::set_autohide(saved.autohide);
+    }
     win::show_taskbars();
     let _ = fs::remove_file(path);
+    true
 }
 
 #[cfg(windows)]
@@ -58,6 +82,11 @@ mod win {
             let _ = EnumWindows(Some(secondary), LPARAM(&mut bars as *mut Vec<HWND> as isize));
         }
         bars
+    }
+
+    /// Whether Explorer's main taskbar exists (it does not yet early in a Windows start).
+    pub fn taskbar_up() -> bool {
+        unsafe { FindWindowW(w!("Shell_TrayWnd"), PCWSTR::null()) }.is_ok_and(|h| !h.is_invalid())
     }
 
     pub fn show_taskbars() {
@@ -95,6 +124,9 @@ mod win {
 
 #[cfg(not(windows))]
 mod win {
+    pub fn taskbar_up() -> bool {
+        true
+    }
     pub fn show_taskbars() {}
     pub fn set_autohide(_: bool) {}
 }

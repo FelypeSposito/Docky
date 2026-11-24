@@ -262,7 +262,6 @@ export const EN: Record<string, string> = {
   "Desenvolvimento": "Development",
   "Design e arte": "Design and art",
   "Desligado, passar o mouse mostra o player (com música) ou um resumo, e a ilha abre com clique ou Ctrl+Alt+D": "When off, hovering shows the player (with music) or a summary, and the island opens with a click or Ctrl+Alt+D",
-  "Desligados, o Clawd aparece no lugar deles enquanto o Claude Code trabalha": "When off, Clawd takes their place while Claude Code works",
   "Destino do atalho": "Shortcut target",
   "dez": "Dec",
   "dia todo": "all day",

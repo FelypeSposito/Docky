@@ -9,9 +9,9 @@
 //! dragging), see `useGlassBlur.ts`, and only the clip changes.
 //!
 //! Anything that fails (an old Windows, transparency effects turned off) only means no blur: the island draws its
-//! gray glass either way.
+//! gray glass either way. It is tried again a few seconds later, so turning transparency back on brings it back.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{collections::BTreeSet, sync::Mutex};
 
 use tauri::{AppHandle, WebviewWindow};
 
@@ -45,15 +45,30 @@ pub fn to_physical(o: Outline, scale: f64) -> Px {
     Px { x: r(o.x), y: r(o.y), w: r(o.w).max(1), h: r(o.h).max(1), radius: r(o.radius).max(0), ear: r(o.ear).max(0) }
 }
 
-/// Whether the glass is on (the island asked for it).
-static ON: AtomicBool = AtomicBool::new(false);
+/// The island windows (by label) that asked for the glass. Each island has its own: one turning it off, or closing,
+/// leaves the others' blur alone.
+static ON: Mutex<BTreeSet<String>> = Mutex::new(BTreeSet::new());
 
-/// Turns the glass blur on (the blur waits for the first outline) or off (the blur windows go).
+fn is_on(label: &str) -> bool {
+    ON.lock().map(|on| on.contains(label)).unwrap_or(false)
+}
+
+fn set_on(label: &str, on: bool) {
+    if let Ok(mut set) = ON.lock() {
+        if on {
+            set.insert(label.to_string());
+        } else {
+            set.remove(label);
+        }
+    }
+}
+
+/// Turns an island's glass blur on (the blur waits for the first outline) or off (its blur window goes).
 #[tauri::command]
 pub fn island_glass(window: WebviewWindow, on: bool) {
-    ON.store(on, Ordering::SeqCst);
+    let label = window.label().to_string();
+    set_on(&label, on);
     if !on {
-        let label = window.label().to_string();
         let _ = window.run_on_main_thread(move || imp::remove(&label));
     }
 }
@@ -61,16 +76,16 @@ pub fn island_glass(window: WebviewWindow, on: bool) {
 /// The island's outline changed: the blur under it takes the new shape (made the first time).
 #[tauri::command]
 pub fn island_glass_shape(window: WebviewWindow, outline: Outline) {
-    if !ON.load(Ordering::SeqCst) {
+    let label = window.label().to_string();
+    if !is_on(&label) {
         return;
     }
     let Ok(hwnd) = window.hwnd() else { return };
     let island = hwnd.0 as isize;
     let px = to_physical(outline, window.scale_factor().unwrap_or(1.0));
     let shown = window.is_visible().unwrap_or(true);
-    let label = window.label().to_string();
     let _ = window.run_on_main_thread(move || {
-        if ON.load(Ordering::SeqCst) {
+        if is_on(&label) {
             imp::shape(&label, island, px, shown);
         }
     });
@@ -81,11 +96,19 @@ pub fn island_shown(app: &AppHandle, shown: bool) {
     let _ = app.run_on_main_thread(move || imp::show_all(shown));
 }
 
+/// An island window closed (a screen was unplugged): its blur window goes with it, or it would stay on screen.
+pub fn window_gone(app: &AppHandle, label: &str) {
+    set_on(label, false);
+    let label = label.to_string();
+    let _ = app.run_on_main_thread(move || imp::remove(&label));
+}
+
 #[cfg(windows)]
 mod imp {
     use std::cell::{Cell, RefCell};
     use std::collections::HashMap;
     use std::ffi::c_void;
+    use std::time::{Duration, Instant};
 
     use windows::{
         Graphics::IGeometrySource2D,
@@ -112,7 +135,7 @@ mod imp {
             },
             UI::WindowsAndMessaging::{
                 CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowRect, LWA_ALPHA, RegisterClassW, SW_HIDE, SW_SHOWNOACTIVATE,
-                SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_SHOWWINDOW, SetLayeredWindowAttributes, SetWindowPos, ShowWindow, WINDOW_EX_STYLE,
+                SET_WINDOW_POS_FLAGS, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_SHOWWINDOW, SetLayeredWindowAttributes, SetWindowPos, ShowWindow, WINDOW_EX_STYLE,
                 WNDCLASSW, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
                 WS_POPUP,
             },
@@ -157,10 +180,27 @@ mod imp {
         static BACKDROPS: RefCell<HashMap<String, Backdrop>> = RefCell::new(HashMap::new());
         /// The dispatcher queue composition needs on this thread, kept for the app's life.
         static QUEUE: RefCell<Option<DispatcherQueueController>> = const { RefCell::new(None) };
-        /// Set once making a blur failed, so an outline sent every frame does not retry (and log) every frame.
-        static FAILED: Cell<bool> = const { Cell::new(false) };
+        /// After a failure, no blur is tried before this moment, so an outline sent every frame does not retry (and
+        /// log) every frame. The failures are the system's (transparency off, an old Windows), so it is one for all.
+        static PAUSED_UNTIL: Cell<Option<Instant>> = const { Cell::new(None) };
+        /// Whether the last failure was already logged (a long stretch with transparency off logs once).
+        static LOGGED: Cell<bool> = const { Cell::new(false) };
+        /// When Windows' transparency setting is read again (it can change while Docky runs).
+        static NEXT_CHECK: Cell<Option<Instant>> = const { Cell::new(None) };
         /// Whether the islands are shown (tray, fullscreen apps).
         static SHOWN: Cell<bool> = const { Cell::new(true) };
+        /// One Direct2D factory for the ears' paths, made the first time one is needed.
+        static FACTORY: RefCell<Option<ID2D1Factory>> = const { RefCell::new(None) };
+    }
+
+    /// How long a failed blur waits before it is tried again, and how often transparency is read.
+    const RETRY: Duration = Duration::from_secs(3);
+
+    fn fail(message: &str) {
+        PAUSED_UNTIL.set(Some(Instant::now() + RETRY));
+        if !LOGGED.replace(true) {
+            crate::logfile::write("info", message);
+        }
     }
 
     extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
@@ -216,9 +256,21 @@ mod imp {
     }
 
     /// A concave ear `size` px wide: the square minus the circle that rounds it toward the island (the CSS `.ear`).
+    fn factory() -> Result<ID2D1Factory> {
+        FACTORY.with(|slot| {
+            let mut slot = slot.borrow_mut();
+            if let Some(factory) = slot.as_ref() {
+                return Ok(factory.clone());
+            }
+            let factory: ID2D1Factory = unsafe { D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, None)? };
+            *slot = Some(factory.clone());
+            Ok(factory)
+        })
+    }
+
     fn ear_path(size: f32, right: bool) -> Result<CompositionPath> {
+        let factory = factory()?;
         unsafe {
-            let factory: ID2D1Factory = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, None)?;
             let path = factory.CreatePathGeometry()?;
             let sink = path.Open()?;
             let p = |x: f32, y: f32| Vector2 { X: x, Y: y };
@@ -256,7 +308,7 @@ mod imp {
                 let ex: WINDOW_EX_STYLE =
                     WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT;
                 let hwnd = CreateWindowExW(ex, w!("DockyGlassBlur"), w!("Docky glass"), WS_POPUP, 0, 0, 1, 1, None, None, Some(instance.into()), None)?;
-                match Self::fill(hwnd) {
+                match Self::build_in(hwnd) {
                     Ok(backdrop) => Ok(backdrop),
                     Err(e) => {
                         let _ = DestroyWindow(hwnd);
@@ -266,11 +318,12 @@ mod imp {
             }
         }
 
-        unsafe fn fill(hwnd: HWND) -> Result<Backdrop> {
+        /// Builds the composition tree (the host backdrop, the body and the ears) inside a new blur window.
+        unsafe fn build_in(hwnd: HWND) -> Result<Backdrop> {
             unsafe {
                 SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA)?;
                 let on: i32 = 1;
-                DwmSetWindowAttribute(hwnd, USE_HOST_BACKDROP, (&on as *const i32).cast::<c_void>(), 4)?;
+                DwmSetWindowAttribute(hwnd, USE_HOST_BACKDROP, (&on as *const i32).cast::<c_void>(), std::mem::size_of::<i32>() as u32)?;
                 let compositor = Compositor::new()?;
                 let target = compositor.cast::<ICompositorDesktopInterop>()?.CreateDesktopWindowTarget(hwnd, false)?;
                 let root = compositor.CreateContainerVisual()?;
@@ -300,7 +353,13 @@ mod imp {
             unsafe {
                 let mut r = RECT::default();
                 GetWindowRect(island, &mut r)?;
-                let flags = SWP_NOACTIVATE | if shown { SWP_SHOWWINDOW } else { SWP_HIDEWINDOW };
+                // Shown or hidden only when that changes; every other frame only moves it.
+                let flags = SWP_NOACTIVATE
+                    | match (shown, self.shown) {
+                        (true, false) => SWP_SHOWWINDOW,
+                        (false, true) => SWP_HIDEWINDOW,
+                        _ => SET_WINDOW_POS_FLAGS(0),
+                    };
                 SetWindowPos(self.hwnd, Some(island), r.left, r.top, r.right - r.left, r.bottom - r.top, flags)?;
             }
             self.shown = shown;
@@ -338,33 +397,39 @@ mod imp {
     }
 
     pub fn shape(label: &str, island: isize, p: Px, shown: bool) {
-        if FAILED.get() {
+        let now = Instant::now();
+        if PAUSED_UNTIL.get().is_some_and(|until| now < until) {
             return;
+        }
+        // Windows' transparency is read every few seconds: turned off, the blurs go (the host backdrop would be a
+        // flat fill); turned back on, they come back on the next try.
+        if NEXT_CHECK.get().is_none_or(|at| now >= at) {
+            NEXT_CHECK.set(Some(now + RETRY));
+            if !transparency_on() {
+                BACKDROPS.with(|all| all.borrow_mut().clear());
+                fail("vidro: os efeitos de transparência do Windows estão desligados; sem desfoque");
+                return;
+            }
         }
         let shown = shown && SHOWN.get();
         BACKDROPS.with(|all| {
             let mut all = all.borrow_mut();
             if !all.contains_key(label) {
-                if !transparency_on() {
-                    FAILED.set(true);
-                    crate::logfile::write("info", "vidro: os efeitos de transparência do Windows estão desligados; sem desfoque");
-                    return;
-                }
                 match Backdrop::new() {
                     Ok(b) => {
+                        LOGGED.set(false);
                         all.insert(label.to_string(), b);
                     }
                     Err(e) => {
-                        FAILED.set(true);
-                        crate::logfile::write("warn", &format!("vidro: o Windows não criou o desfoque da ilha ({e})"));
+                        fail(&format!("vidro: o Windows não criou o desfoque da ilha ({e})"));
                         return;
                     }
                 }
             }
-            if let Some(b) = all.get_mut(label) {
-                if let Err(e) = b.update(HWND(island as *mut c_void), p, shown) {
-                    crate::logfile::write("warn", &format!("vidro: o desfoque não acompanhou a ilha ({e})"));
-                }
+            if let Some(b) = all.get_mut(label)
+                && let Err(e) = b.update(HWND(island as *mut c_void), p, shown)
+            {
+                crate::logfile::write("warn", &format!("vidro: o desfoque não acompanhou a ilha ({e})"));
             }
         });
     }
@@ -382,7 +447,6 @@ mod imp {
         BACKDROPS.with(|all| {
             all.borrow_mut().remove(label);
         });
-        FAILED.set(false);
     }
 }
 
