@@ -283,7 +283,9 @@ pub fn relink(config: &mut Config, dir: &Path) -> usize {
         if path.exists() && !path.parent().is_some_and(|parent| same_folder(parent, dir)) {
             return false;
         }
-        let Some(name) = path.file_name().and_then(|n| n.to_str()).map(str::to_string) else {
+        // Splits on both separators: a config brought from Windows to a Mac still has `C:\...\slack.png`, which
+        // `Path::file_name` on macOS reads as a single name.
+        let Some(name) = value.rsplit(['/', '\\']).next().filter(|n| !n.is_empty()).map(str::to_string) else {
             return false;
         };
         if valid_asset_name(&name) && dir.join(&name).is_file() {
