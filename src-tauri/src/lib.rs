@@ -57,6 +57,14 @@ pub fn uninstall_cleanup() {
     taskbar::restore_taskbar_now();
 }
 
+/// Whether the running program is where it will stay: on macOS, not the copy inside the mounted disk image or one
+/// Gatekeeper moved to a random place for the first run (starting with the system would point at nothing later).
+pub(crate) fn autostart_path_is_stable() -> bool {
+    let Ok(exe) = std::env::current_exe() else { return false };
+    let path = exe.to_string_lossy();
+    !(cfg!(target_os = "macos") && (path.starts_with("/Volumes/") || path.contains("/AppTranslocation/")))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -77,6 +85,7 @@ pub fn run() {
             config::set_config,
             pointer::set_island_rect,
             island::list_monitors,
+            island::notch_width,
             power::get_power,
             settings_window::open_settings,
             settings_window::settings_acrylic,
@@ -168,7 +177,7 @@ pub fn run() {
             logfile::init(&handle);
             app.manage(config::ConfigState::load(&handle));
             // O início com o Windows guarda o caminho do exe; renova para o app que está rodando agora.
-            if app.state::<config::ConfigState>().get().start_with_windows {
+            if app.state::<config::ConfigState>().get().start_with_windows && autostart_path_is_stable() {
                 let _ = app.autolaunch().enable();
             }
             app.manage(claude::ClaudeState::load(&handle));

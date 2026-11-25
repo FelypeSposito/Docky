@@ -1,4 +1,4 @@
-import { IS_MAC, hotkey } from "../lib/platform";
+import { HOTKEY_MODIFIERS, hotkey } from "../lib/platform";
 import { useConfigStore } from "../config/useConfig";
 import { ipc } from "../lib/ipc";
 import { useIslandStore } from "./store";
@@ -28,7 +28,7 @@ export function Welcome() {
           <span>{t("A ilha abre sozinha. Um clique a deixa aberta.")}</span>
         </div>
         <div className="tile wl-tip">
-          <span className="wl-k">{IS_MAC ? "⌃ ⌥ D" : t("Ctrl Alt D")}</span>
+          <span className="wl-k">{[...HOTKEY_MODIFIERS, "D"].join(" ")}</span>
           <b>{t("De qualquer lugar")}</b>
           <span>{t("Abre e fecha a ilha. {key} anota algo rápido.", { key: hotkey("N") })}</span>
         </div>

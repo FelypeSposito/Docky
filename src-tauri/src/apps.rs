@@ -1072,11 +1072,8 @@ mod tests {
     const FORTNITE: &str = "\u{feff}{\"DisplayName\": \"Fortnite\", \"AppName\": \"Fortnite\", \"CatalogNamespace\": \"fn\", \"CatalogItemId\": \"4fe75bbc5a674f4f9b356b5c90567da5\", \"InstallLocation\": \"C:\\\\Program Files\\\\Epic Games\\\\Fortnite\", \"LaunchExecutable\": \"FortniteGame/Binaries/Win64/FortniteBootstrapper.exe\", \"AppCategories\": [\"games\", \"applications\"]}";
 
     // Windows paths (backslashes, drive letters): a Windows behaviour.
-
     #[cfg(windows)]
-
     #[test]
-
     fn le_os_manifestos_da_epic() {
         assert_eq!(
             parse_epic_manifest(ROCKET_LEAGUE),
@@ -1115,11 +1112,8 @@ mod tests {
     }
 
     // Windows paths (backslashes, drive letters): a Windows behaviour.
-
     #[cfg(windows)]
-
     #[test]
-
     fn lista_os_jogos_da_epic_sem_repetir_e_com_o_programa_como_icone() {
         let dir = temp_dir("epic");
         let install = dir.join("rocketleague");

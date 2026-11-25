@@ -240,7 +240,7 @@ mod imp {
         AudioState { outputs: Vec::new(), mic: mic().map(|(_, m)| m) }
     }
     pub fn set_default_output(_: &str) -> Result<(), String> {
-        Err("only on Windows".into())
+        Err("no macOS, a saída de som se escolhe no menu Som".into())
     }
 }
 
@@ -264,6 +264,12 @@ mod imp {
         Err("only on Windows".into())
     }
 }
+
+/// How often the microphone's mute is read: on macOS each reading runs AppleScript, so less often.
+#[cfg(not(target_os = "macos"))]
+const MIC_POLL: Duration = Duration::from_millis(250);
+#[cfg(target_os = "macos")]
+const MIC_POLL: Duration = Duration::from_millis(1000);
 
 #[tauri::command]
 pub async fn audio_state() -> AudioState {
@@ -331,7 +337,7 @@ pub fn spawn(app: AppHandle) {
         imp::init_thread();
         let mut last = imp::mic();
         loop {
-            thread::sleep(Duration::from_millis(250));
+            thread::sleep(MIC_POLL);
             let current = imp::mic();
             if let (Some((last_id, last_mic)), Some((id, mic))) = (&last, &current) {
                 if last_id == id && last_mic != mic {

@@ -261,14 +261,15 @@ pub fn icon_png(target: &str, size: i32) -> Option<Vec<u8>> {
         return None;
     }
     let plist = app.join("Contents").join("Info.plist");
-    let output = Command::new("plutil").args(["-extract", "CFBundleIconFile", "raw", "-o", "-"]).arg(&plist).output().ok()?;
+    // PlistBuddy reads it on every macOS (plutil's "raw" output needs macOS 12).
+    let output = Command::new("/usr/libexec/PlistBuddy").args(["-c", "Print :CFBundleIconFile"]).arg(&plist).output().ok()?;
     let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
     if !output.status.success() || name.is_empty() {
         return None;
     }
     let file = if name.to_ascii_lowercase().ends_with(".icns") { name } else { format!("{name}.icns") };
     let icns = app.join("Contents").join("Resources").join(file);
-    let out = std::env::temp_dir().join(format!("docky-icon-{}.png", std::process::id()));
+    let out = crate::mac::temp_file("icon", "png");
     let converted = Command::new("sips")
         .args(["-s", "format", "png", "-Z", &size.to_string()])
         .arg(&icns)

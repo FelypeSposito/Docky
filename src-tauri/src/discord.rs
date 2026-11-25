@@ -267,15 +267,13 @@ mod pipe {
                 }
             };
             self.0.set_nonblocking(false)?;
-            read?;
-            if self.1.len() < 8 {
+            // A whole frame already here is handed over even if Discord closed right after it.
+            let frame_len = (self.1.len() >= 8).then(|| 8 + super::header(self.1[..8].try_into().expect("8 bytes")).1 as usize);
+            let Some(end) = frame_len.filter(|end| self.1.len() >= *end) else {
+                read?;
                 return Ok(None);
-            }
-            let (op, len) = super::header(self.1[..8].try_into().expect("8 bytes"));
-            let end = 8 + len as usize;
-            if self.1.len() < end {
-                return Ok(None);
-            }
+            };
+            let (op, _) = super::header(self.1[..8].try_into().expect("8 bytes"));
             let body: Vec<u8> = self.1.drain(..end).skip(8).collect();
             Ok(Some((op, serde_json::from_slice(&body).unwrap_or(Value::Null))))
         }

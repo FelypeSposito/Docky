@@ -76,15 +76,20 @@ function AreaContent({ id }: { id: AreaId }) {
             <Row label={t("Abrir ao passar o mouse")} hint={t("Desligado, passar o mouse mostra o player (com música) ou um resumo, e a ilha abre com clique ou {key}", { key: hotkey("D") })}>
               <Toggle label={t("Abrir ao passar o mouse")} value={config.hoverOpen} onChange={(v) => update({ hoverOpen: v })} />
             </Row>
-            <Row label={t("Esconder em tela cheia")} hint={t("Jogos, vídeos e apresentações")}>
-              <Toggle label={t("Esconder em tela cheia")} value={config.hideInFullscreen} onChange={(v) => update({ hideInFullscreen: v })} />
-            </Row>
-            <Row label={t("Chamada na pílula")} hint={t("Enquanto um app usa o microfone: o tempo da chamada e um botão para mutar")}>
-              <Toggle label={t("Chamada na pílula")} value={config.callPill} onChange={(v) => update({ callPill: v })} />
-            </Row>
-            <Row label="Deixar espaço para a ilha" hint="Janelas maximizadas, como a do navegador, começam abaixo da pílula">
-              <Toggle label="Deixar espaço para a ilha" value={config.reserveSpace} onChange={(v) => update({ reserveSpace: v })} />
-            </Row>
+            {/* Windows only: macOS gives other apps no way to see full-screen apps, calls or to reserve the top edge. */}
+            {!IS_MAC && (
+              <>
+                <Row label={t("Esconder em tela cheia")} hint={t("Jogos, vídeos e apresentações")}>
+                  <Toggle label={t("Esconder em tela cheia")} value={config.hideInFullscreen} onChange={(v) => update({ hideInFullscreen: v })} />
+                </Row>
+                <Row label={t("Chamada na pílula")} hint={t("Enquanto um app usa o microfone: o tempo da chamada e um botão para mutar")}>
+                  <Toggle label={t("Chamada na pílula")} value={config.callPill} onChange={(v) => update({ callPill: v })} />
+                </Row>
+                <Row label="Deixar espaço para a ilha" hint="Janelas maximizadas, como a do navegador, começam abaixo da pílula">
+                  <Toggle label="Deixar espaço para a ilha" value={config.reserveSpace} onChange={(v) => update({ reserveSpace: v })} />
+                </Row>
+              </>
+            )}
           </Group>
           <Group title={t("Copiados")}>
             <Row
@@ -111,12 +116,16 @@ function AreaContent({ id }: { id: AreaId }) {
             <Row label={t("Aviso do Foco")} hint={t("Quando um foco ou uma pausa termina")}>
               <Toggle label={t("Aviso do Foco")} value={config.noticeTimer} onChange={(v) => update({ noticeTimer: v })} />
             </Row>
-            <Row label={t("Resumo do jogo")} hint={t("Quando você sai de um jogo em tela cheia: quanto tempo jogou")}>
-              <Toggle label={t("Resumo do jogo")} value={config.noticeGame} onChange={(v) => update({ noticeGame: v })} />
-            </Row>
-            <Row label={t("Bateria do fone")} hint={t("Quando um fone Bluetooth conecta, a carga dele; e um aviso quando ela fica em 20% (se o fone informa a carga ao Windows)")}>
-              <Toggle label={t("Bateria do fone")} value={config.noticeBluetooth} onChange={(v) => update({ noticeBluetooth: v })} />
-            </Row>
+            {!IS_MAC && (
+              <>
+                <Row label={t("Resumo do jogo")} hint={t("Quando você sai de um jogo em tela cheia: quanto tempo jogou")}>
+                  <Toggle label={t("Resumo do jogo")} value={config.noticeGame} onChange={(v) => update({ noticeGame: v })} />
+                </Row>
+                <Row label={t("Bateria do fone")} hint={t("Quando um fone Bluetooth conecta, a carga dele; e um aviso quando ela fica em 20% (se o fone informa a carga ao Windows)")}>
+                  <Toggle label={t("Bateria do fone")} value={config.noticeBluetooth} onChange={(v) => update({ noticeBluetooth: v })} />
+                </Row>
+              </>
+            )}
             <Row label={t("Download concluído")} hint={t("Quando um download do navegador termina, com um botão para mostrar o arquivo")}>
               <Toggle label={t("Download concluído")} value={config.noticeDownload} onChange={(v) => update({ noticeDownload: v })} />
             </Row>
@@ -281,7 +290,7 @@ function AreaContent({ id }: { id: AreaId }) {
               <span className="badge">{t("LRCLIB + NetEase")}</span>
             </Row>
             <Row label={t("Players")} hint={t(IS_MAC ? "Spotify e Music" : "Qualquer app com controle de mídia do Windows")}>
-              <span className="badge">{t("Spotify · Navegador · Outros")}</span>
+              <span className="badge">{IS_MAC ? "Spotify · Music" : t("Spotify · Navegador · Outros")}</span>
             </Row>
           </Group>
         </>

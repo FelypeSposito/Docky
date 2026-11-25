@@ -8,8 +8,10 @@ atividade do Claude Code, timers, notas e mais. Uso pessoal por enquanto, com ar
 **Windows:** baixe o `Docky_x.y.z_x64-setup.exe` mais recente em **Releases** e execute. A instalação é só para o seu
 usuário (não pede administrador) e o Docky abre sozinho no fim.
 
-**Mac:** baixe o `.dmg` (`aarch64` para Apple silicon, `x64` para Intel), arraste o Docky para Aplicativos e, na
-primeira vez, abra com o botão direito → **Abrir** (o app ainda não é assinado pela Apple).
+**Mac:** baixe o `.dmg` (`aarch64` para Apple silicon, `x64` para Intel) e arraste o Docky para Aplicativos. O app
+ainda não é assinado pela Apple, então na primeira vez o macOS bloqueia: abra **Ajustes do Sistema → Privacidade e
+Segurança**, role até o aviso do Docky e clique em **Abrir Mesmo Assim** (até o macOS 14, também dá para abrir com o
+botão direito → **Abrir**). Para iniciar com o Mac, abra o Docky da pasta Aplicativos, não de dentro do `.dmg`.
 
 ### Onde roda
 

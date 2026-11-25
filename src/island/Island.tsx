@@ -1,3 +1,4 @@
+import { IS_MAC } from "../lib/platform";
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { AWAY_MINUTES, currentWork, restingClawd, WAIT_CLAWD, WORK_CLAWD } from "../claude/clawd";
 import { micText } from "../audio/devices";
@@ -72,6 +73,16 @@ const ExpandedContent = memo(function ExpandedContent({ pageId, dockPage, large,
 
 const fmtSeconds = (total: number) =>
   `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+
+/** The notch's width on this screen (0 without one): asked once, on macOS only. */
+function useNotchWidth(): number {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    if (!IS_MAC) return;
+    void ipc.notchWidth().then((w) => setWidth(w > 0 ? Math.round(w) + 12 : 0)).catch(() => {});
+  }, []);
+  return width;
+}
 
 /** Whether nobody has touched the keyboard or mouse for a while; asked every 30 s, and only while `watch` is on. */
 function useAway(watch: boolean): boolean {
@@ -261,7 +272,11 @@ export function Island() {
   // Answering Claude's questions in the pill: it grows to list them (back to the request's size when it is folded).
   const [answering, setAnswering] = useState(false);
   useEffect(() => setAnswering(false), [asking?.id]);
-  const size =
+  // A MacBook's notch hides the middle of the top edge: the one-line pill grows by its width, with the eyes on its
+  // left and what the pill says on its right (see `.notched` in island.css).
+  const notchW = useNotchWidth();
+  const compact = (w: number) => w + notchW;
+  const baseSize =
     mode === "expanded" && largeOn
       ? EXPANDED_LARGE
       : mode === "idle"
@@ -269,6 +284,7 @@ export function Island() {
         : mode === "ask" && answering && asking?.questions
           ? answeringSize(asking.questions)
           : SIZES[mode];
+  const size = notchW > 0 && baseSize.h <= SIZES.idle.h ? { w: compact(baseSize.w), h: baseSize.h } : baseSize;
 
   const notchRef = useRef<HTMLDivElement>(null);
   const islandRef = useRef<HTMLDivElement>(null);
@@ -436,7 +452,7 @@ export function Island() {
   } as React.CSSProperties;
 
   return (
-    <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}${config.glassEdge ? "" : " no-glass"}${glass ? " glass" : ""}${glass && config.glassStyle === "tinted" ? " tinted" : ""}`} data-mode={mode}>
+    <div ref={notchRef} className={`notch${eyesPhase === "gone" && !clawdInEyes ? " no-eyes" : ""}${config.glassEdge ? "" : " no-glass"}${glass ? " glass" : ""}${glass && config.glassStyle === "tinted" ? " tinted" : ""}${notchW > 0 ? " notched" : ""}`} data-mode={mode} style={notchW > 0 ? ({ "--notch-w": `${notchW}px` } as React.CSSProperties) : undefined}>
       <div className="ear l" />
       <div className="ear r" />
       <div ref={islandRef} className="island" style={islandStyle} onClick={onIslandClick} onPointerDown={(e) => {
@@ -454,7 +470,7 @@ export function Island() {
           </span>
         )}
 
-        <div className={`layer${mode === "idle" ? " on" : ""}`} style={{ width: idleSize.w }}>
+        <div className={`layer${mode === "idle" ? " on" : ""}`} style={{ width: compact(idleSize.w) }}>
           <div className="strip">
             <div className="c clock">
               <span className="time">{clock}</span>
@@ -472,7 +488,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "lyric" ? " on" : ""}${claudeBadge(mode, claude) ? " claude" : ""}`} style={{ width: SIZES.lyric.w }}>
+        <div className={`layer${mode === "lyric" ? " on" : ""}${claudeBadge(mode, claude) ? " claude" : ""}`} style={{ width: compact(SIZES.lyric.w) }}>
           <div className="strip">
             {mode === "lyric" && (lyricActive ? <PillLyric text={lineText} /> : <PillSong title={media?.title ?? ""} artist={media?.artist ?? ""} />)}
             <div className="r">
@@ -486,7 +502,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "charge" ? " on" : ""}`} style={{ width: SIZES.charge.w }}>
+        <div className={`layer${mode === "charge" ? " on" : ""}`} style={{ width: compact(SIZES.charge.w) }}>
           <div className="strip">
             <div className="c pad">
               <span className="txt">{t("Carregando")}</span>
@@ -500,7 +516,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "volume" ? " on" : ""}`} style={{ width: SIZES.volume.w }}>
+        <div className={`layer${mode === "volume" ? " on" : ""}`} style={{ width: compact(SIZES.volume.w) }}>
           <div className="strip">
             <div className="c vol-row">
               <span className="vol-ic">
@@ -514,7 +530,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "work" ? " on" : ""}`} style={{ width: SIZES.work.w }}>
+        <div className={`layer${mode === "work" ? " on" : ""}`} style={{ width: compact(SIZES.work.w) }}>
           <div className="strip">
             <div className="c pad">
               <span className="txt">{running[0]?.project}</span>
@@ -529,7 +545,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer alarm${mode === "timer" ? " on" : ""}`} style={{ width: SIZES.timer.w }}>
+        <div className={`layer alarm${mode === "timer" ? " on" : ""}`} style={{ width: compact(SIZES.timer.w) }}>
           <div className="strip">
             <div className="c pad">
               <span className="txt">{t(timerFinished === "focus" ? "Foco concluído" : timerFinished === "custom" ? "Contador acabou" : "Pausa acabou")}</span>
@@ -547,7 +563,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "done" ? " on" : ""}`} style={{ width: SIZES.done.w }}>
+        <div className={`layer${mode === "done" ? " on" : ""}`} style={{ width: compact(SIZES.done.w) }}>
           <div className="strip">
             <div className="c pad roomy">
               {finishedSession ? (
@@ -568,7 +584,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "game" ? " on" : ""}`} style={{ width: SIZES.game.w }}>
+        <div className={`layer${mode === "game" ? " on" : ""}`} style={{ width: compact(SIZES.game.w) }}>
           <div className="strip">
             <div className="c pad">
               <span className="txt">{game?.app}</span>
@@ -578,7 +594,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "mic" ? " on" : ""}`} style={{ width: SIZES.mic.w }}>
+        <div className={`layer${mode === "mic" ? " on" : ""}`} style={{ width: compact(SIZES.mic.w) }}>
           <div className="strip">
             <div className="c vol-row">
               <span className="vol-ic">{pcMicMuted ? <MicOffIcon /> : <MicIcon />}</span>
@@ -587,7 +603,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "reminder" ? " on" : ""}`} style={{ width: SIZES.reminder.w }}>
+        <div className={`layer${mode === "reminder" ? " on" : ""}`} style={{ width: compact(SIZES.reminder.w) }}>
           <div className="strip">
             <div className="c pad roomy">
               <span className="txt" title={reminder?.text}>
@@ -601,7 +617,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "bluetooth" ? " on" : ""}`} style={{ width: SIZES.bluetooth.w }}>
+        <div className={`layer${mode === "bluetooth" ? " on" : ""}`} style={{ width: compact(SIZES.bluetooth.w) }}>
           <div className="strip">
             <div className="c pad roomy">
               <span className="txt" title={headset?.name}>
@@ -618,7 +634,7 @@ export function Island() {
           </div>
         </div>
 
-        <div className={`layer${mode === "download" ? " on" : ""}`} style={{ width: SIZES.download.w }}>
+        <div className={`layer${mode === "download" ? " on" : ""}`} style={{ width: compact(SIZES.download.w) }}>
           <div className="strip">
             <div className="c pad dl-done">
               <span className="txt">{t("Download concluído")}</span>

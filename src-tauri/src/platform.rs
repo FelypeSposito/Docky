@@ -42,21 +42,32 @@ pub fn open_trash() -> Result<(), String> {
 }
 
 /// Moves files to the trash, where they can be restored. Windows' version is in `shelf.rs` (SHFileOperation, which
-/// also handles folders and asks when an item cannot be recycled); this is the macOS one, through the Finder.
+/// also handles folders and asks when an item cannot be recycled); this is the macOS one: straight into the user's
+/// Trash (same disk, no permission needed), or through the Finder for files on another disk.
 #[cfg(target_os = "macos")]
 pub fn trash(paths: &[PathBuf]) -> Result<(), String> {
-    if paths.is_empty() {
+    let trash_dir = std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".Trash"));
+    let mut through_finder = Vec::new();
+    for path in paths {
+        let moved = trash_dir.as_ref().is_some_and(|dir| {
+            let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            let (stem, ext) = name.rsplit_once('.').map_or((name.as_str(), ""), |(s, e)| (s, e));
+            std::fs::rename(path, crate::shelf::unique_path(dir, stem, ext)).is_ok()
+        });
+        if !moved {
+            through_finder.push(path);
+        }
+    }
+    if through_finder.is_empty() {
         return Ok(());
     }
-    let items: Vec<String> = paths.iter().map(|p| format!("POSIX file {}", crate::mac::applescript_string(&p.to_string_lossy()))).collect();
+    let items: Vec<String> = through_finder.iter().map(|p| format!("POSIX file {}", crate::mac::applescript_string(&p.to_string_lossy()))).collect();
     let script = format!("tell application \"Finder\" to delete {{{}}}", items.join(", "));
-    crate::mac::osascript(&script).map(|_| ()).ok_or_else(|| "o Finder não mandou para o Lixo".to_string())
+    crate::mac::osascript(&script).map(|_| ()).ok_or_else(|| "não consegui mandar para o Lixo".to_string())
 }
 
+/// Elsewhere there is no trash Docky knows: nothing is deleted for good.
 #[cfg(not(any(windows, target_os = "macos")))]
-pub fn trash(paths: &[PathBuf]) -> Result<(), String> {
-    for path in paths {
-        if path.is_dir() { std::fs::remove_dir_all(path) } else { std::fs::remove_file(path) }.map_err(|e| e.to_string())?;
-    }
-    Ok(())
+pub fn trash(_paths: &[PathBuf]) -> Result<(), String> {
+    Err("sem lixeira neste sistema".into())
 }

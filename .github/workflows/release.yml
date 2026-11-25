@@ -1,6 +1,7 @@
 # Pushing a tag like v0.3.0 builds the Windows installer and the macOS disk images (Apple silicon and Intel) and opens
 # a draft release with them. Review the draft on GitHub and publish it: the app's update check only sees published
-# releases. The Mac app is not signed: the first time, open it with right-click, Open.
+# releases. The Mac app is signed ad hoc only (no Apple Developer ID): the first time, macOS asks to allow it in
+# System Settings, Privacy & Security.
 name: Release
 
 on:
@@ -41,6 +42,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          key: ${{ matrix.rust_targets }}
 
       - run: npm ci
 
@@ -50,7 +52,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Docky ${{ github.ref_name }}
-          releaseBody: "Windows: baixe o `Docky_..._x64-setup.exe` e rode por cima da versão instalada (suas configurações ficam). Mac: baixe o `.dmg` (aarch64 para Apple silicon, x64 para Intel), arraste o Docky para Aplicativos e, na primeira vez, abra com o botão direito, Abrir."
+          releaseBody: "Windows: baixe o `Docky_..._x64-setup.exe` e rode por cima da versão instalada (suas configurações ficam). Mac: baixe o `.dmg` (aarch64 para Apple silicon, x64 para Intel) e arraste o Docky para Aplicativos. Na primeira vez, abra Ajustes do Sistema → Privacidade e Segurança e clique em Abrir Mesmo Assim (o app ainda não é assinado pela Apple)."
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

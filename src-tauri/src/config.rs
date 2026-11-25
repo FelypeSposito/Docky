@@ -390,6 +390,9 @@ pub fn set_config(
     if previous.start_with_windows != config.start_with_windows {
         let autolaunch = app.autolaunch();
         let result = if config.start_with_windows {
+            if !crate::autostart_path_is_stable() {
+                return Err("abra o Docky da pasta Aplicativos (não de dentro do .dmg) para ele iniciar com o macOS".into());
+            }
             autolaunch.enable()
         } else {
             autolaunch.disable()
@@ -434,11 +437,8 @@ mod tests {
     }
 
     // Windows paths (backslashes, drive letters): a Windows behaviour.
-
     #[cfg(windows)]
-
     #[test]
-
     fn tira_as_aspas_do_copiar_como_caminho() {
         assert_eq!(clean_path("\"C:\\Users\\a\\Área de Trabalho\\Clipes\""), "C:\\Users\\a\\Área de Trabalho\\Clipes");
         assert_eq!(clean_path("  C:\\x  "), "C:\\x");

@@ -1,3 +1,4 @@
+import { IS_MAC } from "../../lib/platform";
 import { useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { newId } from "../../launcher/model";
@@ -84,7 +85,7 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
       {!scanApps ? (
         <>
           <QTitle>{t("Apps e jogos instalados")}</QTitle>
-          <QRow label={t("Procurar no computador")} hint={t("Menu Iniciar, Steam e Epic Games. A busca é só local: nada sai do computador.")}>
+          <QRow label={t("Procurar no computador")} hint={t(IS_MAC ? "Aplicativos, pastas e Steam. A busca é só local: nada sai do computador." : "Menu Iniciar, Steam e Epic Games. A busca é só local: nada sai do computador.")}>
             <QButton tone="primary" onClick={() => update({ scanApps: true })}>
               {t("Permitir")}
             </QButton>

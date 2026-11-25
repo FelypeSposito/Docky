@@ -203,8 +203,8 @@ mod smtc {
             playing: p.playing,
             position_ms: p.position_ms,
             duration_ms: p.duration_ms,
-            // Spotify's cover is an https address; the interface shows it as it is.
-            thumbnail: if with_thumbnail { p.artwork } else { None },
+            // Spotify's cover, fetched into a data URL (the interface reads its colours).
+            thumbnail: if with_thumbnail { p.artwork.as_deref().and_then(mac::artwork_data_url) } else { None },
             shuffle: p.shuffle,
             repeat: p.repeat,
         })
@@ -222,7 +222,7 @@ mod smtc {
         mac::media_command(&app(), &format!("set player position to {}", position_ms as f64 / 1000.0));
     }
     pub fn read_thumbnail() -> Option<String> {
-        mac::playing().and_then(|p| p.artwork)
+        mac::playing().and_then(|p| p.artwork).as_deref().and_then(mac::artwork_data_url)
     }
     pub fn source_app() -> Option<String> {
         Some(app()).filter(|a| !a.is_empty())

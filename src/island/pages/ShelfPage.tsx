@@ -1,3 +1,4 @@
+import { IS_MAC } from "../../lib/platform";
 import { useEffect, useMemo, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { ipc } from "../../lib/ipc";
@@ -67,7 +68,7 @@ export function ShelfPage({ active }: { active: boolean }) {
     try {
       const result = await ipc.shelfTrash(paths);
       const skipped = result.skipped ? ` (${t(result.skipped === 1 ? "1 ficou de fora" : "{n} ficaram de fora", { n: result.skipped })})` : "";
-      flash(`${t(result.sent === 1 ? "1 item foi para a Lixeira" : "{n} itens foram para a Lixeira", { n: result.sent })}${skipped}`);
+      flash(`${t(IS_MAC ? (result.sent === 1 ? "1 item foi para o Lixo" : "{n} itens foram para o Lixo") : result.sent === 1 ? "1 item foi para a Lixeira" : "{n} itens foram para a Lixeira", { n: result.sent })}${skipped}`);
       clear();
       useIslandStore.setState({ pinned: false });
       void ipc.recycleBinCount().then(setBinCount);
@@ -164,14 +165,14 @@ export function ShelfPage({ active }: { active: boolean }) {
       {binOn && (
         <button
           className={`tile fd bin${paths.length > 0 ? " armed" : ""}`}
-          title={t(paths.length > 0 ? "Mandar para a Lixeira (dá para restaurar depois)" : "Abrir a Lixeira")}
+          title={t(IS_MAC ? (paths.length > 0 ? "Mandar para o Lixo (dá para restaurar depois)" : "Abrir o Lixo") : paths.length > 0 ? "Mandar para a Lixeira (dá para restaurar depois)" : "Abrir a Lixeira")}
           onClick={trash}
         >
           <span className="fi">
             <TrashIcon size={15} stroke={1.8} />
           </span>
           <span className="bin-tx">
-            <b>{t("Lixeira")}</b>
+            <b>{t(IS_MAC ? "Lixo" : "Lixeira")}</b>
             <span>{paths.length > 0 ? "enviar" : binLabel(binCount)}</span>
           </span>
         </button>

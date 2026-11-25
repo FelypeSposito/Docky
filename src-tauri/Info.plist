@@ -6,8 +6,9 @@
   <!-- An agent: no Dock icon, no menu bar of its own (the island and the menu bar icon are the app). -->
   <key>LSUIElement</key>
   <true/>
-  <!-- Asked the first time Docky reads or controls Spotify or Music (the island's player). -->
+  <!-- Asked the first time Docky reads or controls Spotify or Music (the island's player), or asks the Finder to put a
+       file from another disk in the Trash. -->
   <key>NSAppleEventsUsageDescription</key>
-  <string>O Docky mostra e controla a música que está tocando no Spotify ou no Music.</string>
+  <string>O Docky mostra e controla a música do Spotify ou do Music, e manda para o Lixo os arquivos que você solta na ilha. / Docky shows and controls the music in Spotify or Music, and sends the files you drop on the island to the Trash.</string>
 </dict>
 </plist>

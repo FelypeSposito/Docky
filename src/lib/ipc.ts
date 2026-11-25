@@ -363,6 +363,11 @@ export const ipc = {
   },
 
   /** As telas conectadas. */
+  /** The main screen's notch width in points (a MacBook's camera housing), 0 without one or off macOS. */
+  async notchWidth(): Promise<number> {
+    return isTauri ? invoke<number>("notch_width") : 0;
+  },
+
   async listMonitors(): Promise<MonitorInfo[]> {
     if (isTauri) return invoke<MonitorInfo[]>("list_monitors");
     return [{ id: "\\.\DISPLAY1", width: 1920, height: 1080, primary: true }];

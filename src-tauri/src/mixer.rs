@@ -295,11 +295,8 @@ mod tests {
     use super::name_from_path;
 
     // Windows paths (backslashes, drive letters): a Windows behaviour.
-
     #[cfg(windows)]
-
     #[test]
-
     fn nome_pelo_caminho() {
         assert_eq!(name_from_path(r"C:\Users\voce\AppData\Local\Discord\app-1.0\Discord.exe"), "Discord");
         assert_eq!(name_from_path(r"C:\Program Files\foobar2000\foobar2000.exe"), "Foobar2000");

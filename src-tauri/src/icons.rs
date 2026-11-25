@@ -538,11 +538,8 @@ mod tests {
     }
 
     // Windows paths (backslashes, drive letters): a Windows behaviour.
-
     #[cfg(windows)]
-
     #[test]
-
     fn nomes_a_tentar_para_apps_sites_e_apps_da_loja() {
         assert_eq!(icon_slugs("Blender", "C:\\Program Files\\Blender\\blender-launcher.exe")[0], "blender");
         assert_eq!(icon_slugs("VS Code", "C:\\x\\Code.lnk"), ["vs-code", "visual-studio-code", "code"]);
@@ -554,11 +551,8 @@ mod tests {
     }
 
     // Windows paths (backslashes, drive letters): a Windows behaviour.
-
     #[cfg(windows)]
-
     #[test]
-
     fn so_aceita_asset_de_dentro_da_pasta() {
         let dir = Path::new("C:\\icones");
         assert_eq!(resolve_asset(dir, "asset:blender.png"), Some(dir.join("blender.png")));

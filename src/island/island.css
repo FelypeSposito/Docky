@@ -380,6 +380,17 @@
 .strip .c.pad > .txt.sub {
   flex: none;
 }
+/* Around a MacBook's notch: the one-line pill is wider by the notch (Island.tsx), the eyes stay on its left and what it
+   says starts just right of it, so nothing hides behind the camera. */
+.notch.notched .strip .c {
+  left: calc(50% + var(--notch-w) / 2);
+  justify-content: flex-start;
+  padding-left: 6px !important;
+  padding-right: 12px;
+}
+.notch.notched .strip .c.clock {
+  padding-right: 0;
+}
 .strip .r {
   position: absolute;
   top: 0;

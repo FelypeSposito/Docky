@@ -86,6 +86,12 @@ mod endpoint {
     pub fn set_muted(_: bool) {}
 }
 
+/// How often the volume is read: on macOS each reading runs AppleScript, so less often.
+#[cfg(not(target_os = "macos"))]
+const POLL: Duration = Duration::from_millis(200);
+#[cfg(target_os = "macos")]
+const POLL: Duration = Duration::from_millis(700);
+
 #[tauri::command]
 pub async fn get_volume() -> Option<Volume> {
     endpoint::init_thread();
@@ -119,7 +125,7 @@ pub fn spawn(app: AppHandle) {
                 }
                 last = current;
             }
-            thread::sleep(Duration::from_millis(200));
+            thread::sleep(POLL);
         }
     });
 }

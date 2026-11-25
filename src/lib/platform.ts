@@ -4,9 +4,6 @@
  */
 export const IS_MAC = typeof navigator !== "undefined" && /mac/i.test(navigator.platform || navigator.userAgent);
 
-/** The system's name, for sentences like "Iniciar com o {system}". */
-export const SYSTEM = IS_MAC ? "macOS" : "Windows";
-
 /** The modifier keys of Docky's hotkeys as the system's keyboard labels them (Control and Option on a Mac). */
 export const HOTKEY_MODIFIERS: string[] = IS_MAC ? ["⌃", "⌥"] : ["Ctrl", "Alt"];
 

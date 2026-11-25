@@ -1,3 +1,4 @@
+import { IS_MAC } from "../lib/platform";
 import { useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { newId } from "../launcher/model";
@@ -44,7 +45,7 @@ export function AppSuggestions() {
   if (!config.scanApps) {
     return (
       <Group>
-        <Row label={t("Sugerir atalhos dos apps instalados")} hint={t("Procura apps, jogos e as pastas principais no Menu Iniciar, na Steam e na Epic. Tudo fica neste computador")}>
+        <Row label={t("Sugerir atalhos dos apps instalados")} hint={t(IS_MAC ? "Procura apps, jogos e as pastas principais em Aplicativos e na Steam. Tudo fica neste computador" : "Procura apps, jogos e as pastas principais no Menu Iniciar, na Steam e na Epic. Tudo fica neste computador")}>
           <button className="btn" onClick={() => update({ scanApps: true })}>
             {t("Permitir")}
           </button>

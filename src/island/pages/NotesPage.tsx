@@ -1,3 +1,4 @@
+import { IS_MAC } from "../../lib/platform";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { formatNoteDate } from "../../lib/format";
@@ -182,7 +183,7 @@ export function NotesPage({ active, large = false }: { active: boolean; large?: 
                 {confirming === note.file ? (
                   <div className="nconfirm" onClick={stop}>
                     <b>{t("Excluir esta nota?")}</b>
-                    <span>{t("Ela vai para a Lixeira.")}</span>
+                    <span>{t(IS_MAC ? "Ela vai para o Lixo." : "Ela vai para a Lixeira.")}</span>
                     <div>
                       <button className="nbtn" onClick={() => setConfirming(null)}>
                         {t("Cancelar")}

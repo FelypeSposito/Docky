@@ -121,7 +121,19 @@ fn create(app: &AppHandle, label: &str) -> tauri::Result<WebviewWindow> {
         .resizable(false)
         .shadow(false)
         .focused(false)
+        // macOS: Docky is rarely the active app; the first click on the island must act, not just activate it.
+        .accept_first_mouse(true)
         .build()
+}
+
+/// The width of the main screen's notch in points (0 without one). Asked by the island to keep its pill clear of it.
+/// A plain (not async) command: Tauri runs it on the main thread, where AppKit's screens are read.
+#[tauri::command]
+pub fn notch_width() -> f64 {
+    #[cfg(target_os = "macos")]
+    return objc2::MainThreadMarker::new().map(crate::mac::notch_width).unwrap_or(0.0);
+    #[cfg(not(target_os = "macos"))]
+    0.0
 }
 
 /// Logical width of the island window on a screen: the whole screen, so the island can sit anywhere along the top
@@ -138,6 +150,8 @@ fn place_on(window: &WebviewWindow, monitor: &Monitor) -> tauri::Result<()> {
     window.set_position(at)?;
     window.set_size(LogicalSize::new(width, WINDOW_HEIGHT))?;
     window.set_position(at)?;
+    // macOS: its own level, above the menu bar (Tauri's "always on top" would put it back below it).
+    #[cfg(not(target_os = "macos"))]
     window.set_always_on_top(true)?;
     #[cfg(target_os = "macos")]
     crate::mac::float_over_menu_bar(window);

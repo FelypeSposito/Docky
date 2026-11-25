@@ -68,10 +68,11 @@ pub async fn pick_path(window: tauri::WebviewWindow, kind: String) -> Result<Opt
 #[cfg(target_os = "macos")]
 #[tauri::command]
 pub async fn pick_path(kind: String) -> Result<Option<String>, String> {
+    // `activate` first: the chooser comes from a background process and would open behind the other windows.
     let script = match kind.as_str() {
-        "folder" => "POSIX path of (choose folder)",
-        "image" => "POSIX path of (choose file of type {\"public.image\"})",
-        _ => "POSIX path of (choose file)",
+        "folder" => "activate\nPOSIX path of (choose folder)",
+        "image" => "activate\nPOSIX path of (choose file of type {\"public.image\"})",
+        _ => "activate\nPOSIX path of (choose file)",
     };
     tauri::async_runtime::spawn_blocking(move || Ok(crate::mac::osascript(script).filter(|p| !p.is_empty())))
         .await
