@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Merged by Tauri into the macOS app's Info.plist. -->
+<plist version="1.0">
+<dict>
+  <!-- An agent: no Dock icon, no menu bar of its own (the island and the menu bar icon are the app). -->
+  <key>LSUIElement</key>
+  <true/>
+  <!-- Asked the first time Docky reads or controls Spotify or Music (the island's player). -->
+  <key>NSAppleEventsUsageDescription</key>
+  <string>O Docky mostra e controla a música que está tocando no Spotify ou no Music.</string>
+</dict>
+</plist>

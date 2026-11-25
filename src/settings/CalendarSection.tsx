@@ -1,3 +1,4 @@
+import { IS_MAC } from "../lib/platform";
 import { useCallback, useEffect, useState } from "react";
 import { useCalendarStore, type CalendarStatus } from "../calendar/store";
 import { useConfigStore } from "../config/useConfig";
@@ -84,7 +85,7 @@ export function CalendarSection() {
         <Row label={t("ID do cliente")} hint={t("Termina em .apps.googleusercontent.com")}>
           <TextField label={t("ID do cliente")} width={300} value={config.googleClientId} placeholder={t("123456-abc.apps.googleusercontent.com")} onCommit={(v) => update({ googleClientId: v })} />
         </Row>
-        <Row label={t("Chave secreta")} hint={t(status?.secretSaved ? "Guardada no Gerenciador de Credenciais do Windows. Cole outra para trocar." : "Fica guardada no Gerenciador de Credenciais do Windows, não em arquivo.")}>
+        <Row label={t("Chave secreta")} hint={t(status?.secretSaved ? (IS_MAC ? "Guardada nas Chaves do macOS. Cole outra para trocar." : "Guardada no Gerenciador de Credenciais do Windows. Cole outra para trocar.") : IS_MAC ? "Fica guardada nas Chaves do macOS, não em arquivo." : "Fica guardada no Gerenciador de Credenciais do Windows, não em arquivo.")}>
           <input
             className="inp"
             style={{ width: 300 }}

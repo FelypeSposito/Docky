@@ -1,3 +1,4 @@
+import { HOTKEY_MODIFIERS, IS_MAC } from "../lib/platform";
 import { useEffect, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import type { ShelfFolder, Shortcut } from "../config/types";
@@ -100,7 +101,14 @@ export function ShelfFolders() {
           onChange={(v) => update({ shelfMove: v === "move" })}
         />
       </Row>
-      <Row label={t("Lixeira")} hint={t("Um bloco no fim da Shelf: manda os arquivos soltos para a Lixeira do Windows, de onde dá para restaurar. Sem arquivos, abre a Lixeira.")}>
+      <Row
+        label={t("Lixeira")}
+        hint={t(
+          IS_MAC
+            ? "Um bloco no fim da Shelf: manda os arquivos soltos para o Lixo do macOS, de onde dá para restaurar. Sem arquivos, abre o Lixo."
+            : "Um bloco no fim da Shelf: manda os arquivos soltos para a Lixeira do Windows, de onde dá para restaurar. Sem arquivos, abre a Lixeira.",
+        )}
+      >
         <Toggle label={t("Lixeira")} value={config.shelfTrash} onChange={(v) => update({ shelfTrash: v })} />
       </Row>
     </Group>
@@ -186,11 +194,13 @@ export function HotkeysGroup() {
     <>
       <Group title={t("Teclas")}>
         {HOTKEYS.map(([label, keys]) => {
+          // Rust names a taken combination the Windows way ("Ctrl+Alt+M"); the keys show as this system's keyboard.
           const busy = taken.includes(keys.join("+"));
+          const shown = [...HOTKEY_MODIFIERS, ...keys.slice(2)];
           return (
             <Row key={label} label={label} hint={busy ? "Outro programa está usando esta combinação. Ela volta a funcionar sozinha quando ele soltar." : undefined}>
               <div className={`kc${busy ? " busy" : ""}`}>
-                {keys.map((k) => (
+                {shown.map((k) => (
                   <kbd key={k}>{k}</kbd>
                 ))}
               </div>
@@ -640,7 +650,7 @@ function SuggestionsGroup({ onClose }: { onClose: () => void }) {
         })}
       </Group>
       <Group>
-        <Row label={t("Apps que você mais usa")} hint={t("Do Menu Iniciar e da Área de Trabalho, pelos fixados na barra, abertos agora e o histórico do Windows")} />
+        <Row label={t("Apps que você mais usa")} hint={t(IS_MAC ? "Da pasta Aplicativos, pelos abertos agora" : "Do Menu Iniciar e da Área de Trabalho, pelos fixados na barra, abertos agora e o histórico do Windows")} />
         {loading && apps.length === 0 && <Row label={t("Procurando os apps instalados…")} />}
         {top.map((entry) => (
           <Row key={entry.target} label={entry.name} hint={whySuggested(entry)}>

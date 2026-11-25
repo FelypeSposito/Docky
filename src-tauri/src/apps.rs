@@ -399,6 +399,41 @@ fn collect_links(dir: &Path, depth: u32, out: &mut Vec<(String, PathBuf)>) {
 
 /// Os apps do Menu Iniciar (de todos os usuários e do seu) e os atalhos da Área de Trabalho, sem repetir o nome.
 fn start_menu_apps() -> Vec<(String, PathBuf)> {
+    // macOS has no Start menu: its apps are the `.app` bundles in the Applications folders.
+    #[cfg(target_os = "macos")]
+    return mac_app_bundles();
+    #[cfg(not(target_os = "macos"))]
+    windows_start_menu()
+}
+
+/// The apps in /Applications (and its subfolders, like Utilities), the system's own and the user's, by name.
+#[cfg(target_os = "macos")]
+fn mac_app_bundles() -> Vec<(String, PathBuf)> {
+    fn collect(dir: &Path, depth: u32, out: &mut Vec<(String, PathBuf)>) {
+        let Ok(entries) = fs::read_dir(dir) else { return };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("app")) {
+                if let Some(name) = path.file_stem().map(|s| s.to_string_lossy().into_owned()) {
+                    out.push((name, path));
+                }
+            } else if depth < 2 && path.is_dir() {
+                collect(&path, depth + 1, out);
+            }
+        }
+    }
+    let mut found = Vec::new();
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    for dir in [Some(PathBuf::from("/Applications")), Some(PathBuf::from("/System/Applications")), home.map(|h| h.join("Applications"))].into_iter().flatten() {
+        collect(&dir, 0, &mut found);
+    }
+    let mut seen = std::collections::HashSet::new();
+    found.retain(|(name, _)| seen.insert(normalize(name)));
+    found
+}
+
+#[cfg(not(target_os = "macos"))]
+fn windows_start_menu() -> Vec<(String, PathBuf)> {
     let mut found = Vec::new();
     for variable in ["ProgramData", "APPDATA"] {
         if let Some(base) = std::env::var_os(variable) {
@@ -680,9 +715,11 @@ fn steam_dir() -> Option<PathBuf> {
     from_registry.or_else(|| default.is_dir().then_some(default))
 }
 
+/// macOS: Steam keeps its libraries in Application Support.
 #[cfg(not(windows))]
 fn steam_dir() -> Option<PathBuf> {
-    None
+    let dir = PathBuf::from(std::env::var_os("HOME")?).join("Library").join("Application Support").join("Steam");
+    dir.is_dir().then_some(dir)
 }
 
 /// Os jogos instalados pela Steam nesta máquina.
@@ -910,9 +947,14 @@ fn known_folders() -> Vec<(&'static str, PathBuf)> {
     folders
 }
 
+/// macOS: the folders in the home folder (Movies is the Vídeos of the Finder in Portuguese).
 #[cfg(not(windows))]
 fn known_folders() -> Vec<(&'static str, PathBuf)> {
-    Vec::new()
+    let Some(home) = std::env::var_os("HOME").map(PathBuf::from) else { return Vec::new() };
+    [("Downloads", "Downloads"), ("Documentos", "Documents"), ("Área de Trabalho", "Desktop"), ("Imagens", "Pictures"), ("Vídeos", "Movies"), ("Músicas", "Music")]
+        .into_iter()
+        .map(|(name, dir)| (name, home.join(dir)))
+        .collect()
 }
 
 #[cfg(test)]
@@ -1029,7 +1071,12 @@ mod tests {
     const FORTNITE_RELOAD: &str = r#"{"DisplayName": "Fortnite Reload", "AppName": "21339bc36b00459aa034300a9a7ad99e", "CatalogNamespace": "fn", "CatalogItemId": "e86c48dd240e41bc9565c6b6b16a9ec1", "InstallLocation": "C:\\Program Files\\Epic Games\\Fortnite", "LaunchExecutable": "", "AppCategories": ["addons/launchable", "addons", "games", "games/experience", "applications"]}"#;
     const FORTNITE: &str = "\u{feff}{\"DisplayName\": \"Fortnite\", \"AppName\": \"Fortnite\", \"CatalogNamespace\": \"fn\", \"CatalogItemId\": \"4fe75bbc5a674f4f9b356b5c90567da5\", \"InstallLocation\": \"C:\\\\Program Files\\\\Epic Games\\\\Fortnite\", \"LaunchExecutable\": \"FortniteGame/Binaries/Win64/FortniteBootstrapper.exe\", \"AppCategories\": [\"games\", \"applications\"]}";
 
+    // Windows paths (backslashes, drive letters): a Windows behaviour.
+
+    #[cfg(windows)]
+
     #[test]
+
     fn le_os_manifestos_da_epic() {
         assert_eq!(
             parse_epic_manifest(ROCKET_LEAGUE),
@@ -1067,7 +1114,12 @@ mod tests {
         assert_eq!(parse_epic_manifest("não é json"), None);
     }
 
+    // Windows paths (backslashes, drive letters): a Windows behaviour.
+
+    #[cfg(windows)]
+
     #[test]
+
     fn lista_os_jogos_da_epic_sem_repetir_e_com_o_programa_como_icone() {
         let dir = temp_dir("epic");
         let install = dir.join("rocketleague");

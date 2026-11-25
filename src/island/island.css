@@ -1313,7 +1313,7 @@
   font-weight: 600;
 }
 .mono {
-  font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 .ask-cmd {
   display: flex;

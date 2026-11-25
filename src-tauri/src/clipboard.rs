@@ -270,7 +270,21 @@ mod win {
     }
 }
 
-#[cfg(not(windows))]
+/// macOS: the general pasteboard (its change count stands for Windows' clipboard sequence number).
+#[cfg(target_os = "macos")]
+mod win {
+    pub fn sequence() -> u32 {
+        crate::mac::pasteboard_change_count()
+    }
+    pub fn read_text() -> Option<String> {
+        crate::mac::pasteboard_text()
+    }
+    pub fn write_text(text: &str) -> Result<(), String> {
+        crate::mac::set_pasteboard_text(text)
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 mod win {
     pub fn sequence() -> u32 {
         0

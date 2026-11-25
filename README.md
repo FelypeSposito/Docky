@@ -1,12 +1,15 @@
 # Docky
 
-Uma ilha dinâmica para o Windows 11: uma pílula no topo da tela com hora, mídia com letras sincronizadas,
+Uma ilha dinâmica para o Windows e o macOS: uma pílula no topo da tela (no Mac, em volta do notch) com hora, mídia com letras sincronizadas,
 atividade do Claude Code, timers, notas e mais. Uso pessoal por enquanto, com arquitetura pensada para virar produto.
 
 ## Instalar
 
-Baixe o `Docky_x.y.z_x64-setup.exe` mais recente em **Releases** e execute. A instalação é só para o seu usuário (não
-pede administrador) e o Docky abre sozinho no fim.
+**Windows:** baixe o `Docky_x.y.z_x64-setup.exe` mais recente em **Releases** e execute. A instalação é só para o seu
+usuário (não pede administrador) e o Docky abre sozinho no fim.
+
+**Mac:** baixe o `.dmg` (`aarch64` para Apple silicon, `x64` para Intel), arraste o Docky para Aplicativos e, na
+primeira vez, abra com o botão direito → **Abrir** (o app ainda não é assinado pela Apple).
 
 ### Onde roda
 
@@ -17,7 +20,8 @@ pede administrador) e o Docky abre sozinho no fim.
 | Windows 10 1809 | Quase tudo: a pílula de chamada não aparece (o Windows ainda não registrava o uso do microfone). |
 | Windows 10 anterior ao 1809 | Não: falta o controle de mídia do Windows (música, letras). |
 | Windows 11 em ARM | Deve rodar pela emulação x64 do Windows; não testado. |
-| Windows 7 e 8.1, macOS, Linux | Não. |
+| macOS 11 ou mais novo (Apple silicon e Intel) | Sim, com o que o macOS deixa (veja abaixo). |
+| Windows 7 e 8.1, Linux | Não. |
 
 O WebView2 (o motor das telas) já vem no Windows 11 e nas versões atualizadas do 10; se faltar, o instalador baixa.
 Os hooks do Claude Code usam o `curl`, que vem no Windows desde o 10 versão 1803.
@@ -26,6 +30,20 @@ O instalador ainda não é assinado digitalmente, então o Windows SmartScreen p
 clique em **Mais informações → Executar assim mesmo**. Para o Docky abrir junto com o Windows, ligue a opção em
 Configurações → Geral. Para desinstalar, use Configurações do Windows → Aplicativos. As suas configurações ficam em
 `%APPDATA%\com.docky.desktop` (o desinstalador pergunta se deve apagá-las).
+
+### No Mac
+
+O mesmo app, compilado para o macOS. A ilha fica por cima da barra de menus, em volta do notch, em todos os Espaços,
+e o Docky não aparece no Dock (fica só o ícone na barra de menus). O que muda:
+
+- **Música:** Spotify e Music (por AppleScript). O macOS pergunta uma vez se o Docky pode controlá-los. Outros players
+  não aparecem: o "agora tocando" do sistema é fechado para outros apps desde o macOS 15.4.
+- **Som:** volume geral e microfone, sim; volume por app e troca da saída, não (o macOS não oferece isso a outros
+  apps: a saída se escolhe no menu Som da barra).
+- **Atalhos e sugestões:** os apps de Aplicativos, as pastas da pasta pessoal e os jogos da Steam.
+- **Ficam de fora no Mac:** o desfoque do vidro (a ilha usa o vidro cinza), a bateria do fone Bluetooth, a pílula de
+  chamada, esconder em tela cheia e deixar espaço para a ilha.
+- **Teclas:** as mesmas, com Control e Option (⌃⌥D, ⌃⌥N, ⌃⌥M…).
 
 ## Stack
 

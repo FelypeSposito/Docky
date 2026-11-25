@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "targets": ["app", "dmg"],
+    "shortDescription": "Uma ilha dinâmica para o macOS",
+    "longDescription": "Docky é uma ilha dinâmica em volta do notch: hora, música, atividade do Claude Code, timers, notas, agenda, atalhos e uso do sistema.",
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    }
+  }
+}

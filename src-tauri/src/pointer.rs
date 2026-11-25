@@ -38,7 +38,12 @@ fn mouse_button_down() -> bool {
     [VK_LBUTTON, VK_RBUTTON].iter().any(|vk| unsafe { GetAsyncKeyState(vk.0 as i32) } as u16 & 0x8000 != 0)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn mouse_button_down() -> bool {
+    crate::mac::mouse_button_down()
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn mouse_button_down() -> bool {
     false
 }

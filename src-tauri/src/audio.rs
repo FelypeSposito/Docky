@@ -206,7 +206,45 @@ mod policy_config {
     }
 }
 
-#[cfg(not(windows))]
+/// macOS: the microphone through AppleScript's input volume (muting sets it to 0 and unmuting puts back the level it
+/// had). Choosing the output device needs CoreAudio's private switch, so the Som page leaves that to the system.
+#[cfg(target_os = "macos")]
+mod imp {
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    use super::{AudioState, Mic, Output};
+
+    /// The input level before muting, to put back.
+    static BEFORE_MUTE: AtomicU32 = AtomicU32::new(0);
+
+    pub fn init_thread() {}
+    pub fn mic() -> Option<(String, Mic)> {
+        let level = crate::mac::input_volume()?;
+        Some(("Microfone".to_string(), Mic { muted: level == 0 }))
+    }
+    pub fn set_mic_muted(muted: bool) -> bool {
+        if muted {
+            if let Some(level) = crate::mac::input_volume().filter(|l| *l > 0) {
+                BEFORE_MUTE.store(level, Ordering::Relaxed);
+            }
+            crate::mac::set_input_volume(0)
+        } else {
+            let before = BEFORE_MUTE.load(Ordering::Relaxed);
+            crate::mac::set_input_volume(if before > 0 { before } else { 75 })
+        }
+    }
+    pub fn outputs() -> Vec<Output> {
+        Vec::new()
+    }
+    pub fn state() -> AudioState {
+        AudioState { outputs: Vec::new(), mic: mic().map(|(_, m)| m) }
+    }
+    pub fn set_default_output(_: &str) -> Result<(), String> {
+        Err("only on Windows".into())
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 mod imp {
     use super::{AudioState, Mic, Output};
     pub fn init_thread() {}

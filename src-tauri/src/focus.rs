@@ -170,7 +170,12 @@ mod tests {
         assert!(meaningful_args("steam://rungameid/570"));
     }
 
+    // Windows paths (backslashes, drive letters): a Windows behaviour.
+
+    #[cfg(windows)]
+
     #[test]
+
     fn foca_programas_mas_nao_o_explorer_nem_o_resto() {
         assert_eq!(program_of(r"C:\Program Files\Google\Chrome\Application\chrome.exe").as_deref(), Some(r"C:\Program Files\Google\Chrome\Application\chrome.exe"));
         assert_eq!(program_of(r"C:\Windows\explorer.exe"), None);

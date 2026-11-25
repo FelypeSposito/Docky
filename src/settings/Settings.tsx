@@ -1,3 +1,4 @@
+import { IS_MAC, hotkey } from "../lib/platform";
 import { type ComponentType, useEffect, useRef, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { Eyes } from "../island/Eyes";
@@ -52,7 +53,7 @@ function AreaContent({ id }: { id: AreaId }) {
       return (
         <>
           <Group title="Idioma">
-            <Row label="Idioma da interface" hint="Automático segue o idioma do Windows">
+            <Row label="Idioma da interface" hint={IS_MAC ? "Automático segue o idioma do macOS" : "Automático segue o idioma do Windows"}>
               <Segmented
                 label="Idioma da interface"
                 value={config.language === "pt" || config.language === "en" ? config.language : "auto"}
@@ -66,13 +67,13 @@ function AreaContent({ id }: { id: AreaId }) {
             </Row>
           </Group>
           <Group title={t("Ao ligar")}>
-            <Row label={t("Iniciar com o Windows")} hint={t("Abre o Docky quando você entra no PC")}>
-              <Toggle label={t("Iniciar com o Windows")} value={config.startWithWindows} onChange={(v) => update({ startWithWindows: v })} />
+            <Row label={t(IS_MAC ? "Iniciar com o macOS" : "Iniciar com o Windows")} hint={t(IS_MAC ? "Abre o Docky quando você entra no Mac" : "Abre o Docky quando você entra no PC")}>
+              <Toggle label={t(IS_MAC ? "Iniciar com o macOS" : "Iniciar com o Windows")} value={config.startWithWindows} onChange={(v) => update({ startWithWindows: v })} />
             </Row>
             <ScreensRow />
           </Group>
           <Group title={t("Comportamento")}>
-            <Row label={t("Abrir ao passar o mouse")} hint={t("Desligado, passar o mouse mostra o player (com música) ou um resumo, e a ilha abre com clique ou Ctrl+Alt+D")}>
+            <Row label={t("Abrir ao passar o mouse")} hint={t("Desligado, passar o mouse mostra o player (com música) ou um resumo, e a ilha abre com clique ou {key}", { key: hotkey("D") })}>
               <Toggle label={t("Abrir ao passar o mouse")} value={config.hoverOpen} onChange={(v) => update({ hoverOpen: v })} />
             </Row>
             <Row label={t("Esconder em tela cheia")} hint={t("Jogos, vídeos e apresentações")}>
@@ -279,7 +280,7 @@ function AreaContent({ id }: { id: AreaId }) {
             <Row label={t("Fonte das letras")} hint={t("Letras sincronizadas, sem chave. Se o LRCLIB não tiver, o NetEase (bom em música brasileira) é a reserva")}>
               <span className="badge">{t("LRCLIB + NetEase")}</span>
             </Row>
-            <Row label={t("Players")} hint={t("Qualquer app com controle de mídia do Windows")}>
+            <Row label={t("Players")} hint={t(IS_MAC ? "Spotify e Music" : "Qualquer app com controle de mídia do Windows")}>
               <span className="badge">{t("Spotify · Navegador · Outros")}</span>
             </Row>
           </Group>

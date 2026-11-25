@@ -1,3 +1,4 @@
+import { IS_MAC } from "../lib/platform";
 import { useCallback, useEffect, useState } from "react";
 import { useConfigStore } from "../config/useConfig";
 import { type DiscordSetup, type DiscordState, ipc } from "../lib/ipc";
@@ -80,7 +81,7 @@ export function DiscordSection() {
         <Row label={t("Client ID")} hint={t("Um número longo, em OAuth2 no portal do Discord")}>
           <TextField label={t("Client ID do Discord")} width={300} value={config.discordClientId} placeholder="123456789012345678" onCommit={(v) => update({ discordClientId: v.trim() })} />
         </Row>
-        <Row label={t("Client Secret")} hint={t(setup?.secretSaved ? "Guardado no Gerenciador de Credenciais do Windows. Cole outro para trocar." : "Fica guardado no Gerenciador de Credenciais do Windows, não em arquivo.")}>
+        <Row label={t("Client Secret")} hint={t(setup?.secretSaved ? (IS_MAC ? "Guardado nas Chaves do macOS. Cole outro para trocar." : "Guardado no Gerenciador de Credenciais do Windows. Cole outro para trocar.") : IS_MAC ? "Fica guardado nas Chaves do macOS, não em arquivo." : "Fica guardado no Gerenciador de Credenciais do Windows, não em arquivo.")}>
           <input
             className="inp"
             style={{ width: 300 }}

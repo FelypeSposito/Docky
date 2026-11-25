@@ -59,7 +59,23 @@ mod endpoint {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+mod endpoint {
+    use super::Volume;
+    pub fn init_thread() {}
+    pub fn read() -> Option<Volume> {
+        crate::mac::volume().map(|(level, muted)| Volume { level, muted })
+    }
+    pub fn set_level(level: f32) {
+        crate::mac::set_volume(level);
+        crate::mac::set_output_muted(false);
+    }
+    pub fn set_muted(muted: bool) {
+        crate::mac::set_output_muted(muted);
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 mod endpoint {
     use super::Volume;
     pub fn init_thread() {}

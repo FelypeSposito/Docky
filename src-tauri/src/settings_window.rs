@@ -87,9 +87,16 @@ pub fn material_changed(app: &AppHandle, material: &str) {
     }
 }
 
-/// Windows 11 is build 22000 or newer; acrylic on Windows 10 drags when the window moves, so it stays off there.
+/// Windows 11 is build 22000 or newer; acrylic on Windows 10 drags when the window moves, so it stays off there (and
+/// the island's blur, which needs Windows 11's host backdrop). Read once.
 #[cfg(windows)]
-fn windows_11() -> bool {
+pub fn windows_11() -> bool {
+    static IS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *IS.get_or_init(read_windows_11)
+}
+
+#[cfg(windows)]
+fn read_windows_11() -> bool {
     use windows::{
         Win32::System::Registry::{HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ, RegGetValueW},
         core::w,
@@ -115,7 +122,7 @@ fn windows_11() -> bool {
 }
 
 #[cfg(not(windows))]
-fn windows_11() -> bool {
+pub fn windows_11() -> bool {
     false
 }
 

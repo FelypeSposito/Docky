@@ -1,3 +1,6 @@
+// Much of the parsing and drawing serves Windows' own APIs; on macOS it is compiled (and tested) but not called.
+#![cfg_attr(not(windows), allow(dead_code, unused_imports))]
+
 mod apps;
 mod audio;
 mod bluetooth;
@@ -35,6 +38,9 @@ mod shelf;
 mod taskbar;
 mod idle;
 mod fxsound;
+#[cfg(target_os = "macos")]
+mod mac;
+mod platform;
 mod tray;
 mod updates;
 mod volume;
@@ -155,6 +161,9 @@ pub fn run() {
             _ => {}
         })
         .setup(|app| {
+            // macOS: an accessory, like the menu bar's own items (no Dock icon, no menu bar of its own).
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let handle = app.handle().clone();
             logfile::init(&handle);
             app.manage(config::ConfigState::load(&handle));

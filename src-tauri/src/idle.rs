@@ -25,7 +25,14 @@ mod imp {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+mod imp {
+    pub fn idle_seconds() -> u64 {
+        crate::mac::idle_seconds()
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 mod imp {
     pub fn idle_seconds() -> u64 {
         0

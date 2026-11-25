@@ -134,7 +134,7 @@ fn targets_of(shortcuts: &[Shortcut], index: usize) -> Result<Vec<String>, Strin
 fn open_target(target: &str) -> Result<(), String> {
     let result = if is_url(target) {
         tauri_plugin_opener::open_url(target, None::<&str>)
-    } else if target.to_ascii_lowercase().starts_with("shell:") {
+    } else if cfg!(windows) && target.to_ascii_lowercase().starts_with("shell:") {
         // Apps da Microsoft Store (`shell:AppsFolder\…`) abrem pelo Explorer.
         return std::process::Command::new("explorer.exe")
             .arg(target)

@@ -41,7 +41,19 @@ fn system_locale() -> String {
     String::from_utf16_lossy(&buffer[..(len as usize - 1)])
 }
 
-#[cfg(not(windows))]
+/// macOS apps get no LANG: the language comes from the system's settings ("pt_BR").
+#[cfg(target_os = "macos")]
+fn system_locale() -> String {
+    std::process::Command::new("defaults")
+        .args(["read", "-g", "AppleLocale"])
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().replace('_', "-"))
+        .filter(|l| !l.is_empty())
+        .unwrap_or_else(|| std::env::var("LANG").unwrap_or_default())
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn system_locale() -> String {
     std::env::var("LANG").unwrap_or_default()
 }

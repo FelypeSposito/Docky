@@ -33,7 +33,16 @@ fn read() -> Option<Power> {
     })
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn read() -> Option<Power> {
+    match crate::mac::battery() {
+        Some((percent, charging, plugged)) => Some(Power { has_battery: true, percent, charging, plugged }),
+        // A Mac without a battery (an iMac, a Mac mini) is always on power.
+        None => Some(Power { has_battery: false, percent: 0, charging: false, plugged: true }),
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn read() -> Option<Power> {
     None
 }

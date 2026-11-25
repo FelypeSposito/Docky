@@ -80,8 +80,12 @@ pub fn island_glass_shape(window: WebviewWindow, outline: Outline) {
     if !is_on(&label) {
         return;
     }
+    #[cfg(windows)]
     let Ok(hwnd) = window.hwnd() else { return };
+    #[cfg(windows)]
     let island = hwnd.0 as isize;
+    #[cfg(not(windows))]
+    let island = 0isize;
     let px = to_physical(outline, window.scale_factor().unwrap_or(1.0));
     let shown = window.is_visible().unwrap_or(true);
     let _ = window.run_on_main_thread(move || {
@@ -408,6 +412,10 @@ mod imp {
     }
 
     pub fn shape(label: &str, island: isize, p: Px, shown: bool) {
+        // The host backdrop is Windows 11's: on Windows 10 the island keeps its gray glass, with no blur window.
+        if !crate::settings_window::windows_11() {
+            return;
+        }
         let now = Instant::now();
         // Windows' transparency is read every few seconds: turned off, the blurs go (the host backdrop would be a
         // flat fill); turned back on, everything starts over, even after Docky gave up.

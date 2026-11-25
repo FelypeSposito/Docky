@@ -174,7 +174,80 @@ mod smtc {
     }
 }
 
-#[cfg(not(windows))]
+/// macOS: Spotify and Music through AppleScript (the system's own "now playing" is closed to other apps since macOS
+/// 15.4). The first time, macOS asks whether Docky may control them.
+#[cfg(target_os = "macos")]
+mod smtc {
+    use std::sync::Mutex;
+
+    use super::MediaState;
+    use crate::mac;
+
+    /// The app that played last, for the controls.
+    static LAST_APP: Mutex<String> = Mutex::new(String::new());
+
+    fn app() -> String {
+        LAST_APP.lock().map(|a| a.clone()).unwrap_or_default()
+    }
+
+    pub fn read(with_thumbnail: bool) -> Option<MediaState> {
+        let p = mac::playing()?;
+        if let Ok(mut last) = LAST_APP.lock() {
+            last.clone_from(&p.app);
+        }
+        Some(MediaState {
+            app: p.app,
+            title: p.title,
+            artist: p.artist,
+            album: p.album,
+            playing: p.playing,
+            position_ms: p.position_ms,
+            duration_ms: p.duration_ms,
+            // Spotify's cover is an https address; the interface shows it as it is.
+            thumbnail: if with_thumbnail { p.artwork } else { None },
+            shuffle: p.shuffle,
+            repeat: p.repeat,
+        })
+    }
+    pub fn toggle() {
+        mac::media_command(&app(), "playpause");
+    }
+    pub fn next() {
+        mac::media_command(&app(), "next track");
+    }
+    pub fn previous() {
+        mac::media_command(&app(), "previous track");
+    }
+    pub fn seek(position_ms: u64) {
+        mac::media_command(&app(), &format!("set player position to {}", position_ms as f64 / 1000.0));
+    }
+    pub fn read_thumbnail() -> Option<String> {
+        mac::playing().and_then(|p| p.artwork)
+    }
+    pub fn source_app() -> Option<String> {
+        Some(app()).filter(|a| !a.is_empty())
+    }
+    pub fn set_shuffle(on: bool) {
+        let app = app();
+        let property = if app == "Spotify" { "shuffling" } else { "shuffle enabled" };
+        mac::media_command(&app, &format!("set {property} to {on}"));
+    }
+    pub fn set_repeat(mode: &str) {
+        let app = app();
+        if app == "Spotify" {
+            mac::media_command(&app, &format!("set repeating to {}", mode != "none"));
+        } else {
+            let value = match mode {
+                "track" => "one",
+                "list" => "all",
+                _ => "off",
+            };
+            mac::media_command(&app, &format!("set song repeat to {value}"));
+        }
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 mod smtc {
     use super::MediaState;
     pub fn read(_: bool) -> Option<MediaState> {
@@ -231,11 +304,20 @@ pub async fn media_open_app() -> Result<(), String> {
     if crate::focus::focus_by_name(&app_id_name(&app)) {
         return Ok(());
     }
-    std::process::Command::new("explorer.exe")
-        .arg(format!("shell:AppsFolder\\{app}"))
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    #[cfg(windows)]
+    let mut command = {
+        let mut c = std::process::Command::new("explorer.exe");
+        c.arg(format!("shell:AppsFolder\\{app}"));
+        c
+    };
+    // macOS: Spotify or Music, by name (`open -a` brings it to the front).
+    #[cfg(not(windows))]
+    let mut command = {
+        let mut c = std::process::Command::new("open");
+        c.arg("-a").arg(&app);
+        c
+    };
+    command.spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 /// The program name hidden in a media AppUserModelID: "Spotify.exe" → "spotify", a Store id

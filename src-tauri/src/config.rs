@@ -433,7 +433,12 @@ mod tests {
         assert!(Config::default().hidden_pages.contains(&"cal".to_string()));
     }
 
+    // Windows paths (backslashes, drive letters): a Windows behaviour.
+
+    #[cfg(windows)]
+
     #[test]
+
     fn tira_as_aspas_do_copiar_como_caminho() {
         assert_eq!(clean_path("\"C:\\Users\\a\\Área de Trabalho\\Clipes\""), "C:\\Users\\a\\Área de Trabalho\\Clipes");
         assert_eq!(clean_path("  C:\\x  "), "C:\\x");

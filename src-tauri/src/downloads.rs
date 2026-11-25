@@ -78,7 +78,7 @@ pub fn reveal_download(app: AppHandle, path: String) -> Result<(), String> {
     if !file.starts_with(&dir) || !file.exists() {
         return Err("arquivo fora da pasta de downloads".into());
     }
-    std::process::Command::new("explorer.exe").arg(format!("/select,{}", file.display())).spawn().map(|_| ()).map_err(|e| e.to_string())
+    crate::platform::reveal(&file)
 }
 
 pub fn spawn(app: AppHandle) {

@@ -64,7 +64,21 @@ pub async fn pick_path(window: tauri::WebviewWindow, kind: String) -> Result<Opt
     tauri::async_runtime::spawn_blocking(move || open_dialog(owner, &kind)).await.map_err(|e| e.to_string())?
 }
 
-#[cfg(not(windows))]
+/// macOS: the system's own chooser, through AppleScript. Cancelling is not an error: it gives `None`.
+#[cfg(target_os = "macos")]
+#[tauri::command]
+pub async fn pick_path(kind: String) -> Result<Option<String>, String> {
+    let script = match kind.as_str() {
+        "folder" => "POSIX path of (choose folder)",
+        "image" => "POSIX path of (choose file of type {\"public.image\"})",
+        _ => "POSIX path of (choose file)",
+    };
+    tauri::async_runtime::spawn_blocking(move || Ok(crate::mac::osascript(script).filter(|p| !p.is_empty())))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 #[tauri::command]
 pub async fn pick_path(_kind: String) -> Result<Option<String>, String> {
     Ok(None)

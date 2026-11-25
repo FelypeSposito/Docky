@@ -1,4 +1,5 @@
-# Checks every push and pull request: types, the interface tests and the Rust tests, on Windows (Docky's only target).
+# Checks every push and pull request on both systems Docky runs on: types, the interface tests and the Rust tests,
+# on Windows and on macOS.
 name: CI
 
 on:
@@ -12,7 +13,11 @@ concurrency:
 
 jobs:
   test:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 

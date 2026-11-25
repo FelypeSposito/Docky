@@ -142,7 +142,7 @@ fn move_to_recycle_bin(path: &Path) -> Result<(), String> {
 
 #[cfg(not(windows))]
 fn move_to_recycle_bin(path: &Path) -> Result<(), String> {
-    fs::remove_file(path).map_err(|e| e.to_string())
+    crate::platform::trash(&[path.to_path_buf()])
 }
 
 /// Exclui a nota (vai para a Lixeira). A confirmação é feita na tela, antes deste comando.

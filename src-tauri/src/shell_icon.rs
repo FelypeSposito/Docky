@@ -251,7 +251,37 @@ fn shell_png(target: &str, size: i32) -> Option<Vec<u8>> {
     }
 }
 
-#[cfg(not(windows))]
+/// macOS: an app's icon, from its bundle (`Contents/Resources/<CFBundleIconFile>.icns`), turned into a PNG of `size`
+/// pixels by `sips`. Apps that keep their icon only in an asset catalog give `None`.
+#[cfg(target_os = "macos")]
+pub fn icon_png(target: &str, size: i32) -> Option<Vec<u8>> {
+    use std::{path::Path, process::Command};
+    let app = Path::new(target.trim());
+    if !app.extension().is_some_and(|e| e.eq_ignore_ascii_case("app")) {
+        return None;
+    }
+    let plist = app.join("Contents").join("Info.plist");
+    let output = Command::new("plutil").args(["-extract", "CFBundleIconFile", "raw", "-o", "-"]).arg(&plist).output().ok()?;
+    let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if !output.status.success() || name.is_empty() {
+        return None;
+    }
+    let file = if name.to_ascii_lowercase().ends_with(".icns") { name } else { format!("{name}.icns") };
+    let icns = app.join("Contents").join("Resources").join(file);
+    let out = std::env::temp_dir().join(format!("docky-icon-{}.png", std::process::id()));
+    let converted = Command::new("sips")
+        .args(["-s", "format", "png", "-Z", &size.to_string()])
+        .arg(&icns)
+        .arg("--out")
+        .arg(&out)
+        .output()
+        .ok()?;
+    let bytes = converted.status.success().then(|| std::fs::read(&out).ok()).flatten();
+    let _ = std::fs::remove_file(&out);
+    bytes
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn icon_png(_target: &str, _size: i32) -> Option<Vec<u8>> {
     None
 }

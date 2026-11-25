@@ -1,3 +1,4 @@
+import { IS_MAC } from "../../lib/platform";
 import { useEffect, useRef, useState } from "react";
 import { type AudioApp, ipc } from "../../lib/ipc";
 import { useMediaStore } from "../../media/store";
@@ -131,7 +132,9 @@ export function MixerPage({ active }: { active: boolean }) {
           {playingNow > 0 && <span>{plural(playingNow, "1 tocando agora", "{n} tocando agora")}</span>}
         </div>
         <div className="mx-list">
-          {apps !== null && apps.length === 0 && <div className="mx-empty">{t("Nenhum app abriu o som agora")}</div>}
+          {apps !== null && apps.length === 0 && (
+            <div className="mx-empty">{t(IS_MAC ? "O macOS não deixa mudar o volume de cada app" : "Nenhum app abriu o som agora")}</div>
+          )}
           {(apps ?? []).map((app) => (
             <div key={app.id} className={`mx-row${app.active ? " live" : ""}${app.muted ? " off" : ""}`}>
               <button

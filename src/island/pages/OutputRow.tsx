@@ -1,3 +1,4 @@
+import { IS_MAC, hotkey } from "../../lib/platform";
 import { useCallback, useEffect, useState } from "react";
 import { sortOutputs, splitOutputName } from "../../audio/devices";
 import { useAudioStore } from "../../audio/store";
@@ -8,8 +9,9 @@ import { HeadphonesIcon, MicIcon, MicOffIcon, ScreenIcon, SpeakerIcon } from "..
 const REFRESH_MS = 3000;
 /** FxSound is asked less often: each question starts its program for a moment. */
 const FX_REFRESH_MS = 10_000;
-/** The microphone's hotkey, as Rust names it (`hotkeys.rs`, `label`). */
+/** The microphone's hotkey, as Rust names it (`hotkeys.rs`, `label`), and as this system's keyboard shows it. */
 const MIC_HOTKEY = "Ctrl+Alt+M";
+const MIC_HOTKEY_SHOWN = hotkey("M");
 
 function OutputIcon({ kind }: { kind: OutputKind }) {
   if (kind === "headphones") return <HeadphonesIcon size={16} />;
@@ -54,7 +56,7 @@ export function OutputRow({ active }: { active: boolean }) {
   useEffect(() => {
     void ipc
       .hotkeysTaken()
-      .then((taken) => setMicKey(taken.includes(MIC_HOTKEY) ? null : MIC_HOTKEY))
+      .then((taken) => setMicKey(taken.includes(MIC_HOTKEY) ? null : MIC_HOTKEY_SHOWN))
       .catch(() => setMicKey(null));
   }, []);
 
@@ -130,8 +132,9 @@ export function OutputRow({ active }: { active: boolean }) {
             ))}
           </select>
         </label>
-      ) : (
-        // No speakers or headphones: say so where the choice would be, and keep the microphone below.
+      ) : IS_MAC ? null : (
+        // No speakers or headphones: say so where the choice would be, and keep the microphone below. (macOS picks its
+        // output in the menu bar's Sound menu: Docky cannot switch it there.)
         <div className="mx-field none">
           <span className="mx-field-ic" aria-hidden="true">
             <SpeakerIcon size={16} />

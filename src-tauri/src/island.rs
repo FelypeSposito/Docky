@@ -139,6 +139,8 @@ fn place_on(window: &WebviewWindow, monitor: &Monitor) -> tauri::Result<()> {
     window.set_size(LogicalSize::new(width, WINDOW_HEIGHT))?;
     window.set_position(at)?;
     window.set_always_on_top(true)?;
+    #[cfg(target_os = "macos")]
+    crate::mac::float_over_menu_bar(window);
     window.set_ignore_cursor_events(true)
 }
 

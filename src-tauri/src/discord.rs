@@ -219,7 +219,70 @@ mod pipe {
     }
 }
 
-#[cfg(not(windows))]
+/// macOS (and Linux): Discord listens on a Unix socket, `discord-ipc-0..9`, in the user's temporary folder.
+#[cfg(unix)]
+mod pipe {
+    use std::{
+        io::{self, Read, Write},
+        os::unix::net::UnixStream,
+        path::PathBuf,
+    };
+
+    use serde_json::Value;
+
+    /// The socket and what has arrived on it but not been read as a frame yet.
+    pub struct Pipe(UnixStream, Vec<u8>);
+
+    impl Pipe {
+        pub fn connect() -> Option<Pipe> {
+            let dirs = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"]
+                .iter()
+                .filter_map(|v| std::env::var_os(v))
+                .map(PathBuf::from)
+                .chain([PathBuf::from("/tmp")]);
+            for dir in dirs {
+                for i in 0..10 {
+                    if let Ok(stream) = UnixStream::connect(dir.join(format!("discord-ipc-{i}"))) {
+                        return Some(Pipe(stream, Vec::new()));
+                    }
+                }
+            }
+            None
+        }
+
+        pub fn send(&mut self, op: u32, payload: &Value) -> io::Result<()> {
+            self.0.write_all(&super::encode(op, payload))
+        }
+
+        /// The next frame if one has arrived, without blocking otherwise.
+        pub fn poll(&mut self) -> io::Result<Option<(u32, Value)>> {
+            self.0.set_nonblocking(true)?;
+            let mut chunk = [0u8; 4096];
+            let read = loop {
+                match self.0.read(&mut chunk) {
+                    Ok(0) => break Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Discord fechou")),
+                    Ok(n) => self.1.extend_from_slice(&chunk[..n]),
+                    Err(e) if e.kind() == io::ErrorKind::WouldBlock => break Ok(()),
+                    Err(e) => break Err(e),
+                }
+            };
+            self.0.set_nonblocking(false)?;
+            read?;
+            if self.1.len() < 8 {
+                return Ok(None);
+            }
+            let (op, len) = super::header(self.1[..8].try_into().expect("8 bytes"));
+            let end = 8 + len as usize;
+            if self.1.len() < end {
+                return Ok(None);
+            }
+            let body: Vec<u8> = self.1.drain(..end).skip(8).collect();
+            Ok(Some((op, serde_json::from_slice(&body).unwrap_or(Value::Null))))
+        }
+    }
+}
+
+#[cfg(not(any(windows, unix)))]
 mod pipe {
     use serde_json::Value;
     pub struct Pipe;

@@ -74,7 +74,7 @@ pub fn log_write(level: String, message: String) {
 pub fn open_logs(app: AppHandle) -> Result<(), String> {
     let dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    std::process::Command::new("explorer.exe").arg(&dir).spawn().map(|_| ()).map_err(|e| e.to_string())
+    crate::platform::open_folder(&dir)
 }
 
 #[cfg(test)]
