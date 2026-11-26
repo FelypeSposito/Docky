@@ -143,11 +143,12 @@ pub fn is_builtin(target: &str) -> bool {
     [r"shell:appsfolder\microsoft.", r"shell:appsfolder\microsoftwindows.", r"shell:appsfolder\windows.", r"shell:appsfolder\microsoftcorporationii."]
         .iter()
         .any(|prefix| lower.starts_with(prefix))
-        // Programs Windows lists by its own folders' ids: System32, Windows, SysWOW64 (Voice Access, Character Map…).
-        || ["{1ac14e77-02e7-4e5d-b744-2eb1ae5198b7}", "{f38bf404-1d43-42f2-9305-67de0b28fc23}", "{d65231b0-b2f1-4857-a4ce-a8e7c6ea7d27}"]
-            .iter()
-            .any(|folder| lower.contains(folder))
+        // Programs Windows lists by its own folders' ids (Voice Access, Character Map…).
+        || SYSTEM_FOLDER_IDS.iter().any(|folder| lower.contains(folder))
 }
+
+/// The known-folder ids Windows' Start menu uses for its own folders: System32, Windows, SysWOW64 (lowercase).
+const SYSTEM_FOLDER_IDS: [&str; 3] = ["{1ac14e77-02e7-4e5d-b744-2eb1ae5198b7}", "{f38bf404-1d43-42f2-9305-67de0b28fc23}", "{d65231b0-b2f1-4857-a4ce-a8e7c6ea7d27}"];
 
 impl AppEntry {
     /// O peso na ordenação: o histórico conta por abertura; fixado e aberto agora pesam bastante.
@@ -212,13 +213,12 @@ pub fn lnk_target(bytes: &[u8]) -> Option<String> {
         let size = bytes.get(at..at + 2).map(|b| u16::from_le_bytes([b[0], b[1]]) as usize)?;
         at += 2 + size;
     }
-    if flags & 0b10 == 0 {
-        return None; // sem LinkInfo
+    // Windows' own shortcuts (Steps Recorder, Remote Desktop…) keep no LinkInfo, only the target with variables in it
+    // (`%windir%\system32\psr.exe`) in an extra block.
+    if flags & 0b10 == 0 || u32_at(at + 8).is_some_and(|f| f & 1 == 0) {
+        return environment_target(bytes);
     }
     let info = at;
-    if u32_at(info + 8)? & 1 == 0 {
-        return None; // sem caminho local
-    }
     let read = |offset: usize| -> Option<String> {
         let start = info + offset;
         let end = bytes.get(start..)?.iter().position(|b| *b == 0)? + start;
@@ -228,6 +228,53 @@ pub fn lnk_target(bytes: &[u8]) -> Option<String> {
     let suffix = u32_at(info + 24).filter(|offset| *offset > 0).and_then(read).unwrap_or_default();
     let path = format!("{base}{suffix}");
     (!path.is_empty()).then_some(path)
+}
+
+/// A shortcut to a shell item and not to a program: File Explorer, a drive ("Disco Local (D)"), a Control Panel page.
+/// Only a list of shell ids: no path, no relative path, no variables, and not an installer's "advertised" shortcut (Office keeps a
+/// Darwin id instead of a path, flag 0x1000).
+pub fn lnk_is_shell_item(bytes: &[u8]) -> bool {
+    let u32_at = |at: usize| bytes.get(at..at + 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]));
+    let Some(flags) = u32_at(0x14).filter(|_| u32_at(0) == Some(0x4C)) else { return false };
+    // 0x8: a relative path to the program (Battle.net's and G HUB's shortcuts keep only that and the shell ids).
+    flags & 0b1 != 0 && flags & 0x8 == 0 && flags & 0x1000 == 0 && lnk_target(bytes).is_none()
+}
+
+/// The target a shortcut keeps in its EnvironmentVariableDataBlock (size 0x314, signature 0xA0000001): 260 bytes of
+/// ANSI text, then 520 of UTF-16, which is the one read. The variables in it are expanded.
+fn environment_target(bytes: &[u8]) -> Option<String> {
+    const HEADER: [u8; 8] = [0x14, 0x03, 0, 0, 0x01, 0, 0, 0xA0];
+    let start = bytes.windows(HEADER.len()).position(|w| w == HEADER)? + HEADER.len() + 260;
+    let wide: Vec<u16> = bytes.get(start..start + 520)?.as_chunks::<2>().0.iter().map(|c| u16::from_le_bytes(*c)).take_while(|c| *c != 0).collect();
+    let text = String::from_utf16_lossy(&wide);
+    let path = expand_variables(text.trim(), |name| std::env::var(name).ok());
+    (!path.is_empty()).then_some(path)
+}
+
+/// Replaces `%NAME%` with the variable's value (case aside, as Windows does); an unknown one stays as it was.
+pub fn expand_variables(text: &str, lookup: impl Fn(&str) -> Option<String>) -> String {
+    let mut out = String::new();
+    let mut rest = text;
+    while let Some(open) = rest.find('%') {
+        out.push_str(&rest[..open]);
+        let after = &rest[open + 1..];
+        match after.find('%') {
+            Some(close) if close > 0 => {
+                let name = &after[..close];
+                match lookup(name).or_else(|| lookup(&name.to_uppercase())) {
+                    Some(value) => out.push_str(&value),
+                    None => out.push_str(&rest[open..open + close + 2]),
+                }
+                rest = &after[close + 1..];
+            }
+            _ => {
+                out.push('%');
+                rest = after;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 /// As linhas "Nome<TAB>AppID" que o Windows lista para o Menu Iniciar (`Get-StartApps`). Fica só com o que abre um app
@@ -366,17 +413,137 @@ const WINDOWS_TOOLS: [&str; 13] = [
     "manutenção",
 ];
 
+/// Pieces of a Start menu name that mark a shortcut next to the app, not the app: its uninstaller, readme, updater,
+/// installer, "what's new", settings and samples (English and Portuguese).
+const NOISE_WORDS: [&str; 29] = [
+    "uninstall",
+    "desinstal",
+    "readme",
+    "léame",
+    "license",
+    "licen",
+    "help",
+    "ajuda",
+    "manual",
+    "documentation",
+    "release notes",
+    "website",
+    "support",
+    "update",
+    "atualiza",
+    "install",
+    "instalar",
+    "what's new",
+    "whats new",
+    "o que há de novo",
+    "novidades",
+    "sobre o ",
+    "configurar ",
+    "reference",
+    "sample",
+    "bug report",
+    "reset",
+    // A tool's console or docs ("Node.js command prompt", "PyDoc"); Windows' own "Command Prompt" starts the name.
+    " command prompt",
+    "pydoc",
+];
+
 /// Atalhos do Menu Iniciar que não são o app em si.
 fn is_noise(name: &str) -> bool {
     let lower = name.to_lowercase();
-    WINDOWS_TOOLS.contains(&lower.as_str())
-        || ["uninstall", "desinstal", "readme", "léame", "license", "licen", "help", "ajuda", "manual", "documentation", "release notes", "website", "support"]
-            .iter()
-            .any(|bad| lower.contains(bad))
+    WINDOWS_TOOLS.contains(&lower.as_str()) || NOISE_WORDS.iter().any(|bad| lower.contains(bad))
 }
 
+/// Start menu folders of developer kits (the Windows SDK, Visual Studio's command prompts, an app's SDK): tools and
+/// samples, not apps anyone opens from a dock.
+const KIT_FOLDERS: [&str; 3] = ["windows kits", "visual studio tools", "sdk"];
+
 fn is_tools_folder(name: &str) -> bool {
-    WINDOWS_TOOLS.contains(&name.to_lowercase().as_str())
+    let lower = name.to_lowercase();
+    WINDOWS_TOOLS.contains(&lower.as_str()) || KIT_FOLDERS.contains(&lower.as_str())
+}
+
+/// Windows' own programs worth a shortcut (by file name); Windows lists many more (consoles, accessibility tools,
+/// diagnostics) that are left out.
+const WINDOWS_KEEP: [&str; 8] = ["explorer.exe", "taskmgr.exe", "cmd.exe", "control.exe", "notepad.exe", "mspaint.exe", "calc.exe", "snippingtool.exe"];
+
+/// Windows' Start menu entries without a package of their own (`Microsoft.Windows.Explorer`) worth a shortcut.
+const WINDOWS_SHELL_KEEP: [&str; 2] = [r"shell:appsfolder\microsoft.windows.explorer", r"shell:appsfolder\microsoft.windows.controlpanel"];
+
+/// Windows' own packages that are parts of the system, not apps (Backup, Get Started, Click to Do, Quick Assist,
+/// Dev Home, Windows Security, Run, Remote Desktop's second entry).
+const WINDOWS_PARTS: [&str; 7] = [
+    r"shell:appsfolder\microsoftwindows.client.",
+    r"shell:appsfolder\microsoftcorporationii.quickassist",
+    r"shell:appsfolder\microsoft.windows.devhome",
+    r"shell:appsfolder\microsoft.sechealthui",
+    r"shell:appsfolder\microsoft.windows.remotedesktop",
+    r"shell:appsfolder\microsoft.windows.shell.rundialog",
+    r"shell:appsfolder\microsoft.windows.secondarytiles",
+];
+
+/// The localized names of Windows tools that come only as `Microsoft.AutoGenerated` entries and are still worth a
+/// shortcut (normalized: Task Manager).
+const AUTOGENERATED_KEEP: [&str; 2] = ["taskmanager", "gerenciadordetarefas"];
+
+/// A Windows part nobody docks: an admin console, an accessibility or diagnostics tool, a piece of the system. `exe`
+/// is the program a `.lnk` opens. The everyday ones (File Explorer, Task Manager, Notepad…) and every app you
+/// installed stay.
+pub fn is_windows_clutter(name: &str, target: &str, exe: Option<&str>) -> bool {
+    let lower = target.to_lowercase().replace('/', "\\");
+    let kept = |program: &str| {
+        let file = program.rsplit(['\\', '/']).next().unwrap_or(program).to_lowercase();
+        WINDOWS_KEEP.contains(&file.as_str())
+    };
+    // Windows' programs outside its folder: Program Files\Windows Media Player, Windows NT\Accessories… (by path, or by
+    // the Program Files folders' ids in a Start menu entry).
+    let in_windows_program_files = |path: &str| {
+        let path = path.to_lowercase();
+        [r"\program files\windows ", r"\program files (x86)\windows ", r"{6d809377-6af0-444b-8957-a3773f02200e}\windows ", r"{7c5a40ef-a0fb-4bfc-874a-c0f2e0b9fa8e}\windows "]
+            .iter()
+            .any(|place| path.contains(place))
+    };
+    // A `.lnk` to a program of Windows' own (Steps Recorder, Windows Media Player Legacy…).
+    if let Some(exe) = exe
+        && (is_windows_program(exe) || in_windows_program_files(exe))
+    {
+        return !kept(exe);
+    }
+    let Some(id) = lower.strip_prefix(r"shell:appsfolder\") else { return false };
+    // Programs Windows lists by its own folders' ids: System32, Windows, SysWOW64 (Event Viewer, Character Map…).
+    if SYSTEM_FOLDER_IDS.iter().any(|folder| id.starts_with(folder)) {
+        return !kept(id);
+    }
+    if in_windows_program_files(id) {
+        return true;
+    }
+    // Entries Windows made for shortcuts with no app of their own: the admin tools' folder, mostly.
+    if id.starts_with("microsoft.autogenerated.") {
+        return !AUTOGENERATED_KEEP.contains(&normalize(name).as_str());
+    }
+    if WINDOWS_PARTS.iter().any(|part| lower.starts_with(part)) {
+        return true;
+    }
+    // `Microsoft.Windows.Something` with no package (no `_`): shell entries, of which only two are apps.
+    id.starts_with("microsoft.windows.") && !id.contains('_') && !WINDOWS_SHELL_KEEP.contains(&lower.as_str())
+}
+
+/// Leaves one shortcut per program: a second Start menu entry for the same program whose name grows the first one's
+/// ("VLC media player skinned", "VLC media player - reset preferences") is a variant, not another app. `links` is
+/// each shortcut with the program it opens.
+pub fn drop_variants(links: &mut Vec<(AppEntry, Option<String>)>) {
+    let mut by_program: HashMap<String, Vec<String>> = HashMap::new();
+    for (app, exe) in links.iter() {
+        if let Some(exe) = exe {
+            by_program.entry(exe.to_lowercase()).or_default().push(normalize(&app.name));
+        }
+    }
+    links.retain(|(app, exe)| {
+        let Some(exe) = exe else { return true };
+        let name = normalize(&app.name);
+        let siblings = &by_program[&exe.to_lowercase()];
+        !siblings.iter().any(|other| other.len() < name.len() && !other.is_empty() && name.starts_with(other.as_str()))
+    });
 }
 
 fn collect_links(dir: &Path, depth: u32, out: &mut Vec<(String, PathBuf)>) {
@@ -814,15 +981,19 @@ fn collect_apps() -> Vec<AppEntry> {
         let (pinned, running) = (pinned_names(), running_programs());
         let inventory = windows_inventory();
         let links = start_menu_apps();
-        let known: std::collections::HashSet<String> = links.iter().map(|(name, _)| normalize(name)).collect();
         // Start menu shortcuts to Windows' own programs (Administrative Tools, Voice Access…) go after your apps.
         let mut windows_links = std::collections::HashSet::new();
-        let mut apps: Vec<AppEntry> = links
+        let mut shell_items = std::collections::HashSet::new();
+        let mut linked: Vec<(AppEntry, Option<String>)> = links
             .into_iter()
             .map(|(name, path)| {
                 let key = normalize(&name);
                 // O programa para onde o atalho aponta diz melhor quem é o app do que o nome do atalho.
-                let exe = fs::read(&path).ok().and_then(|bytes| lnk_target(&bytes));
+                let bytes = fs::read(&path).unwrap_or_default();
+                let exe = lnk_target(&bytes);
+                if lnk_is_shell_item(&bytes) {
+                    shell_items.insert(path.to_string_lossy().into_owned());
+                }
                 let game = is_game_link(&path.to_string_lossy(), exe.as_deref(), &name)
                     || exe.as_deref().is_some_and(|exe| in_game_dir(exe, &inventory.game_dirs) && !is_launcher(&name));
                 if exe.as_deref().is_some_and(is_windows_program) {
@@ -830,7 +1001,7 @@ fn collect_apps() -> Vec<AppEntry> {
                 }
                 let program = exe.as_deref().and_then(program_of);
                 let by_program = program.as_ref().map_or(0, |p| usage.get(p).copied().unwrap_or(0));
-                AppEntry {
+                let entry = AppEntry {
                     uses: by_program.max(usage_for(&name, &usage)),
                     pinned: pinned.contains(&key),
                     // Apps que abrem por um atualizador (Discord: `Update.exe --processStart`) não mostram o programa no atalho;
@@ -840,13 +1011,29 @@ fn collect_apps() -> Vec<AppEntry> {
                     name,
                     kind: if game { AppKind::Game } else { AppKind::App },
                     icon: None,
-                }
+                };
+                (entry, exe)
             })
             .collect();
+        drop_variants(&mut linked);
+        // Windows lists File Explorer twice: a shortcut to explorer.exe and its own entry, named in your language.
+        let explorer_entry = inventory.start_apps.iter().any(|(_, id)| id.eq_ignore_ascii_case("Microsoft.Windows.Explorer"));
+        linked.retain(|(app, exe)| {
+            let is_explorer = exe.as_deref().is_some_and(|e| e.to_lowercase().ends_with(r"\explorer.exe"));
+            // A shortcut to a drive or a folder ("Disco Local (D)"): folders have a section of their own.
+            let to_folder = exe.as_deref().is_some_and(|e| Path::new(e).is_dir());
+            !(is_explorer && explorer_entry) && !to_folder && !shell_items.contains(&app.target) && !is_windows_clutter(&app.name, &app.target, exe.as_deref())
+        });
+        // Taken after the cleaning: a shortcut left out (File Explorer's, in English) lets Windows' own entry in.
+        let known: std::collections::HashSet<String> = linked.iter().map(|(app, _)| normalize(&app.name)).collect();
+        let mut apps: Vec<AppEntry> = linked.into_iter().map(|(app, _)| app).collect();
         // Apps da Loja e outros que o Menu Iniciar lista sem atalho `.lnk`.
         for (name, id) in inventory.start_apps {
             let key = normalize(&name);
-            if key.is_empty() || known.contains(&key) {
+            let target = format!(r"shell:AppsFolder\{id}");
+            // An entry that is a drive or a folder (`D:\`): folders have a section of their own.
+            let folder = (id.len() <= 3 && id.ends_with(":\\")) || (id.contains(':') && Path::new(&id).is_dir());
+            if key.is_empty() || known.contains(&key) || folder || is_windows_clutter(&name, &target, None) {
                 continue;
             }
             apps.push(AppEntry {
@@ -855,7 +1042,7 @@ fn collect_apps() -> Vec<AppEntry> {
                 // Sem o programa do atalho, vale o nome: o processo "Spotify" é o app "Spotify".
                 running: key.len() >= 5 && running.iter().any(|program| program == &key || program.starts_with(&key)),
                 kind: if is_game_package(&id, &inventory.game_packages) { AppKind::Game } else { AppKind::App },
-                target: format!(r"shell:AppsFolder\{id}"),
+                target,
                 name,
                 icon: None,
             });
@@ -964,7 +1151,7 @@ mod tests {
     use std::{fs, path::PathBuf};
 
     use super::{
-        EpicGame, SteamGame, epic_games_in, game_dir, in_game_dir, is_builtin, is_game_link, is_game_package, is_steam_tool, lnk_target, parse_inventory, normalize, parse_app_manifest, parse_epic_manifest, parse_start_apps, program_of, rot13, steam_games_in, steam_icon,
+        AppEntry, AppKind, EpicGame, SteamGame, drop_variants, epic_games_in, expand_variables, game_dir, in_game_dir, is_builtin, is_noise, is_tools_folder, is_windows_clutter, lnk_is_shell_item, is_game_link, is_game_package, is_steam_tool, lnk_target, parse_inventory, normalize, parse_app_manifest, parse_epic_manifest, parse_start_apps, program_of, rot13, steam_games_in, steam_icon,
         steam_library_paths, usage_for, vdf_pairs,
     };
 
@@ -1224,6 +1411,87 @@ mod tests {
         assert!(is_builtin(r"shell:AppsFolder\{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\charmap.exe"));
         assert!(!is_builtin(r"shell:AppsFolder\SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify"));
         assert!(!is_builtin(r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Discord.lnk"));
+    }
+
+    #[test]
+    fn deixa_de_fora_as_partes_do_windows() {
+        // Admin consoles, accessibility and diagnostics, by the ids of Windows' folders or as AutoGenerated entries.
+        assert!(is_windows_clutter("Visualizador de Eventos", r"shell:AppsFolder\Microsoft.AutoGenerated.{C9D0E3A5-EE43-D820-3F81-2A44372AFB0D}", None));
+        assert!(is_windows_clutter("Windows Defender Firewall", r"shell:AppsFolder\{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WF.msc", None));
+        assert!(is_windows_clutter("Windows PowerShell ISE 5.1 (x86)", r"shell:AppsFolder\{D65231B0-B2F1-4857-A4CE-A8E7C6EA7D27}\WindowsPowerShell\v1.0\PowerShell_ISE.exe", None));
+        assert!(is_windows_clutter("Backup do Windows", r"shell:AppsFolder\MicrosoftWindows.Client.CBS_cw5n1h2txyewy!WindowsBackup", None));
+        assert!(is_windows_clutter("Executar", r"shell:AppsFolder\Microsoft.Windows.Shell.RunDialog", None));
+        assert!(is_windows_clutter("Steps Recorder", r"C:\ProgramData\x\Steps Recorder.lnk", Some(r"C:\WINDOWS\system32\psr.exe")));
+        assert!(is_windows_clutter("Windows Media Player Legacy", r"C:\ProgramData\x\WMP.lnk", Some(r"C:\Program Files (x86)\Windows Media Player\wmplayer.exe")));
+        // The everyday ones stay.
+        assert!(!is_windows_clutter("Gerenciador de Tarefas", r"shell:AppsFolder\Microsoft.AutoGenerated.{EC8BBCC0-8DF2-4BCE-A429-37BBF7F996C6}", None));
+        assert!(!is_windows_clutter("Prompt de Comando", r"shell:AppsFolder\{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\cmd.exe", None));
+        assert!(!is_windows_clutter("Explorador de Arquivos", r"shell:AppsFolder\Microsoft.Windows.Explorer", None));
+        assert!(!is_windows_clutter("Calculadora", r"shell:AppsFolder\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App", None));
+        assert!(!is_windows_clutter("Configurações", r"shell:AppsFolder\windows.immersivecontrolpanel_cw5n1h2txyewy!microsoft.windows.immersivecontrolpanel", None));
+        // And every app you installed, wherever it lives.
+        assert!(!is_windows_clutter("Spotify", r"shell:AppsFolder\SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", None));
+        assert!(!is_windows_clutter("Battle.net", r"shell:AppsFolder\{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}\Battle.net\Battle.net Launcher.exe", None));
+        assert!(!is_windows_clutter("VLC media player", r"C:\ProgramData\x\VLC media player.lnk", Some(r"C:\Program Files\VideoLAN\VLC\vlc.exe")));
+    }
+
+    #[test]
+    fn deixa_de_fora_os_atalhos_que_nao_sao_o_app() {
+        for name in ["Check for FxSound updates", "Verificar Atualizações", "Configurar Java", "Sobre o Java", "O que há de novo na última versão", "Install Additional Tools for Node.js", "Visual Studio Installer", "MSI Afterburner skin format reference", "Samples", "AMD Bug Report Tool", "Node.js command prompt", "PyDoc (Python 3.14)", "Desinstalar"] {
+            assert!(is_noise(name), "{name}");
+        }
+        for name in ["VLC media player", "Configurações", "Command Prompt", "Python 3.14", "Steam", "Obsidian"] {
+            assert!(!is_noise(name), "{name}");
+        }
+        assert!(is_tools_folder("Windows Kits") && is_tools_folder("SDK") && is_tools_folder("Visual Studio Tools") && !is_tools_folder("VideoLAN"));
+    }
+
+    #[test]
+    fn fica_um_atalho_por_programa() {
+        let entry = |name: &str| AppEntry { name: name.into(), target: format!("{name}.lnk"), uses: 0, pinned: false, running: false, kind: AppKind::App, icon: None };
+        let vlc = Some(r"C:\Program Files\VideoLAN\VLC\vlc.exe".to_string());
+        let mut links = vec![
+            (entry("VLC media player skinned"), vlc.clone()),
+            (entry("VLC media player"), vlc.clone()),
+            (entry("VLC media player - reset preferences and cache files"), vlc),
+            (entry("Git Bash"), Some(r"C:\Program Files\Git\git-bash.exe".into())),
+            (entry("Git CMD"), Some(r"C:\Program Files\Git\git-cmd.exe".into())),
+            // Two apps behind one launcher are not variants of each other.
+            (entry("Overwatch"), Some(r"C:\Battle.net\Battle.net Launcher.exe".into())),
+            (entry("Battle.net"), Some(r"C:\Battle.net\Battle.net Launcher.exe".into())),
+            (entry("Sem programa"), None),
+        ];
+        drop_variants(&mut links);
+        let names: Vec<&str> = links.iter().map(|(app, _)| app.name.as_str()).collect();
+        assert_eq!(names, ["VLC media player", "Git Bash", "Git CMD", "Overwatch", "Battle.net", "Sem programa"]);
+    }
+
+    #[test]
+    fn expande_as_variaveis_do_caminho() {
+        let lookup = |name: &str| match name {
+            "WINDIR" => Some(r"C:\WINDOWS".to_string()),
+            "ProgramFiles" => Some(r"C:\Program Files".to_string()),
+            _ => None,
+        };
+        assert_eq!(expand_variables(r"%windir%\system32\psr.exe", lookup), r"C:\WINDOWS\system32\psr.exe");
+        assert_eq!(expand_variables(r"%ProgramFiles%\App\app.exe", lookup), r"C:\Program Files\App\app.exe");
+        assert_eq!(expand_variables(r"%NADA%\x.exe", lookup), r"%NADA%\x.exe");
+        assert_eq!(expand_variables("100% certo", lookup), "100% certo");
+    }
+
+    #[test]
+    fn reconhece_atalho_para_item_do_shell() {
+        let header = |flags: u32| {
+            let mut bytes = vec![0u8; 0x4C];
+            bytes[0] = 0x4C;
+            bytes[0x14..0x18].copy_from_slice(&flags.to_le_bytes());
+            bytes.extend_from_slice(&[2, 0, 0, 0]); // an id list of two bytes
+            bytes
+        };
+        assert!(lnk_is_shell_item(&header(0x81))); // only shell ids: a drive, File Explorer
+        assert!(!lnk_is_shell_item(&header(0x99))); // a relative path to the program: Battle.net
+        assert!(!lnk_is_shell_item(&header(0x1081))); // an installer's advertised shortcut (Office)
+        assert!(!lnk_is_shell_item(b"not a shortcut"));
     }
 
     #[test]

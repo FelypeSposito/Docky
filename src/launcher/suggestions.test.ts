@@ -69,11 +69,10 @@ describe("apps sugeridos", () => {
     expect(suggestionSections([music, downloads, desktop], have).flatMap((s) => s.entries.map((e) => e.name))).toEqual(["Músicas"]);
   });
 
-  it("mostra os apps todos, com quantos aparecem antes de abrir a lista", () => {
-    const many = Array.from({ length: 20 }, (_, i) => app(`App ${i}`));
+  it("mostra os apps todos", () => {
+    const many = Array.from({ length: 40 }, (_, i) => app(`App ${i}`));
     const [section] = suggestionSections(many, []);
-    expect(section.entries).toHaveLength(20);
-    expect(section.shown).toBe(16);
+    expect(visibleEntries(section)).toHaveLength(40);
   });
 
   it("sem nenhum sinal de uso, sugere os primeiros da lista", () => {
@@ -208,15 +207,13 @@ describe("sugestões por origem (apps, Steam, Epic)", () => {
 });
 
 describe("sugestões em ordem alfabética", () => {
-  it("mostra os escolhidos (os usados primeiro) em ordem alfabética, e todos em ordem quando abre a lista", () => {
+  it("mostra todos em ordem alfabética, sem contar acentos, maiúsculas e o uso", () => {
     const apps = [app("Zoom", { running: true }), app("Árvore"), app("chrome", { pinned: true }), ...Array.from({ length: 20 }, (_, i) => app(`App ${i + 1}`))];
     const [section] = suggestionSections(apps, []);
-    const short = visibleEntries(section, false).map((e) => e.name);
-    expect(short).toHaveLength(16);
-    expect(short).toContain("Zoom");
-    expect(short).toEqual([...short].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base", numeric: true })));
-    const all = visibleEntries(section, true).map((e) => e.name);
+    const all = visibleEntries(section).map((e) => e.name);
+    expect(all).toHaveLength(23);
     expect(all.slice(0, 3)).toEqual(["App 1", "App 2", "App 3"]);
     expect(all.indexOf("Árvore")).toBeLessThan(all.indexOf("chrome"));
+    expect(all[all.length - 1]).toBe("Zoom");
   });
 });

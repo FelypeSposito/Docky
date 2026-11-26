@@ -1,5 +1,4 @@
 import { IS_MAC } from "../../lib/platform";
-import { useState } from "react";
 import { useConfigStore } from "../../config/useConfig";
 import { newId } from "../../launcher/model";
 import {
@@ -29,8 +28,6 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
   const apps = useInstalledApps();
   const loading = useAppsStore((s) => s.loading || !s.loaded);
   const sections = suggestionSections(apps, shortcuts);
-  /** The sections opened past their first entries ("Mostrar todos"). */
-  const [full, setFull] = useState<string[]>([]);
   /** No fim da lista (a ordem dos seus atalhos não muda) e com o ícone do próprio app, quando ele tem. */
   const add = (entry: AppEntry) => {
     const { shortcuts: next, ids } = addApps(useConfigStore.getState().config.shortcuts, [entry], newId);
@@ -98,16 +95,11 @@ export function Suggestions({ onClose }: { onClose: () => void }) {
           {sections.map((section) => (
             <div key={section.kind}>
               <QTitle>{t(section.title)}</QTitle>
-              {visibleEntries(section, full.includes(section.kind)).map((entry) => (
+              {visibleEntries(section).map((entry) => (
                 <QRow key={entry.target} label={entryName(entry)} hint={whySuggested(entry)}>
                   <QButton onClick={() => add(entry)}>{t("+ Adicionar")}</QButton>
                 </QRow>
               ))}
-              {!full.includes(section.kind) && section.entries.length > section.shown && (
-                <QRow label={t("Mostrar todos ({n})", { n: section.entries.length })}>
-                  <QButton onClick={() => setFull([...full, section.kind])}>{t("Mostrar")}</QButton>
-                </QRow>
-              )}
             </div>
           ))}
         </>

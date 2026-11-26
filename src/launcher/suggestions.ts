@@ -124,8 +124,6 @@ const KINDS: Record<AppKind, KindInfo> = {
 };
 /** The sections, in the order they are shown. */
 const SECTION_ORDER: AppKind[] = ["app", "folder", "steam", "epic", "game"];
-/** How many apps a section shows before "Mostrar todos". */
-export const APPS_SHOWN = 16;
 
 const kindOf = (entry: AppEntry): AppKind => entry.kind ?? "app";
 const infoOf = (entry: AppEntry): KindInfo => KINDS[kindOf(entry)] ?? KINDS.app;
@@ -215,8 +213,6 @@ export interface SuggestionSection {
   kind: AppKind;
   title: string;
   entries: AppEntry[];
-  /** How many to show before "Mostrar todos" (all of them for the sections that are never long). */
-  shown: number;
 }
 
 /**
@@ -228,20 +224,18 @@ export function suggestionSections(apps: AppEntry[], shortcuts: Shortcut[]): Sug
     kind,
     title: KINDS[kind].title,
     entries: kind === "app" ? suggestedApps(apps, shortcuts) : apps.filter((entry) => kindOf(entry) === kind && !alreadyShortcut(entry, shortcuts)),
-    shown: kind === "app" ? APPS_SHOWN : Infinity,
   })).filter((section) => section.entries.length > 0);
 }
 
 /**
- * What a section shows, in alphabetical order (accents and case aside): the first `shown` it ranks (the apps you use
- * come first, so the short list is the useful one), or all of them once "Mostrar todos" is open. Windows' folders keep
- * their own order (Downloads, Documentos, Área de Trabalho…).
+ * What a section shows: all of it, in alphabetical order (accents and case aside). Rust already left out what is not
+ * an app (Windows' consoles, uninstallers, kits), so the whole list is short enough. Windows' folders keep their own
+ * order (Downloads, Documentos, Área de Trabalho…).
  */
-export function visibleEntries(section: SuggestionSection, all: boolean): AppEntry[] {
-  const picked = all ? section.entries : section.entries.slice(0, section.shown);
-  if (section.kind === "folder") return picked;
+export function visibleEntries(section: SuggestionSection): AppEntry[] {
+  if (section.kind === "folder") return section.entries;
   const byName = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
-  return [...picked].sort((a, b) => byName.compare(entryName(a), entryName(b)));
+  return [...section.entries].sort((a, b) => byName.compare(entryName(a), entryName(b)));
 }
 
 /** Whether something you already have stands for this suggestion: the same app, or a shortcut to the same folder. */
